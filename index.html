@@ -1,33 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>3D Dice Bag</title>
-  <link rel="stylesheet" href="style.css?v=5">
-  <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Zone</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: radial-gradient(circle at top, #1e2a3c, #0a0f16 70%);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #eafaf0;
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: clamp(28px, 7vw, 40px);
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #7CFC00, #00d4ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-align: center;
+  }
+  p.subtitle {
+    margin: 0 0 32px;
+    color: #a7b8c9;
+    font-size: clamp(14px, 3.6vw, 16px);
+    text-align: center;
+  }
+  #games {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 700px;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    width: 220px;
+    padding: 28px 20px;
+    border-radius: 16px;
+    background: #121b26;
+    border: 2px solid transparent;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card:hover, .card:focus-visible {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .card.dice { border-color: #00d4ff44; }
+  .card.dice:hover { border-color: #00d4ff; box-shadow: 0 8px 24px rgba(0,212,255,0.25); }
+  .card.snake { border-color: #7CFC0044; }
+  .card.snake:hover { border-color: #7CFC00; box-shadow: 0 8px 24px rgba(124,252,0,0.25); }
+  .icon {
+    font-size: 56px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+  }
+  .card p {
+    margin: 0;
+    font-size: 13px;
+    color: #a7b8c9;
+    text-align: center;
+  }
+</style>
 </head>
 <body>
+  <h1>🎮 Game Zone</h1>
+  <p class="subtitle">Pick a game to play</p>
 
-  <div class="controls">
-    <button id="remove-btn" class="control-btn">-</button>
-    <span id="dice-count">1 Dice</span>
-    <button id="add-btn" class="control-btn">+</button>
+  <div id="games">
+    <a class="card dice" href="dice/">
+      <div class="icon">🎲</div>
+      <h2>Dice Game</h2>
+      <p>Roll and play</p>
+    </a>
+
+    <a class="card snake" href="snake/">
+      <div class="icon">🐍</div>
+      <h2>Snake</h2>
+      <p>Classic or wrap-around mode</p>
+    </a>
   </div>
-
-  <div id="dice-container"></div>
-
-  <button id="roll-btn">🎲 ROLL DICE 🎲</button>
-
-  <p id="result">Total: 1</p>
-
-  <div class="style-selector">
-    <button class="style-btn active" data-style="classic">Classic</button>
-    <button class="style-btn" data-style="red">Red</button>
-    <button class="style-btn" data-style="white">White</button>
-    <button class="style-btn" data-style="colorful">Colorful</button>
-  </div>
-
-  <script src="script.js?v=5"></script>
 </body>
 </html>

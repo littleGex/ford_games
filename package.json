@@ -1,0 +1,16 @@
+{
+  "name": "mydice",
+  "version": "1.0.0",
+  "description": "Minimal E2E testable project",
+  "main": "index.html",
+  "scripts": {
+    "serve": "http-server -c-1 -p 8080 .",
+    "test:e2e": "playwright test tests/e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.43.0",
+    "eslint": "^8.0.0",
+    "htmlhint": "^1.1.4",
+    "http-server": "^14.1.1"
+  }
+}

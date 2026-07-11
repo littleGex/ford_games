@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Dice Bag</title>
+  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    #homeBtn {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      padding: 8px 14px;
+      font-size: 14px;
+      background: #333;
+      color: white;
+      border: 2px solid #007bff;
+      border-radius: 20px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+    }
+    #homeBtn:hover { background: #444; }
+  </style>
+</head>
+<body>
+
+  <a id="homeBtn" href="../">🏠 Menu</a>
+
+  <div class="controls">
+    <button id="remove-btn" class="control-btn">-</button>
+    <span id="dice-count">1 Dice</span>
+    <button id="add-btn" class="control-btn">+</button>
+  </div>
+
+  <div id="dice-container"></div>
+
+  <button id="roll-btn">🎲 ROLL DICE 🎲</button>
+
+  <p id="result">Total: 1</p>
+
+  <div class="style-selector">
+    <button class="style-btn active" data-style="classic">Classic</button>
+    <button class="style-btn" data-style="red">Red</button>
+    <button class="style-btn" data-style="white">White</button>
+    <button class="style-btn" data-style="colorful">Colorful</button>
+  </div>
+
+  <script src="script.js?v=5"></script>
+</body>
+</html>
