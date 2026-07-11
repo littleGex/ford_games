@@ -1,0 +1,8 @@
+{
+  "name": "Snake",
+  "short_name": "Snake",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f1f18",
+  "theme_color": "#0f1f18"
+}

@@ -1,9 +1,7 @@
-const CACHE_NAME = 'dice-cache-v2';
+const CACHE_NAME = 'snake-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
-  './style.css',
-  './script.js',
   './manifest.json'
 ];
 

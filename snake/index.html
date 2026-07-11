@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Snake Game</title>
+<link rel="manifest" href="manifest.json">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -201,12 +202,30 @@
 
     <div id="leaderboard">
       <h2>🏆 Top Scores</h2>
-      <ol id="leaderboardList"></ol>
+      <ol id="leaderboardList"><li style="list-style:none; margin-left:-22px;">Loading…</li></ol>
     </div>
   </div>
 
-<script>
-(function() {
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getDatabase, ref, push, set, query, orderByChild, limitToLast, onValue
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAeI8JqJPDAuJlQ_qkPi4c2TF5kez0i4T0",
+    authDomain: "snakes-db.firebaseapp.com",
+    databaseURL: "https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "snakes-db",
+    storageBucket: "snakes-db.firebasestorage.app",
+    messagingSenderId: "815449711844",
+    appId: "1:815449711844:web:0a75ce1f820b7f2214f8f1"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getDatabase(fbApp);
+  const scoresRef = ref(db, 'scores');
+
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const SIZE = 20;
@@ -233,39 +252,36 @@
   best = parseInt(localStorage.getItem('snakeBest') || '0', 10);
   bestEl.textContent = best;
 
-  function getLeaderboard() {
-    return JSON.parse(localStorage.getItem('snakeLeaderboard') || '[]');
-  }
-
-  function renderLeaderboard() {
-    const board = getLeaderboard();
+  function renderLeaderboard(entries) {
     leaderboardList.innerHTML = '';
-    if (board.length === 0) {
+    if (entries.length === 0) {
       leaderboardList.innerHTML = '<li style="list-style:none; margin-left:-22px;">No scores yet</li>';
       return;
     }
-    board.forEach(entry => {
+    entries.forEach(entry => {
       const li = document.createElement('li');
       li.textContent = `${entry.name} — ${entry.score}`;
       leaderboardList.appendChild(li);
     });
   }
 
-  function qualifiesForLeaderboard(s) {
-    const board = getLeaderboard();
-    return s > 0 && (board.length < 5 || s > board[board.length - 1].score);
-  }
+  // live-updating top 10, shared across every device
+  const topScoresQuery = query(scoresRef, orderByChild('score'), limitToLast(10));
+  onValue(topScoresQuery, snapshot => {
+    const entries = [];
+    snapshot.forEach(child => entries.push(child.val()));
+    entries.sort((a, b) => b.score - a.score);
+    renderLeaderboard(entries);
+  });
 
-  function addToLeaderboard(name, s) {
-    const board = getLeaderboard();
-    board.push({ name: name || 'Anonymous', score: s });
-    board.sort((a, b) => b.score - a.score);
-    const trimmed = board.slice(0, 5);
-    localStorage.setItem('snakeLeaderboard', JSON.stringify(trimmed));
-    renderLeaderboard();
+  async function addToLeaderboard(name, s) {
+    const newScoreRef = push(scoresRef);
+    await set(newScoreRef, {
+      name: (name || 'Anonymous').slice(0, 20),
+      score: s,
+      timestamp: Date.now()
+    });
   }
-
-  renderLeaderboard();
 
   function randCell() {
     return Math.floor(Math.random() * CELLS) * SIZE;
@@ -354,7 +370,7 @@
     }
     startBtn.textContent = 'Play Again';
 
-    if (qualifiesForLeaderboard(score)) {
+    if (score > 0) {
       nameEntry.style.display = 'flex';
       nameInput.value = '';
       nameInput.focus();
@@ -372,9 +388,19 @@
     gameLoop = setInterval(step, 130);
   }
 
-  saveScoreBtn.addEventListener('click', () => {
-    addToLeaderboard(nameInput.value.trim(), score);
-    nameEntry.style.display = 'none';
+  saveScoreBtn.addEventListener('click', async () => {
+    saveScoreBtn.disabled = true;
+    saveScoreBtn.textContent = 'Saving…';
+    try {
+      await addToLeaderboard(nameInput.value.trim(), score);
+      nameEntry.style.display = 'none';
+    } catch (err) {
+      console.error('Failed to save score:', err);
+      messageEl.textContent = 'Could not save score — check your connection.';
+    } finally {
+      saveScoreBtn.disabled = false;
+      saveScoreBtn.textContent = 'Save Score';
+    }
   });
 
   function setDirection(newDir) {
@@ -427,7 +453,13 @@
 
   resetGame();
   draw();
-})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed:', err));
+    });
+  }
 </script>
 </body>
 </html>
