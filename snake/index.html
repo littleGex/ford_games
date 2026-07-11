@@ -267,12 +267,21 @@
 
   // live-updating top 10, shared across every device
   const topScoresQuery = query(scoresRef, orderByChild('score'), limitToLast(10));
-  onValue(topScoresQuery, snapshot => {
-    const entries = [];
-    snapshot.forEach(child => entries.push(child.val()));
-    entries.sort((a, b) => b.score - a.score);
-    renderLeaderboard(entries);
-  });
+  onValue(
+    topScoresQuery,
+    snapshot => {
+      const entries = [];
+      snapshot.forEach(child => entries.push(child.val()));
+      entries.sort((a, b) => b.score - a.score);
+      renderLeaderboard(entries);
+    },
+    error => {
+      // this fires on permission-denied or any other read failure —
+      // without it, a failed read leaves the list stuck on "Loading…" forever
+      console.error('Leaderboard read failed:', error.code, error.message);
+      leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores (${error.code})</li>`;
+    }
+  );
 
   async function addToLeaderboard(name, s) {
     const newScoreRef = push(scoresRef);
@@ -395,8 +404,8 @@
       await addToLeaderboard(nameInput.value.trim(), score);
       nameEntry.style.display = 'none';
     } catch (err) {
-      console.error('Failed to save score:', err);
-      messageEl.textContent = 'Could not save score — check your connection.';
+      console.error('Failed to save score:', err.code, err.message);
+      messageEl.textContent = `Could not save score (${err.code || 'error'})`;
     } finally {
       saveScoreBtn.disabled = false;
       saveScoreBtn.textContent = 'Save Score';
