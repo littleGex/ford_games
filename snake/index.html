@@ -201,7 +201,7 @@
     </div>
 
     <div id="leaderboard">
-      <h2>🏆 Top Scores</h2>
+      <h2>🏆 Top 5 Scores</h2>
       <ol id="leaderboardList"><li style="list-style:none; margin-left:-22px;">Loading…</li></ol>
     </div>
   </div>
@@ -265,11 +265,11 @@
     });
   }
 
-  function topTen(allEntries) {
+  function topFive(allEntries) {
     return allEntries
       .filter(e => e && typeof e.score === 'number')
       .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+      .slice(0, 5);
   }
 
   // Leaderboard reads go through the REST endpoint via plain fetch(), not the
@@ -290,7 +290,7 @@
       const data = await res.json();
       const entries = data ? Object.values(data) : [];
       console.log('[leaderboard] fetch loaded', entries.length, 'entries:', entries);
-      renderLeaderboard(topTen(entries));
+      renderLeaderboard(topFive(entries));
     } catch (err) {
       console.error('[leaderboard] Leaderboard fetch failed:', err);
       leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores</li>`;
