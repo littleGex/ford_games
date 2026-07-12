@@ -209,7 +209,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getDatabase, ref, push, set, onValue
+    getDatabase, ref, push, set
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
@@ -272,29 +272,33 @@
       .slice(0, 10);
   }
 
-  // live-updating leaderboard — listens to the whole 'scores' node (plain,
-  // unfiltered) and sorts/limits to top 10 in JS. We moved away from an
-  // orderByChild('score') + limitToLast(10) query here: that combination was
-  // returning incomplete results client-side even though the raw WebSocket
-  // frames (confirmed via DevTools) carried the full, correct dataset from
-  // the server. A plain listen on the whole node sidesteps that entirely —
-  // trivial data volume for a family leaderboard, so no real cost.
-  console.log('[leaderboard] subscribing to onValue...');
-  onValue(
-    scoresRef,
-    snapshot => {
-      const entries = [];
-      snapshot.forEach(child => entries.push(child.val()));
-      console.log('[leaderboard] onValue fired — raw entries:', JSON.parse(JSON.stringify(entries)));
+  // Leaderboard reads go through the REST endpoint via plain fetch(), not the
+  // Firebase SDK's onValue(). We moved away from onValue entirely — across
+  // several attempts (an indexed query, a plain unfiltered listen, even a
+  // totally separate debug connection) it kept exposing only 1 of several
+  // entries, even though the raw WebSocket frames (confirmed via DevTools)
+  // and the plain REST endpoint both consistently returned the full, correct
+  // dataset. That points to the SDK's client-side snapshot/sync layer being
+  // unreliable in this environment — fetch() sidesteps it completely, using
+  // nothing but a network request and JSON parsing.
+  const REST_BASE = 'https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app';
+
+  async function loadLeaderboard() {
+    try {
+      const res = await fetch(`${REST_BASE}/scores.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const entries = data ? Object.values(data) : [];
+      console.log('[leaderboard] fetch loaded', entries.length, 'entries:', entries);
       renderLeaderboard(topTen(entries));
-    },
-    error => {
-      // this fires on permission-denied or any other read failure —
-      // without it, a failed read leaves the list stuck on "Loading…" forever
-      console.error('[leaderboard] Leaderboard read failed:', error.code, error.message);
-      leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores (${error.code})</li>`;
+    } catch (err) {
+      console.error('[leaderboard] Leaderboard fetch failed:', err);
+      leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores</li>`;
     }
-  );
+  }
+
+  loadLeaderboard();
+  setInterval(loadLeaderboard, 8000); // poll so other devices' scores show up without a manual reload
 
   async function addToLeaderboard(name, s) {
     const newScoreRef = push(scoresRef);
@@ -303,6 +307,7 @@
       score: s,
       timestamp: Date.now()
     });
+    await loadLeaderboard(); // immediate refresh so your own save shows up right away
   }
 
   function randCell() {
