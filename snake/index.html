@@ -209,7 +209,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getDatabase, ref, push, set, query, orderByChild, limitToLast, onValue, get
+    getDatabase, ref, push, set, onValue
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
@@ -265,29 +265,28 @@
     });
   }
 
-  async function refreshLeaderboard() {
-    try {
-      const snap = await get(query(scoresRef, orderByChild('score'), limitToLast(10)));
-      const entries = [];
-      snap.forEach(child => entries.push(child.val()));
-      entries.sort((a, b) => b.score - a.score);
-      renderLeaderboard(entries);
-    } catch (err) {
-      console.error('Manual refresh failed:', err);
-    }
+  function topTen(allEntries) {
+    return allEntries
+      .filter(e => e && typeof e.score === 'number')
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
   }
 
-  // live-updating top 10, shared across every device
-  const topScoresQuery = query(scoresRef, orderByChild('score'), limitToLast(10));
+  // live-updating leaderboard — listens to the whole 'scores' node (plain,
+  // unfiltered) and sorts/limits to top 10 in JS. We moved away from an
+  // orderByChild('score') + limitToLast(10) query here: that combination was
+  // returning incomplete results client-side even though the raw WebSocket
+  // frames (confirmed via DevTools) carried the full, correct dataset from
+  // the server. A plain listen on the whole node sidesteps that entirely —
+  // trivial data volume for a family leaderboard, so no real cost.
   console.log('[leaderboard] subscribing to onValue...');
   onValue(
-    topScoresQuery,
+    scoresRef,
     snapshot => {
       const entries = [];
       snapshot.forEach(child => entries.push(child.val()));
       console.log('[leaderboard] onValue fired — raw entries:', JSON.parse(JSON.stringify(entries)));
-      entries.sort((a, b) => b.score - a.score);
-      renderLeaderboard(entries);
+      renderLeaderboard(topTen(entries));
     },
     error => {
       // this fires on permission-denied or any other read failure —
@@ -416,7 +415,6 @@
     saveScoreBtn.textContent = 'Saving…';
     try {
       await addToLeaderboard(nameInput.value.trim(), score);
-      await refreshLeaderboard();
       nameEntry.style.display = 'none';
     } catch (err) {
       console.error('Failed to save score:', err.code, err.message);
