@@ -441,6 +441,17 @@
     }
   }
 
+  // Test-only hook: lets automated tests trigger a real game-over with a
+  // specific score, without simulating actual gameplay/collision timing.
+  // Safe to leave in production — it only sets local state and calls the
+  // same endGame() a real game would, so a subsequent Save Score click still
+  // goes through the identical, server-validated save path.
+  window.__testSetScoreAndEndGame = (testScore) => {
+    score = testScore;
+    scoreEl.textContent = score;
+    endGame();
+  };
+
   function startGame() {
     gameMode = document.querySelector('input[name="diff"]:checked').value;
     resetGame();

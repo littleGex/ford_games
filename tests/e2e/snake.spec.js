@@ -1,78 +1,80 @@
+
 const { test, expect } = require('@playwright/test');
 
 test('snake page loads', async ({ page }) => {
-  await page.goto('http://localhost:8080/snake/');
+  await page.goto('/snake/');
   await expect(page).toHaveTitle(/snake/i);
 });
 
-test('leaderboard updates after saving score', async ({ page }) => {
-  await page.goto('http://localhost:8080/snake/');
-  
-  // Wait for leaderboard to load
-  await page.waitForSelector('#leaderboardList li', { timeout: 5000 });
-  
-  const testPlayerName = `TestPlayer-${Date.now()}`;
-  
-  // Capture console messages
-  page.on('console', msg => console.log('PAGE LOG:', msg.type(), msg.text()));
-  
-  // Directly set score in game to guarantee > 0
-  await page.evaluate((score) => {
-    const scoreEl = document.getElementById('score');
-    scoreEl.textContent = score;
-  }, 15);
-  
-  console.log('Injected score: 15');
-  
-  // Show name entry form
-  await page.evaluate(() => {
-    document.getElementById('nameEntry').style.display = 'flex';
-  });
-  
-  // Wait for form to appear
-  await page.waitForSelector('#nameInput', { timeout: 2000 });
-  
-  // Fill in name
-  await page.fill('#nameInput', testPlayerName);
-  console.log('Filled name:', testPlayerName);
-  
-  // Simulate Firebase save failure by adding directly to localStorage as a test helper
-  await page.evaluate(async (name) => {
-    // If Firebase fails, fallback to localStorage for testing
-    const testEntry = { name, score: 15, timestamp: Date.now() };
-    const board = JSON.parse(localStorage.getItem('snakeLeaderboard') || '[]');
-    board.push(testEntry);
-    board.sort((a, b) => b.score - a.score);
-    const trimmed = board.slice(0, 5);
-    localStorage.setItem('snakeLeaderboard', JSON.stringify(trimmed));
-    
-    // Re-render leaderboard from localStorage
-    const leaderboardList = document.getElementById('leaderboardList');
-    leaderboardList.innerHTML = '';
-    trimmed.forEach(entry => {
-      const li = document.createElement('li');
-      li.textContent = `${entry.name} — ${entry.score}`;
-      leaderboardList.appendChild(li);
+test('leaderboard renders scores returned by the API', async ({ page }) => {
+  // Mock the Firebase REST read so this test never depends on — or writes
+  // to — the live production database.
+  await page.route('**/scores.json', route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        key1: { name: 'Alice', score: 20, timestamp: Date.now() },
+        key2: { name: 'Bob', score: 15, timestamp: Date.now() },
+      }),
     });
-  }, testPlayerName);
-  
-  // Wait for DOM update
-  await page.waitForTimeout(500);
-  
-  // Get updated leaderboard
-  const updatedScores = await page.locator('#leaderboardList li').allTextContents();
-  console.log('Updated leaderboard:', updatedScores);
-  
-  const hasTestPlayer = updatedScores.some(entry => entry.includes(testPlayerName));
-  expect(hasTestPlayer).toBeTruthy();
-  
-  // Cleanup: Remove test entry from localStorage
-  console.log('Cleaning up test data...');
-  await page.evaluate((playerName) => {
-    const board = JSON.parse(localStorage.getItem('snakeLeaderboard') || '[]');
-    const cleaned = board.filter(e => e.name !== playerName);
-    localStorage.setItem('snakeLeaderboard', JSON.stringify(cleaned));
-  }, testPlayerName);
-  
-  console.log('Cleanup complete');
+  });
+
+  await page.goto('/snake/');
+  await page.waitForSelector('#leaderboardList li');
+
+  const entries = await page.locator('#leaderboardList li').allTextContents();
+  expect(entries.some(e => e.includes('Alice') && e.includes('20'))).toBeTruthy();
+  expect(entries.some(e => e.includes('Bob') && e.includes('15'))).toBeTruthy();
+});
+
+test('leaderboard shows a friendly message when there are no scores yet', async ({ page }) => {
+  await page.route('**/scores.json', route => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
+  });
+
+  await page.goto('/snake/');
+  await page.waitForSelector('#leaderboardList li');
+
+  const entries = await page.locator('#leaderboardList li').allTextContents();
+  expect(entries.some(e => /no scores yet/i.test(e))).toBeTruthy();
+});
+
+test('a scoring game shows the name entry form', async ({ page }) => {
+  await page.route('**/scores.json', route => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
+  });
+
+  await page.goto('/snake/');
+
+  // Drives the real endGame() logic via the test hook, rather than
+  // simulating full gameplay/collision timing.
+  await page.evaluate(() => window.__testSetScoreAndEndGame(15));
+
+  await expect(page.locator('#nameEntry')).toBeVisible();
+  await expect(page.locator('#score')).toHaveText('15');
+});
+
+test('Save Score posts the entered name and score to Firebase', async ({ page }) => {
+  await page.route('**/scores.json', route => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
+  });
+
+  let savedPayload = null;
+  // Firebase's REST write for push() targets a path like /scores/<key>.json
+  await page.route('**/scores/*.json', route => {
+    savedPayload = route.request().postDataJSON();
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/snake/');
+
+  const testPlayerName = `TestPlayer-${Date.now()}`;
+  await page.evaluate(() => window.__testSetScoreAndEndGame(15));
+  await page.fill('#nameInput', testPlayerName);
+  await page.click('#saveScoreBtn');
+
+  await expect.poll(() => savedPayload).not.toBeNull();
+  expect(savedPayload.name).toBe(testPlayerName);
+  expect(savedPayload.score).toBe(15);
 });
