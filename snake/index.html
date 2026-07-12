@@ -1,21 +1,535 @@
-{
-  "rules": {
-    "scores": {
-      ".read": true,
-      "$scoreId": {
-        ".write": "!data.exists() || newData.val() === null",
-        ".validate": "newData.hasChildren(['name', 'score', 'timestamp'])",
-        "name": {
-          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
-        },
-        "score": {
-          ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 10000 && newData.val() % 1 == 0"
-        },
-        "timestamp": {
-          ".validate": "newData.isNumber() && newData.val() <= now"
-        },
-        "$other": { ".validate": false }
-      }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake Game</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    overflow-x: hidden;
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 12px 24px;
+    background: linear-gradient(135deg, #1e3c2f, #0f1f18);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #eafaf0;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing: 2px;
+    color: #7CFC00;
+    text-shadow: 0 0 10px rgba(124,252,0,0.5);
+  }
+  #scoreboard {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 10px;
+    font-size: clamp(15px, 4vw, 18px);
+  }
+  #scoreboard span {
+    font-weight: bold;
+    color: #7CFC00;
+  }
+  canvas {
+    display: block;
+    width: min(400px, 92vmin);
+    height: min(400px, 92vmin);
+    max-width: 92vw;
+    background: #0d1a12;
+    border: 4px solid #7CFC00;
+    border-radius: 8px;
+    box-shadow: 0 0 25px rgba(124,252,0,0.3);
+    touch-action: none;
+  }
+  #message {
+    margin-top: 14px;
+    font-size: 20px;
+    min-height: 28px;
+    text-align: center;
+  }
+  button {
+    margin-top: 10px;
+    padding: 10px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #7CFC00;
+    color: #0f1f18;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover { background: #98ff33; }
+  #homeBtn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #1e3c2f;
+    color: #7CFC00;
+    border: 2px solid #7CFC00;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #homeBtn:hover { background: #2a4f3d; }
+  body { position: relative; }
+  #controls {
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(2, 64px);
+    gap: 8px;
+    margin-top: 16px;
+  }
+  #controls button.dir {
+    font-size: 24px;
+    background: #1e3c2f;
+    color: #7CFC00;
+    border: 2px solid #7CFC00;
+    touch-action: manipulation;
+  }
+  .up { grid-column: 2; grid-row: 1; }
+  .left { grid-column: 1; grid-row: 2; }
+  .down { grid-column: 2; grid-row: 2; }
+  .right { grid-column: 3; grid-row: 2; }
+  @media (hover: hover) and (pointer: fine) {
+    #controls { display: none; }
+  }
+  #difficulty {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-bottom: 8px;
+    font-size: clamp(13px, 3.6vw, 15px);
+    justify-content: center;
+  }
+  #difficulty label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  #layout {
+    width: 100%;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #leaderboard {
+    background: #14251c;
+    border: 2px solid #7CFC00;
+    border-radius: 8px;
+    padding: 14px 18px;
+    min-width: 180px;
+    width: min(260px, 92vw);
+  }
+  #leaderboard h2 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: #7CFC00;
+    text-align: center;
+  }
+  #refreshLeaderboardBtn {
+    margin: 0 0 0 4px;
+    padding: 2px 6px;
+    font-size: 13px;
+    background: transparent;
+    border: 1px solid #7CFC0088;
+    border-radius: 6px;
+    color: #7CFC00;
+    vertical-align: middle;
+  }
+  #refreshLeaderboardBtn:hover { background: #1e3c2f; }
+  #refreshLeaderboardBtn:disabled { opacity: 0.5; }
+  #leaderboard ol {
+    margin: 0;
+    padding-left: 22px;
+  }
+  #leaderboard li {
+    margin: 4px 0;
+    font-size: 14px;
+    word-break: break-word;
+  }
+  #nameEntry {
+    margin-top: 8px;
+    display: none;
+    gap: 6px;
+    flex-direction: column;
+    align-items: center;
+  }
+  #nameEntry input {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #7CFC00;
+    background: #0d1a12;
+    color: #eafaf0;
+    font-size: 14px;
+    width: 140px;
+  }
+</style>
+</head>
+<body>
+  <a id="homeBtn" href="../">🏠 Menu</a>
+  <h1>🐍 Snake</h1>
+  <div id="scoreboard">
+    <div>Score: <span id="score">0</span></div>
+    <div>Best: <span id="best">0</span></div>
+  </div>
+  <div id="difficulty">
+    <label><input type="radio" name="diff" value="easy" checked> Easy (wrap-around walls)</label>
+    <label><input type="radio" name="diff" value="classic"> Classic (walls kill)</label>
+  </div>
+
+  <div id="layout">
+    <div style="max-width: 92vw;">
+      <canvas id="game" width="400" height="400"></canvas>
+      <div id="message"></div>
+      <div id="nameEntry">
+        <input id="nameInput" type="text" placeholder="Your name" maxlength="12">
+        <button id="saveScoreBtn">Save Score</button>
+      </div>
+      <div style="text-align:center;"><button id="startBtn">Start Game</button></div>
+
+      <div id="controls">
+        <button class="dir up" data-dir="up">↑</button>
+        <button class="dir left" data-dir="left">←</button>
+        <button class="dir down" data-dir="down">↓</button>
+        <button class="dir right" data-dir="right">→</button>
+      </div>
+    </div>
+
+    <div id="leaderboard">
+      <h2>🏆 Top 5 Scores <button id="refreshLeaderboardBtn" title="Refresh">🔄</button></h2>
+      <ol id="leaderboardList"><li style="list-style:none; margin-left:-22px;">Loading…</li></ol>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getDatabase, ref, push, set, update
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAeI8JqJPDAuJlQ_qkPi4c2TF5kez0i4T0",
+    authDomain: "snakes-db.firebaseapp.com",
+    databaseURL: "https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "snakes-db",
+    storageBucket: "snakes-db.firebasestorage.app",
+    messagingSenderId: "815449711844",
+    appId: "1:815449711844:web:0a75ce1f820b7f2214f8f1"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const db = getDatabase(fbApp);
+  const scoresRef = ref(db, 'scores');
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const SIZE = 20;
+  const CELLS = canvas.width / SIZE;
+
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const messageEl = document.getElementById('message');
+  const startBtn = document.getElementById('startBtn');
+  const nameEntry = document.getElementById('nameEntry');
+  const nameInput = document.getElementById('nameInput');
+  const saveScoreBtn = document.getElementById('saveScoreBtn');
+  const leaderboardList = document.getElementById('leaderboardList');
+  const refreshLeaderboardBtn = document.getElementById('refreshLeaderboardBtn');
+  const diffRadios = document.querySelectorAll('input[name="diff"]');
+  diffRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      gameMode = radio.value;
+      radio.blur();
+    });
+  });
+
+  let snake, direction, nextDirection, food, score, best, gameLoop, running, gameMode;
+
+  best = parseInt(localStorage.getItem('snakeBest') || '0', 10);
+  bestEl.textContent = best;
+
+  function renderLeaderboard(entries) {
+    leaderboardList.innerHTML = '';
+    if (entries.length === 0) {
+      leaderboardList.innerHTML = '<li style="list-style:none; margin-left:-22px;">No scores yet</li>';
+      return;
+    }
+    entries.forEach(entry => {
+      const li = document.createElement('li');
+      li.textContent = `${entry.name} — ${entry.score}`;
+      leaderboardList.appendChild(li);
+    });
+  }
+
+  function topFive(allEntries) {
+    return allEntries
+      .filter(e => e && typeof e.score === 'number')
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  }
+
+  // Leaderboard reads go through the REST endpoint via plain fetch(), not the
+  // Firebase SDK's onValue(). We moved away from onValue entirely — across
+  // several attempts (an indexed query, a plain unfiltered listen, even a
+  // totally separate debug connection) it kept exposing only 1 of several
+  // entries, even though the raw WebSocket frames (confirmed via DevTools)
+  // and the plain REST endpoint both consistently returned the full, correct
+  // dataset. That points to the SDK's client-side snapshot/sync layer being
+  // unreliable in this environment — fetch() sidesteps it completely, using
+  // nothing but a network request and JSON parsing.
+  const REST_BASE = 'https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app';
+  const MAX_STORED_SCORES = 50; // cap stored history so every poll fetch stays small
+
+  async function fetchAllScores() {
+    const res = await fetch(`${REST_BASE}/scores.json`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data) return [];
+    // keep each entry's push key — pruning needs it to know what to delete
+    return Object.entries(data).map(([key, val]) => ({ key, ...val }));
+  }
+
+  async function loadLeaderboard() {
+    try {
+      const entries = await fetchAllScores();
+      console.log('[leaderboard] fetch loaded', entries.length, 'entries:', entries);
+      renderLeaderboard(topFive(entries));
+    } catch (err) {
+      console.error('[leaderboard] Leaderboard fetch failed:', err);
+      leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores</li>`;
     }
   }
-}
+
+  async function pruneOldScores(entries) {
+    if (entries.length <= MAX_STORED_SCORES) return;
+    const sorted = [...entries].sort((a, b) => b.score - a.score);
+    const toDelete = sorted.slice(MAX_STORED_SCORES);
+    const updates = {};
+    toDelete.forEach(entry => { updates[`scores/${entry.key}`] = null; });
+    try {
+      await update(ref(db), updates);
+      console.log(`[leaderboard] pruned ${toDelete.length} old scores, keeping top ${MAX_STORED_SCORES}`);
+    } catch (err) {
+      // not fatal — the leaderboard still works fine, it just means history
+      // keeps growing until the next successful prune
+      console.error('[leaderboard] prune failed:', err);
+    }
+  }
+
+  loadLeaderboard(); // one-time load on page open — no polling, to keep network traffic minimal
+
+  async function addToLeaderboard(name, s) {
+    const newScoreRef = push(scoresRef);
+    await set(newScoreRef, {
+      name: (name || 'Anonymous').slice(0, 20),
+      score: s,
+      timestamp: Date.now()
+    });
+    const entries = await fetchAllScores();
+    renderLeaderboard(topFive(entries)); // immediate refresh so your own save shows up right away
+    await pruneOldScores(entries);
+  }
+
+  function randCell() {
+    return Math.floor(Math.random() * CELLS) * SIZE;
+  }
+
+  function placeFood() {
+    let pos;
+    do {
+      pos = { x: randCell(), y: randCell() };
+    } while (snake.some(s => s.x === pos.x && s.y === pos.y));
+    return pos;
+  }
+
+  function resetGame() {
+    snake = [{ x: SIZE * 5, y: SIZE * 5 }];
+    direction = { x: SIZE, y: 0 };
+    nextDirection = direction;
+    score = 0;
+    scoreEl.textContent = score;
+    food = placeFood();
+    messageEl.textContent = '';
+  }
+
+  function draw() {
+    ctx.fillStyle = '#0d1a12';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // food
+    ctx.fillStyle = '#ff5555';
+    ctx.beginPath();
+    ctx.arc(food.x + SIZE/2, food.y + SIZE/2, SIZE/2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // snake
+    snake.forEach((seg, i) => {
+      ctx.fillStyle = i === 0 ? '#98ff33' : '#7CFC00';
+      ctx.fillRect(seg.x + 1, seg.y + 1, SIZE - 2, SIZE - 2);
+    });
+  }
+
+  function step() {
+    direction = nextDirection;
+    const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+    const hitWall = head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height;
+
+    if (gameMode === 'classic' && hitWall) {
+      endGame();
+      return;
+    }
+
+    // easy mode: wrap around edges instead of dying
+    if (head.x < 0) head.x = canvas.width - SIZE;
+    if (head.x >= canvas.width) head.x = 0;
+    if (head.y < 0) head.y = canvas.height - SIZE;
+    if (head.y >= canvas.height) head.y = 0;
+
+    if (snake.some(s => s.x === head.x && s.y === head.y)) {
+      endGame();
+      return;
+    }
+
+    snake.unshift(head);
+
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      scoreEl.textContent = score;
+      food = placeFood();
+    } else {
+      snake.pop();
+    }
+
+    draw();
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(gameLoop);
+    if (score > best) {
+      best = score;
+      localStorage.setItem('snakeBest', best);
+      bestEl.textContent = best;
+      messageEl.textContent = `New best score! 🎉 ${score}`;
+    } else {
+      messageEl.textContent = `Game over! Score: ${score}`;
+    }
+    startBtn.textContent = 'Play Again';
+
+    if (score > 0) {
+      nameEntry.style.display = 'flex';
+      nameInput.value = '';
+      nameInput.focus();
+    }
+  }
+
+  function startGame() {
+    gameMode = document.querySelector('input[name="diff"]:checked').value;
+    resetGame();
+    running = true;
+    startBtn.textContent = 'Restart';
+    nameEntry.style.display = 'none';
+    draw();
+    clearInterval(gameLoop);
+    gameLoop = setInterval(step, 130);
+  }
+
+  saveScoreBtn.addEventListener('click', async () => {
+    saveScoreBtn.disabled = true;
+    saveScoreBtn.textContent = 'Saving…';
+    try {
+      await addToLeaderboard(nameInput.value.trim(), score);
+      nameEntry.style.display = 'none';
+    } catch (err) {
+      console.error('Failed to save score:', err.code, err.message);
+      messageEl.textContent = `Could not save score (${err.code || 'error'})`;
+    } finally {
+      saveScoreBtn.disabled = false;
+      saveScoreBtn.textContent = 'Save Score';
+    }
+  });
+
+  function setDirection(newDir) {
+    if (!running) return;
+    const opposite = { x: -direction.x, y: -direction.y };
+    if (newDir.x === opposite.x && newDir.y === opposite.y) return;
+    nextDirection = newDir;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    switch (e.key) {
+      case 'ArrowUp': case 'w': e.preventDefault(); setDirection({ x: 0, y: -SIZE }); break;
+      case 'ArrowDown': case 's': e.preventDefault(); setDirection({ x: 0, y: SIZE }); break;
+      case 'ArrowLeft': case 'a': e.preventDefault(); setDirection({ x: -SIZE, y: 0 }); break;
+      case 'ArrowRight': case 'd': e.preventDefault(); setDirection({ x: SIZE, y: 0 }); break;
+    }
+  });
+
+  document.querySelectorAll('#controls .dir').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const map = {
+        up: { x: 0, y: -SIZE },
+        down: { x: 0, y: SIZE },
+        left: { x: -SIZE, y: 0 },
+        right: { x: SIZE, y: 0 }
+      };
+      setDirection(map[btn.dataset.dir]);
+    });
+  });
+
+  // simple swipe support for touch screens
+  let touchStartX = 0, touchStartY = 0;
+  canvas.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  });
+  canvas.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      setDirection(dx > 0 ? { x: SIZE, y: 0 } : { x: -SIZE, y: 0 });
+    } else {
+      setDirection(dy > 0 ? { x: 0, y: SIZE } : { x: 0, y: -SIZE });
+    }
+  });
+
+  startBtn.addEventListener('click', startGame);
+
+  refreshLeaderboardBtn.addEventListener('click', async () => {
+    refreshLeaderboardBtn.disabled = true;
+    await loadLeaderboard();
+    refreshLeaderboardBtn.disabled = false;
+  });
+
+  resetGame();
+  draw();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed:', err));
+    });
+  }
+</script>
+</body>
+</html>
