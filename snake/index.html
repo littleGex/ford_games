@@ -209,7 +209,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getDatabase, ref, push, set, query, orderByChild, limitToLast, onValue
+    getDatabase, ref, push, set, query, orderByChild, limitToLast, onValue, get
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
@@ -265,20 +265,34 @@
     });
   }
 
+  async function refreshLeaderboard() {
+    try {
+      const snap = await get(query(scoresRef, orderByChild('score'), limitToLast(10)));
+      const entries = [];
+      snap.forEach(child => entries.push(child.val()));
+      entries.sort((a, b) => b.score - a.score);
+      renderLeaderboard(entries);
+    } catch (err) {
+      console.error('Manual refresh failed:', err);
+    }
+  }
+
   // live-updating top 10, shared across every device
   const topScoresQuery = query(scoresRef, orderByChild('score'), limitToLast(10));
+  console.log('[leaderboard] subscribing to onValue...');
   onValue(
     topScoresQuery,
     snapshot => {
       const entries = [];
       snapshot.forEach(child => entries.push(child.val()));
+      console.log('[leaderboard] onValue fired — raw entries:', JSON.parse(JSON.stringify(entries)));
       entries.sort((a, b) => b.score - a.score);
       renderLeaderboard(entries);
     },
     error => {
       // this fires on permission-denied or any other read failure —
       // without it, a failed read leaves the list stuck on "Loading…" forever
-      console.error('Leaderboard read failed:', error.code, error.message);
+      console.error('[leaderboard] Leaderboard read failed:', error.code, error.message);
       leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores (${error.code})</li>`;
     }
   );
@@ -402,6 +416,7 @@
     saveScoreBtn.textContent = 'Saving…';
     try {
       await addToLeaderboard(nameInput.value.trim(), score);
+      await refreshLeaderboard();
       nameEntry.style.display = 'none';
     } catch (err) {
       console.error('Failed to save score:', err.code, err.message);
