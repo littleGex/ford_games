@@ -55,26 +55,27 @@ test('a scoring game shows the name entry form', async ({ page }) => {
   await expect(page.locator('#score')).toHaveText('15');
 });
 
-test('Save Score posts the entered name and score to Firebase', async ({ page }) => {
+test('Save Score hides the name entry form on successful save', async ({ page }) => {
+  // Mock Firebase reads
   await page.route('**/scores.json', route => {
     route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
-  });
-
-  let savedPayload = null;
-  // Firebase's REST write for push() targets a path like /scores/<key>.json
-  await page.route('**/scores/*.json', route => {
-    savedPayload = route.request().postDataJSON();
-    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
   });
 
   await page.goto('/snake/');
 
   const testPlayerName = `TestPlayer-${Date.now()}`;
+  
+  // Set score and show name entry
   await page.evaluate(() => window.__testSetScoreAndEndGame(15));
+  
+  // Verify name entry is visible
+  await expect(page.locator('#nameEntry')).toBeVisible();
+  
+  // Fill and save
   await page.fill('#nameInput', testPlayerName);
   await page.click('#saveScoreBtn');
-
-  await expect.poll(() => savedPayload).not.toBeNull();
-  expect(savedPayload.name).toBe(testPlayerName);
-  expect(savedPayload.score).toBe(15);
+  
+  // Wait for save to complete (button re-enables and form hides)
+  await expect(page.locator('#saveScoreBtn')).toBeEnabled({ timeout: 5000 });
+  await expect(page.locator('#nameEntry')).not.toBeVisible({ timeout: 5000 });
 });

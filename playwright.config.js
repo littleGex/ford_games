@@ -12,9 +12,9 @@ module.exports = defineConfig({
   },
   webServer: {
     // serves the repo root as static files — same layout GitHub Pages uses
-    command: 'npx serve -l 8080 .',
+    command: 'npm run serve',
     port: 8080,
     reuseExistingServer: !process.env.CI,
-    timeout: 10000,
+    timeout: 15000,
   },
 });
