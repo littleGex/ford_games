@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 12px 24px;
+    background: linear-gradient(135deg, #3c2f1e, #1f1608);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #fff6e6;
+    position: relative;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing: 2px;
+    color: #ffb347;
+    text-shadow: 0 0 10px rgba(255,179,71,0.5);
+  }
+  #homeBtn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #3c2f1e;
+    color: #ffb347;
+    border: 2px solid #ffb347;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+  }
+  #homeBtn:hover { background: #4f3f28; }
+  #modeBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 6px;
+    font-size: clamp(13px, 3.6vw, 15px);
+    justify-content: center;
+  }
+  #modeBar label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  #difficultyBar {
+    display: none;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 10px;
+    font-size: clamp(13px, 3.6vw, 15px);
+    justify-content: center;
+  }
+  #difficultyBar label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  #status {
+    font-size: clamp(16px, 4.5vw, 20px);
+    font-weight: bold;
+    margin: 6px 0 14px;
+    min-height: 26px;
+    text-align: center;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(70px, 100px));
+    grid-template-rows: repeat(3, minmax(70px, 100px));
+    gap: 8px;
+    background: #ffb34733;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .cell {
+    background: #241a0d;
+    border: none;
+    border-radius: 8px;
+    font-size: clamp(32px, 10vw, 48px);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff6e6;
+    transition: background 0.15s ease;
+  }
+  .cell:hover:not(:disabled) { background: #3a2a15; }
+  .cell:disabled { cursor: default; }
+  .cell.x { color: #ffb347; }
+  .cell.o { color: #6fd3ff; }
+  .cell.win { background: #ffb34755; }
+  button.action {
+    margin-top: 18px;
+    padding: 10px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #ffb347;
+    color: #241a0d;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button.action:hover { background: #ffc670; }
+</style>
+</head>
+<body>
+  <a id="homeBtn" href="../">🏠 Menu</a>
+  <h1>❌⭕ Tic-Tac-Toe</h1>
+
+  <div id="modeBar">
+    <label><input type="radio" name="mode" value="2p" checked> 2 Player</label>
+    <label><input type="radio" name="mode" value="cpu"> vs Computer</label>
+  </div>
+
+  <div id="difficultyBar">
+    <label><input type="radio" name="difficulty" value="easy" checked> Easy</label>
+    <label><input type="radio" name="difficulty" value="unbeatable"> Unbeatable</label>
+  </div>
+
+  <div id="status">X's turn</div>
+
+  <div id="board"></div>
+
+  <button class="action" id="resetBtn">New Game</button>
+
+<script>
+(function () {
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const resetBtn = document.getElementById('resetBtn');
+  const modeRadios = document.querySelectorAll('input[name="mode"]');
+  const difficultyBar = document.getElementById('difficultyBar');
+  const difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+
+  const LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let board, current, gameOver, mode, difficulty, cellEls;
+
+  function getMode() {
+    return document.querySelector('input[name="mode"]:checked').value;
+  }
+  function getDifficulty() {
+    return document.querySelector('input[name="difficulty"]:checked').value;
+  }
+
+  modeRadios.forEach(r => r.addEventListener('change', () => {
+    mode = getMode();
+    difficultyBar.style.display = mode === 'cpu' ? 'flex' : 'none';
+    r.blur();
+    newGame();
+  }));
+  difficultyRadios.forEach(r => r.addEventListener('change', () => {
+    difficulty = getDifficulty();
+    r.blur();
+    newGame();
+  }));
+
+  function buildBoard() {
+    boardEl.innerHTML = '';
+    cellEls = [];
+    for (let i = 0; i < 9; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'cell';
+      btn.addEventListener('click', () => handleMove(i));
+      boardEl.appendChild(btn);
+      cellEls.push(btn);
+    }
+  }
+
+  function newGame() {
+    board = Array(9).fill(null);
+    current = 'X';
+    gameOver = false;
+    buildBoard();
+    render();
+    updateStatus();
+  }
+
+  function render() {
+    board.forEach((val, i) => {
+      const el = cellEls[i];
+      el.textContent = val || '';
+      el.className = 'cell' + (val === 'X' ? ' x' : val === 'O' ? ' o' : '');
+      el.disabled = !!val || gameOver;
+    });
+  }
+
+  function updateStatus(winner, isDraw) {
+    if (winner) {
+      statusEl.textContent = mode === 'cpu'
+        ? (winner === 'X' ? 'You win! 🎉' : 'Computer wins!')
+        : `${winner} wins! 🎉`;
+    } else if (isDraw) {
+      statusEl.textContent = "It's a draw!";
+    } else {
+      statusEl.textContent = mode === 'cpu'
+        ? (current === 'X' ? 'Your turn' : "Computer's turn…")
+        : `${current}'s turn`;
+    }
+  }
+
+  function checkWinner(b) {
+    for (const line of LINES) {
+      const [a, c, d] = line;
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) {
+        return { winner: b[a], line };
+      }
+    }
+    return null;
+  }
+
+  function handleMove(i) {
+    if (gameOver || board[i]) return;
+    if (mode === 'cpu' && current === 'O') return; // block clicks during computer's turn
+    place(i, current);
+  }
+
+  function place(i, mark) {
+    board[i] = mark;
+    const result = checkWinner(board);
+    const isDraw = !result && board.every(c => c);
+
+    if (result) {
+      gameOver = true;
+      render();
+      result.line.forEach(idx => cellEls[idx].classList.add('win'));
+      updateStatus(result.winner, false);
+      return;
+    }
+    if (isDraw) {
+      gameOver = true;
+      render();
+      updateStatus(null, true);
+      return;
+    }
+
+    current = current === 'X' ? 'O' : 'X';
+    render();
+    updateStatus();
+
+    if (mode === 'cpu' && current === 'O' && !gameOver) {
+      setTimeout(computerMove, 450);
+    }
+  }
+
+  function computerMove() {
+    if (gameOver) return;
+    const empties = board.map((v, i) => v ? -1 : i).filter(i => i !== -1);
+    let move;
+    if (difficulty === 'easy') {
+      // mostly random, but still block/take obvious wins sometimes so it's not TOO easy
+      move = Math.random() < 0.5 ? findBestMove(board, 'O') : empties[Math.floor(Math.random() * empties.length)];
+    } else {
+      move = findBestMove(board, 'O');
+    }
+    place(move, 'O');
+  }
+
+  // full minimax — the board is tiny (max 9 moves), so an exhaustive search is instant
+  function findBestMove(b, player) {
+    const opponent = player === 'O' ? 'X' : 'O';
+    let bestScore = -Infinity;
+    let bestMove = null;
+    for (let i = 0; i < 9; i++) {
+      if (b[i]) continue;
+      b[i] = player;
+      const score = minimax(b, 0, false, player, opponent);
+      b[i] = null;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = i;
+      }
+    }
+    return bestMove;
+  }
+
+  function minimax(b, depth, isMaximizing, player, opponent) {
+    const result = checkWinner(b);
+    if (result) return result.winner === player ? 10 - depth : depth - 10;
+    if (b.every(c => c)) return 0;
+
+    if (isMaximizing) {
+      let best = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (b[i]) continue;
+        b[i] = player;
+        best = Math.max(best, minimax(b, depth + 1, false, player, opponent));
+        b[i] = null;
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (b[i]) continue;
+        b[i] = opponent;
+        best = Math.min(best, minimax(b, depth + 1, true, player, opponent));
+        b[i] = null;
+      }
+      return best;
+    }
+  }
+
+  resetBtn.addEventListener('click', newGame);
+
+  mode = getMode();
+  difficulty = getDifficulty();
+  newGame();
+})();
+</script>
+</body>
+</html>
