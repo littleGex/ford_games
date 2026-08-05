@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangman</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 12px 24px;
+    background: linear-gradient(135deg, #2f1a20, #170a0d);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #ffeef0;
+    position: relative;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing: 2px;
+    color: #ff5566;
+    text-shadow: 0 0 10px rgba(255,85,102,0.5);
+  }
+  #homeBtn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #2f1a20;
+    color: #ff5566;
+    border: 2px solid #ff5566;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+  }
+  #homeBtn:hover { background: #402530; }
+  #figure {
+    width: min(220px, 55vw);
+    height: auto;
+  }
+  .part { opacity: 0; transition: opacity 0.2s ease; }
+  .part.visible { opacity: 1; }
+  #status {
+    font-size: clamp(15px, 4vw, 18px);
+    font-weight: bold;
+    margin: 8px 0;
+    min-height: 24px;
+    text-align: center;
+  }
+  #wrongCount {
+    font-size: 14px;
+    color: #ff9aa6;
+    margin-bottom: 10px;
+  }
+  #wordDisplay {
+    font-size: clamp(24px, 7vw, 34px);
+    letter-spacing: 8px;
+    font-weight: bold;
+    margin: 10px 0 18px;
+    text-align: center;
+    word-break: break-all;
+  }
+  #keyboard {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    max-width: 420px;
+    width: 100%;
+  }
+  #keyboard button {
+    padding: 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    background: #402530;
+    color: #ffeef0;
+    cursor: pointer;
+  }
+  #keyboard button:hover:not(:disabled) { background: #55303f; }
+  #keyboard button.correct { background: #3fae5a; color: #fff; }
+  #keyboard button.wrong { background: #a03040; color: #fff; opacity: 0.6; }
+  #keyboard button:disabled { cursor: default; }
+  button.action {
+    margin-top: 18px;
+    padding: 10px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #ff5566;
+    color: #170a0d;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button.action:hover { background: #ff7a88; }
+</style>
+</head>
+<body>
+  <a id="homeBtn" href="../">🏠 Menu</a>
+  <h1>🎯 Hangman</h1>
+
+  <svg id="figure" viewBox="0 0 200 250" xmlns="http://www.w3.org/2000/svg">
+    <!-- gallows: always visible -->
+    <line x1="20" y1="230" x2="140" y2="230" stroke="#ffeef0" stroke-width="5" stroke-linecap="round"/>
+    <line x1="50" y1="230" x2="50" y2="20" stroke="#ffeef0" stroke-width="5" stroke-linecap="round"/>
+    <line x1="50" y1="20" x2="150" y2="20" stroke="#ffeef0" stroke-width="5" stroke-linecap="round"/>
+    <line x1="50" y1="55" x2="85" y2="20" stroke="#ffeef0" stroke-width="5" stroke-linecap="round"/>
+    <line x1="150" y1="20" x2="150" y2="45" stroke="#ffeef0" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- body parts: revealed one at a time on wrong guesses -->
+    <circle id="part-0" class="part" cx="150" cy="68" r="20" stroke="#ff5566" stroke-width="5" fill="none"/>
+    <line id="part-1" class="part" x1="150" y1="88" x2="150" y2="150" stroke="#ff5566" stroke-width="5" stroke-linecap="round"/>
+    <line id="part-2" class="part" x1="150" y1="100" x2="120" y2="130" stroke="#ff5566" stroke-width="5" stroke-linecap="round"/>
+    <line id="part-3" class="part" x1="150" y1="100" x2="180" y2="130" stroke="#ff5566" stroke-width="5" stroke-linecap="round"/>
+    <line id="part-4" class="part" x1="150" y1="150" x2="125" y2="195" stroke="#ff5566" stroke-width="5" stroke-linecap="round"/>
+    <line id="part-5" class="part" x1="150" y1="150" x2="175" y2="195" stroke="#ff5566" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- last two stages: a sad face, so the extra guesses still have something to reveal -->
+    <g id="part-6" class="part">
+      <circle cx="143" cy="63" r="2.5" fill="#ff5566"/>
+      <circle cx="157" cy="63" r="2.5" fill="#ff5566"/>
+    </g>
+    <path id="part-7" class="part" d="M 141 78 Q 150 72 159 78" stroke="#ff5566" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </svg>
+
+  <div id="wrongCount"></div>
+  <div id="wordDisplay"></div>
+  <div id="status"></div>
+
+  <div id="keyboard"></div>
+
+  <button class="action" id="newWordBtn">New Word</button>
+
+<script>
+(function () {
+  const WORDS = [
+    'PYTHON', 'ELEPHANT', 'GUITAR', 'RAINBOW', 'PLANET', 'DINOSAUR',
+    'GALAXY', 'TREASURE', 'WIZARD', 'OCEAN', 'MOUNTAIN', 'PENGUIN',
+    'ROBOT', 'CASTLE', 'JUNGLE', 'VOLCANO', 'PUZZLE', 'KANGAROO',
+    'DIAMOND', 'THUNDER', 'PIRATE', 'DRAGON', 'COMPASS', 'WHISTLE'
+  ];
+  const MAX_WRONG = 8;
+
+  const wordDisplay = document.getElementById('wordDisplay');
+  const statusEl = document.getElementById('status');
+  const wrongCountEl = document.getElementById('wrongCount');
+  const keyboardEl = document.getElementById('keyboard');
+  const newWordBtn = document.getElementById('newWordBtn');
+  const parts = Array.from({ length: MAX_WRONG }, (_, i) => document.getElementById(`part-${i}`));
+
+  let word, guessed, wrongGuesses, gameOver;
+
+  function buildKeyboard() {
+    keyboardEl.innerHTML = '';
+    for (let c = 65; c <= 90; c++) {
+      const letter = String.fromCharCode(c);
+      const btn = document.createElement('button');
+      btn.textContent = letter;
+      btn.addEventListener('click', () => guess(letter));
+      keyboardEl.appendChild(btn);
+    }
+  }
+
+  function newGame() {
+    word = WORDS[Math.floor(Math.random() * WORDS.length)];
+    guessed = new Set();
+    wrongGuesses = 0;
+    gameOver = false;
+    parts.forEach(p => p.classList.remove('visible'));
+    buildKeyboard();
+    render();
+  }
+
+  function render() {
+    wordDisplay.textContent = word
+      .split('')
+      .map(l => (guessed.has(l) ? l : '_'))
+      .join(' ');
+
+    wrongCountEl.textContent = `Wrong guesses: ${wrongGuesses} / ${MAX_WRONG}`;
+
+    Array.from(keyboardEl.children).forEach(btn => {
+      const letter = btn.textContent;
+      btn.disabled = guessed.has(letter) || gameOver;
+      btn.classList.toggle('correct', guessed.has(letter) && word.includes(letter));
+      btn.classList.toggle('wrong', guessed.has(letter) && !word.includes(letter));
+    });
+
+    const won = word.split('').every(l => guessed.has(l));
+    if (won) {
+      gameOver = true;
+      statusEl.textContent = 'You got it! 🎉';
+    } else if (wrongGuesses >= MAX_WRONG) {
+      gameOver = true;
+      statusEl.textContent = `Out of guesses! The word was ${word}.`;
+    } else {
+      statusEl.textContent = '';
+    }
+
+    if (gameOver) {
+      Array.from(keyboardEl.children).forEach(btn => (btn.disabled = true));
+    }
+  }
+
+  function guess(letter) {
+    if (gameOver || guessed.has(letter)) return;
+    guessed.add(letter);
+    if (!word.includes(letter)) {
+      parts[wrongGuesses].classList.add('visible');
+      wrongGuesses++;
+    }
+    render();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const letter = e.key.toUpperCase();
+    if (letter.length === 1 && letter >= 'A' && letter <= 'Z') {
+      guess(letter);
+    }
+  });
+
+  newWordBtn.addEventListener('click', newGame);
+
+  newGame();
+})();
+</script>
+</body>
+</html>
