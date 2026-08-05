@@ -1,0 +1,8 @@
+{
+  "name": "Hangman",
+  "short_name": "Hangman",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#170a0d",
+  "theme_color": "#170a0d"
+}
