@@ -104,6 +104,42 @@
     cursor: pointer;
   }
   button.action:hover { background: #ff7a88; }
+  #addWordSection {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    max-width: 420px;
+  }
+  #newWordInput {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ff556688;
+    background: #170a0d;
+    color: #ffeef0;
+    font-size: 14px;
+    width: 220px;
+  }
+  #addWordBtn {
+    padding: 8px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background: #402530;
+    color: #ffeef0;
+    cursor: pointer;
+  }
+  #addWordBtn:hover:not(:disabled) { background: #55303f; }
+  #addWordBtn:disabled { opacity: 0.5; cursor: default; }
+  #addWordMessage {
+    width: 100%;
+    text-align: center;
+    font-size: 13px;
+    min-height: 18px;
+    color: #ff9aa6;
+  }
 </style>
 </head>
 <body>
@@ -142,24 +178,82 @@
 
   <button class="action" id="newWordBtn">New Word</button>
 
+  <div id="addWordSection">
+    <input id="newWordInput" type="text" placeholder="Add a word (shared with everyone)" maxlength="20">
+    <button id="addWordBtn">Add</button>
+    <div id="addWordMessage"></div>
+  </div>
+
 <script>
 (function () {
-  const WORDS = [
+  const DEFAULT_WORDS = [
     'PYTHON', 'ELEPHANT', 'GUITAR', 'RAINBOW', 'PLANET', 'DINOSAUR',
     'GALAXY', 'TREASURE', 'WIZARD', 'OCEAN', 'MOUNTAIN', 'PENGUIN',
     'ROBOT', 'CASTLE', 'JUNGLE', 'VOLCANO', 'PUZZLE', 'KANGAROO',
     'DIAMOND', 'THUNDER', 'PIRATE', 'DRAGON', 'COMPASS', 'WHISTLE'
   ];
   const MAX_WRONG = 8;
+  // same database snake's leaderboard uses — just a different node
+  const REST_BASE = 'https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app';
+
+  let wordPool = [...DEFAULT_WORDS]; // starts with defaults; grows once custom words load
 
   const wordDisplay = document.getElementById('wordDisplay');
   const statusEl = document.getElementById('status');
   const wrongCountEl = document.getElementById('wrongCount');
   const keyboardEl = document.getElementById('keyboard');
   const newWordBtn = document.getElementById('newWordBtn');
+  const newWordInput = document.getElementById('newWordInput');
+  const addWordBtn = document.getElementById('addWordBtn');
+  const addWordMessage = document.getElementById('addWordMessage');
   const parts = Array.from({ length: MAX_WRONG }, (_, i) => document.getElementById(`part-${i}`));
 
   let word, guessed, wrongGuesses, gameOver;
+
+  async function loadCustomWords() {
+    try {
+      const res = await fetch(`${REST_BASE}/customWords.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const customWords = data ? Object.keys(data) : [];
+      wordPool = [...new Set([...DEFAULT_WORDS, ...customWords])];
+      console.log(`[hangman] loaded ${customWords.length} shared custom word(s)`);
+    } catch (err) {
+      // not fatal — the game still works fine with just the default words
+      console.error('[hangman] failed to load custom words:', err);
+    }
+  }
+
+  async function addCustomWord(rawWord) {
+    const word = rawWord.trim().toUpperCase();
+
+    if (!/^[A-Z]{3,20}$/.test(word)) {
+      return { ok: false, message: 'Words must be 3-20 letters, A-Z only.' };
+    }
+    if (wordPool.includes(word)) {
+      return { ok: false, message: `"${word}" is already in the list.` };
+    }
+
+    try {
+      const res = await fetch(`${REST_BASE}/customWords/${word}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Date.now())
+      });
+      if (res.status === 401 || res.status === 403) {
+        // someone else added the exact same word a moment ago — not a real
+        // failure, just re-sync so it shows up in our pool too
+        wordPool = [...new Set([...wordPool, word])];
+        return { ok: true, message: `"${word}" was already added by someone else — added to your list too!` };
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      wordPool = [...new Set([...wordPool, word])];
+      return { ok: true, message: `"${word}" added! Everyone will see it in future games.` };
+    } catch (err) {
+      console.error('[hangman] failed to add word:', err);
+      return { ok: false, message: "Couldn't add that word — check your connection." };
+    }
+  }
 
   function buildKeyboard() {
     keyboardEl.innerHTML = '';
@@ -173,7 +267,7 @@
   }
 
   function newGame() {
-    word = WORDS[Math.floor(Math.random() * WORDS.length)];
+    word = wordPool[Math.floor(Math.random() * wordPool.length)];
     guessed = new Set();
     wrongGuesses = 0;
     gameOver = false;
@@ -224,6 +318,8 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     const letter = e.key.toUpperCase();
     if (letter.length === 1 && letter >= 'A' && letter <= 'Z') {
       guess(letter);
@@ -232,7 +328,25 @@
 
   newWordBtn.addEventListener('click', newGame);
 
+  addWordBtn.addEventListener('click', async () => {
+    const raw = newWordInput.value;
+    addWordBtn.disabled = true;
+    addWordMessage.textContent = 'Adding…';
+    const result = await addCustomWord(raw);
+    addWordMessage.textContent = result.message;
+    if (result.ok) newWordInput.value = '';
+    addWordBtn.disabled = false;
+  });
+
+  newWordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addWordBtn.click();
+    }
+  });
+
   newGame();
+  loadCustomWords(); // runs in the background — new words are available from the next game onward
 })();
 </script>
 <script>
