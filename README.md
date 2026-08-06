@@ -7,7 +7,8 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - 🎲 **Dice** — roll up to 6 dice, hold dice between rolls, switch dice styles, shake your phone to roll.
 - 🐍 **Snake** — Easy (wrap-around walls) or Classic (walls kill) mode, on-screen controls for touch devices, and a shared top-5 leaderboard (Firebase Realtime Database, via plain REST calls).
 - ❌⭕ **Tic-Tac-Toe** — 2 player, or vs computer with Easy/Unbeatable difficulty (Unbeatable uses a full minimax search).
-- 🎯 **Hangman** — guess the word before the figure is complete; 8 wrong guesses allowed.
+- 🎯 **Hangman** — guess the word before the figure is complete; 8 wrong guesses allowed. Words come from a built-in list plus a shared, Firebase-backed list anyone can add to.
+- 🟩 **Wordle** — guess a hidden word in limited tries with letter feedback (correct position / wrong position / not in word). Easy (4 letters) or Hard (6 letters), each with its own shared, Firebase-backed word list.
 
 ## Structure
 
@@ -32,10 +33,17 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
+├── wordle/
+│   ├── index.html
+│   ├── manifest.json
+│   └── sw.js
 └── tests/
     └── e2e/
         ├── dice.spec.js
-        └── snake.spec.js
+        ├── snake.spec.js
+        ├── tictactoe.spec.js
+        ├── hangman.spec.js
+        └── wordle.spec.js
 ```
 
 Each game lives in its own folder and is fully self-contained — no shared dependencies between games. Every game has a `manifest.json` + `sw.js` for offline support (installable, and playable after the first visit with no connection).
@@ -50,6 +58,10 @@ Each game lives in its own folder and is fully self-contained — no shared depe
 ## Snake's leaderboard
 
 Backed by a Firebase Realtime Database, accessed via plain REST `fetch()` calls rather than the Firebase SDK (the SDK's realtime sync layer proved unreliable in testing). Scores are capped at 50 stored entries — the leaderboard prunes down to the top 50 automatically after each save — and only the top 5 are displayed. There's no polling; the display refreshes on page load, after a save, or via the manual refresh button.
+
+## Shared word lists (hangman, wordle)
+
+Both games let anyone add a word to a shared pool, stored in the same Firebase database as the leaderboard (different top-level nodes: `customWords` for hangman, `wordleWords/easy` and `wordleWords/hard` for wordle). Each word is stored using the word itself as the key rather than a generated ID — this makes Firebase's own rules reject duplicate/simultaneous additions automatically, with no risk of a race condition even if two devices add the same word at once. Custom words load in the background on page load and are available starting with the next new word/game — no need to wait on a network call before playing. There's no profanity filtering; since the site is public, anyone who can reach the page could technically add an inappropriate word.
 
 ## Testing
 
