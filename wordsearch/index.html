@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Search</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 12px 24px;
+    background: linear-gradient(135deg, #1a2f3c, #0a161f);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #eaf6ff;
+    position: relative;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing: 2px;
+    color: #4fc3f7;
+    text-shadow: 0 0 10px rgba(79,195,247,0.5);
+  }
+  #homeBtn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #1a2f3c;
+    color: #4fc3f7;
+    border: 2px solid #4fc3f7;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+  }
+  #homeBtn:hover { background: #24404f; }
+  #difficulty {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 10px;
+    font-size: clamp(13px, 3.6vw, 15px);
+    justify-content: center;
+  }
+  #difficulty label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  #status {
+    font-size: clamp(15px, 4vw, 18px);
+    font-weight: bold;
+    margin: 4px 0 14px;
+    min-height: 24px;
+    text-align: center;
+  }
+  #layout {
+    width: 100%;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #gridWrap { max-width: 92vw; }
+  #grid {
+    display: grid;
+    gap: 2px;
+    background: #4fc3f733;
+    padding: 6px;
+    border-radius: 10px;
+    touch-action: none;
+    user-select: none;
+  }
+  .cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #10202b;
+    border-radius: 3px;
+    font-weight: bold;
+    color: #eaf6ff;
+    font-size: clamp(10px, 2.6vw, 16px);
+  }
+  .cell.selecting { background: #2a5a72; }
+  .cell.found { background: #3fae5a; color: #fff; }
+  #wordBank {
+    background: #14232e;
+    border: 2px solid #4fc3f7;
+    border-radius: 8px;
+    padding: 14px 18px;
+    min-width: 160px;
+    width: min(220px, 92vw);
+  }
+  #wordBank h2 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: #4fc3f7;
+    text-align: center;
+  }
+  #wordBank ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #wordBank li {
+    font-size: 14px;
+    padding: 2px 4px;
+  }
+  #wordBank li.found {
+    text-decoration: line-through;
+    color: #6fbf85;
+  }
+  button.action {
+    margin-top: 18px;
+    padding: 10px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #4fc3f7;
+    color: #0a161f;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button.action:hover { background: #7ad4ff; }
+
+  #addWordSection {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    max-width: 420px;
+  }
+  #newWordInput {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #4fc3f788;
+    background: #0a161f;
+    color: #eaf6ff;
+    font-size: 14px;
+    width: 200px;
+  }
+  #addWordBtn {
+    padding: 8px 16px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background: #1a3644;
+    color: #eaf6ff;
+    cursor: pointer;
+  }
+  #addWordBtn:hover:not(:disabled) { background: #244a5c; }
+  #addWordBtn:disabled { opacity: 0.5; cursor: default; }
+  #addWordMessage {
+    width: 100%;
+    text-align: center;
+    font-size: 13px;
+    min-height: 18px;
+    color: #9fdcff;
+  }
+</style>
+</head>
+<body>
+  <a id="homeBtn" href="../">🏠 Menu</a>
+  <h1>🔍 Word Search</h1>
+
+  <div id="difficulty">
+    <label><input type="radio" name="diff" value="easy" checked> Easy (8×8, 6 words)</label>
+    <label><input type="radio" name="diff" value="hard"> Hard (12×12, 10 words)</label>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="layout">
+    <div id="gridWrap">
+      <div id="grid"></div>
+    </div>
+    <div id="wordBank">
+      <h2>Find these</h2>
+      <ul id="wordList"></ul>
+    </div>
+  </div>
+
+  <button class="action" id="newPuzzleBtn">New Puzzle</button>
+
+  <div id="addWordSection">
+    <input id="newWordInput" type="text" placeholder="Add a word (shared)" maxlength="10">
+    <button id="addWordBtn">Add</button>
+    <div id="addWordMessage"></div>
+  </div>
+
+<script>
+(function () {
+  const DEFAULT_WORDS = [
+    'CAT', 'DOG', 'SUN', 'MOON', 'STAR', 'TREE', 'FISH', 'BIRD', 'LEAF', 'RAIN', 'SNOW', 'WIND',
+    'FIRE', 'LAKE', 'HILL', 'ROCK', 'SAND', 'DUCK', 'FROG', 'GOAT', 'MILK', 'RICE', 'CORN', 'PEAR',
+    'PLUM', 'LIME', 'MINT', 'VASE', 'DOOR', 'WALL', 'ROOF', 'GATE', 'YARD', 'PARK', 'ROAD', 'SHIP',
+    'BOAT', 'KITE', 'BALL', 'DOLL', 'CARD', 'GIFT', 'CAMP', 'TENT', 'ROPE', 'BELL', 'DRUM', 'HORN',
+    'FLAG', 'RING', 'SOCK', 'SHOE', 'COAT', 'VEST', 'BELT', 'HAWK', 'WOLF', 'BEAR', 'DEER', 'SEAL',
+    'CRAB', 'CLAM', 'APPLE', 'GRAPE', 'LEMON', 'MANGO', 'PEACH', 'BERRY', 'HONEY', 'BREAD', 'PASTA',
+    'PIZZA', 'SALAD', 'STEAK', 'SUGAR', 'WATER', 'JUICE', 'CANDY', 'TIGER', 'ZEBRA', 'EAGLE', 'SHARK',
+    'WHALE', 'HORSE', 'SHEEP', 'MOUSE', 'PANDA', 'KOALA', 'CAMEL', 'SNAKE', 'CHAIR', 'TABLE', 'HOUSE',
+    'PLANT', 'RIVER', 'BEACH', 'CLOUD', 'STORM', 'LIGHT', 'NIGHT', 'GHOST', 'ROBOT', 'SPACE', 'EARTH',
+    'VENUS', 'COMET', 'MUSIC', 'DANCE', 'PAINT', 'WRITE', 'BRUSH', 'TEACH', 'OCEAN', 'CANDLE',
+    'GARDEN', 'MIRROR', 'SHADOW', 'SILVER', 'SUNSET', 'TICKET', 'WINTER', 'SUMMER', 'SPRING', 'AUTUMN',
+    'BASKET', 'BOTTLE', 'BUTTON', 'CAMERA', 'CIRCLE', 'COFFEE', 'COOKIE', 'CRAYON', 'DESERT', 'ENGINE',
+    'FALCON', 'FLOWER', 'FOSSIL', 'GADGET', 'GALLON', 'GENTLE', 'GOBLIN', 'GUITAR', 'HAMMER', 'HANDLE',
+    'HELMET', 'ISLAND', 'JACKET', 'KETTLE', 'LADDER', 'MAGNET', 'MARKET', 'MEADOW', 'MELODY', 'MEMORY',
+    'MONKEY', 'MOTHER', 'MUFFIN', 'MUSEUM', 'NATURE', 'NICKEL', 'NUMBER', 'ORANGE', 'ORIGIN', 'OYSTER',
+    'PARROT', 'PENCIL', 'PICKLE', 'PILLOW', 'PIRATE', 'POCKET', 'POODLE', 'POTATO', 'PRINCE', 'PUDDLE',
+    'RABBIT', 'RIBBON', 'ROCKET', 'SADDLE', 'SALMON', 'SCHOOL', 'SHOWER', 'SPIDER', 'SQUARE', 'STREAM',
+    'STUDIO', 'TEMPLE', 'TICKLE', 'TOMATO', 'TURTLE', 'VELVET', 'VIOLET', 'WALNUT', 'WINDOW', 'WOODEN',
+    'YELLOW', 'FOREST', 'BRIDGE', 'DRAGON', 'MARBLE', 'PUZZLE', 'SPIRAL', 'TUNNEL', 'FRIEND', 'SISTER',
+    'FATHER', 'COUSIN', 'VALLEY', 'MODULE', 'WIZARD', 'PLANET', 'THREAD', 'CASTLE', 'ERASER', 'DOLPHIN',
+    'PENGUIN', 'GIRAFFE', 'ELEPHANT', 'KANGAROO', 'CRAYFISH', 'JELLYFISH', 'BUTTERFLY'
+  ];
+
+  const REST_BASE = 'https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app';
+  const DIFFICULTY = {
+    easy: { size: 8, wordCount: 6 },
+    hard: { size: 12, wordCount: 10 }
+  };
+  const DIRECTIONS = [
+    [0, 1], [0, -1], [1, 0], [-1, 0],
+    [1, 1], [1, -1], [-1, 1], [-1, -1]
+  ];
+
+  let wordPool = [...DEFAULT_WORDS];
+  let difficulty, size, grid, placements, foundWords, selecting, selectStart, selectCells;
+
+  const gridEl = document.getElementById('grid');
+  const wordListEl = document.getElementById('wordList');
+  const statusEl = document.getElementById('status');
+  const newPuzzleBtn = document.getElementById('newPuzzleBtn');
+  const newWordInput = document.getElementById('newWordInput');
+  const addWordBtn = document.getElementById('addWordBtn');
+  const addWordMessage = document.getElementById('addWordMessage');
+
+  function getDifficulty() {
+    return document.querySelector('input[name="diff"]:checked').value;
+  }
+
+  async function loadCustomWords() {
+    try {
+      const res = await fetch(`${REST_BASE}/wordSearchWords.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const customWords = data ? Object.keys(data) : [];
+      wordPool = [...new Set([...DEFAULT_WORDS, ...customWords])];
+      console.log(`[wordsearch] loaded ${customWords.length} shared custom word(s)`);
+    } catch (err) {
+      console.error('[wordsearch] failed to load custom words:', err);
+    }
+  }
+
+  async function addCustomWord(rawWord) {
+    const word = rawWord.trim().toUpperCase();
+    if (!/^[A-Z]{3,10}$/.test(word)) {
+      return { ok: false, message: 'Words must be 3-10 letters, A-Z only.' };
+    }
+    if (wordPool.includes(word)) {
+      return { ok: false, message: `"${word}" is already in the list.` };
+    }
+    try {
+      const res = await fetch(`${REST_BASE}/wordSearchWords/${word}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Date.now())
+      });
+      if (res.status === 401 || res.status === 403) {
+        wordPool = [...new Set([...wordPool, word])];
+        return { ok: true, message: `"${word}" was already added by someone else — added to your list too!` };
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      wordPool = [...new Set([...wordPool, word])];
+      return { ok: true, message: `"${word}" added! It may appear in future puzzles.` };
+    } catch (err) {
+      console.error('[wordsearch] failed to add word:', err);
+      return { ok: false, message: "Couldn't add that word — check your connection." };
+    }
+  }
+
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function boundsForAxis(delta, length, gridSize) {
+    if (delta === 0) return [0, gridSize - 1];
+    if (delta === 1) return [0, gridSize - length];
+    return [length - 1, gridSize - 1];
+  }
+
+  function tryPlaceWord(word) {
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const [dr, dc] = DIRECTIONS[randInt(0, DIRECTIONS.length - 1)];
+      const [rMin, rMax] = boundsForAxis(dr, word.length, size);
+      const [cMin, cMax] = boundsForAxis(dc, word.length, size);
+      if (rMin > rMax || cMin > cMax) continue;
+      const r0 = randInt(rMin, rMax);
+      const c0 = randInt(cMin, cMax);
+      const cells = [];
+      let ok = true;
+      for (let i = 0; i < word.length; i++) {
+        const r = r0 + dr * i;
+        const c = c0 + dc * i;
+        const existing = grid[r][c];
+        if (existing && existing !== word[i]) { ok = false; break; }
+        cells.push({ r, c });
+      }
+      if (ok) {
+        cells.forEach((cell, i) => { grid[cell.r][cell.c] = word[i]; });
+        return cells;
+      }
+    }
+    return null;
+  }
+
+  function generatePuzzle() {
+    grid = Array.from({ length: size }, () => Array(size).fill(null));
+    placements = [];
+
+    const candidates = [...wordPool]
+      .filter(w => w.length <= size)
+      .sort(() => Math.random() - 0.5)
+      .sort((a, b) => b.length - a.length); // longer words first — easier to place
+    const target = DIFFICULTY[difficulty].wordCount;
+
+    for (const word of candidates) {
+      if (placements.length >= target) break;
+      const cells = tryPlaceWord(word);
+      if (cells) placements.push({ word, cells });
+    }
+
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (!grid[r][c]) grid[r][c] = letters[randInt(0, 25)];
+      }
+    }
+  }
+
+  function renderGrid() {
+    gridEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    gridEl.style.width = `min(92vw, ${size * 42}px)`;
+    gridEl.innerHTML = '';
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = grid[r][c];
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        gridEl.appendChild(cell);
+      }
+    }
+  }
+
+  function renderWordList() {
+    wordListEl.innerHTML = '';
+    placements.forEach(p => {
+      const li = document.createElement('li');
+      li.textContent = p.word;
+      li.dataset.word = p.word;
+      if (foundWords.has(p.word)) li.classList.add('found');
+      wordListEl.appendChild(li);
+    });
+  }
+
+  function cellEl(r, c) {
+    return gridEl.children[r * size + c];
+  }
+
+  function newPuzzle() {
+    difficulty = getDifficulty();
+    size = DIFFICULTY[difficulty].size;
+    generatePuzzle();
+    foundWords = new Set();
+    selecting = false;
+    selectStart = null;
+    selectCells = [];
+    renderGrid();
+    renderWordList();
+    statusEl.textContent = '';
+  }
+
+  function clearSelectionHighlight() {
+    selectCells.forEach(({ r, c }) => cellEl(r, c).classList.remove('selecting'));
+  }
+
+  function cellsBetween(r0, c0, r1, c1) {
+    const dr = Math.sign(r1 - r0);
+    const dc = Math.sign(c1 - c0);
+    const rDist = Math.abs(r1 - r0);
+    const cDist = Math.abs(c1 - c0);
+    // only straight lines: horizontal, vertical, or perfect diagonal
+    if (!(dr === 0 || dc === 0 || rDist === cDist)) return null;
+    const steps = Math.max(rDist, cDist);
+    const cells = [];
+    for (let i = 0; i <= steps; i++) {
+      cells.push({ r: r0 + dr * i, c: c0 + dc * i });
+    }
+    return cells;
+  }
+
+  function markFound(word, cells) {
+    foundWords.add(word);
+    cells.forEach(({ r, c }) => cellEl(r, c).classList.add('found'));
+    const li = wordListEl.querySelector(`li[data-word="${word}"]`);
+    if (li) li.classList.add('found');
+    if (foundWords.size === placements.length) {
+      statusEl.textContent = 'All words found! 🎉';
+    }
+  }
+
+  function finishSelection() {
+    clearSelectionHighlight();
+    if (selectCells.length > 1) {
+      const forward = selectCells.map(({ r, c }) => grid[r][c]).join('');
+      const backward = forward.split('').reverse().join('');
+      const match = placements.find(p =>
+        !foundWords.has(p.word) && (p.word === forward || p.word === backward)
+      );
+      if (match) markFound(match.word, selectCells);
+    }
+    selecting = false;
+    selectStart = null;
+    selectCells = [];
+  }
+
+  function handlePointerDown(e) {
+    const target = e.target.closest('.cell');
+    if (!target) return;
+    selecting = true;
+    selectStart = { r: +target.dataset.r, c: +target.dataset.c };
+    selectCells = [selectStart];
+    target.classList.add('selecting');
+  }
+
+  function handlePointerMove(e) {
+    if (!selecting) return;
+    const point = document.elementFromPoint(
+      e.touches ? e.touches[0].clientX : e.clientX,
+      e.touches ? e.touches[0].clientY : e.clientY
+    );
+    const target = point && point.closest('.cell');
+    if (!target) return;
+    const r1 = +target.dataset.r, c1 = +target.dataset.c;
+    const path = cellsBetween(selectStart.r, selectStart.c, r1, c1);
+    if (!path) return;
+    clearSelectionHighlight();
+    selectCells = path;
+    selectCells.forEach(({ r, c }) => cellEl(r, c).classList.add('selecting'));
+  }
+
+  function handlePointerUp() {
+    if (selecting) finishSelection();
+  }
+
+  gridEl.addEventListener('pointerdown', handlePointerDown);
+  gridEl.addEventListener('pointermove', handlePointerMove);
+  window.addEventListener('pointerup', handlePointerUp);
+
+  newPuzzleBtn.addEventListener('click', newPuzzle);
+
+  document.querySelectorAll('input[name="diff"]').forEach(r => {
+    r.addEventListener('change', () => { r.blur(); newPuzzle(); });
+  });
+
+  addWordBtn.addEventListener('click', async () => {
+    addWordBtn.disabled = true;
+    addWordMessage.textContent = 'Adding…';
+    const result = await addCustomWord(newWordInput.value);
+    addWordMessage.textContent = result.message;
+    if (result.ok) newWordInput.value = '';
+    addWordBtn.disabled = false;
+  });
+
+  newWordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addWordBtn.click(); }
+  });
+
+  // test-only hooks: safe to leave in production — reveal only today's local
+  // puzzle state, no server data, same trust model as other games' hooks
+  window.__testGetPlacements = () => placements;
+  window.__testMarkFound = (word) => {
+    const p = placements.find(pl => pl.word === word);
+    if (p && !foundWords.has(word)) markFound(word, p.cells);
+  };
+
+  newPuzzle();
+  loadCustomWords(); // background — available from the next New Puzzle onward
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed:', err));
+    });
+  }
+</script>
+</body>
+</html>
