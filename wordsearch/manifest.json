@@ -1,0 +1,8 @@
+{
+  "name": "Word Search",
+  "short_name": "Word Search",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a161f",
+  "theme_color": "#0a161f"
+}
