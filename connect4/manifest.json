@@ -1,0 +1,8 @@
+{
+  "name": "Connect 4",
+  "short_name": "Connect 4",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1f110a",
+  "theme_color": "#1f110a"
+}
