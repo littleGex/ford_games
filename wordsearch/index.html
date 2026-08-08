@@ -244,7 +244,7 @@
   ];
 
   let wordPool = [...DEFAULT_WORDS];
-  let difficulty, size, grid, placements, foundWords, selecting, selectStart, selectCells;
+  let difficulty, size, grid, placements, foundWords, selecting, selectStart, selectCells, directionUsage;
 
   const gridEl = document.getElementById('grid');
   const wordListEl = document.getElementById('wordList');
@@ -309,25 +309,36 @@
   }
 
   function tryPlaceWord(word) {
-    for (let attempt = 0; attempt < 80; attempt++) {
-      const [dr, dc] = DIRECTIONS[randInt(0, DIRECTIONS.length - 1)];
+    // try least-used directions first, so placements spread across all 8
+    // orientations instead of clustering onto whichever axis happens to
+    // pack most easily — without this, tightly-packed grids strongly bias
+    // toward one axis, and every word in a puzzle ends up parallel
+    const order = DIRECTIONS.map((_, i) => i)
+      .sort(() => Math.random() - 0.5)
+      .sort((a, b) => directionUsage[a] - directionUsage[b]);
+
+    for (const dirIdx of order) {
+      const [dr, dc] = DIRECTIONS[dirIdx];
       const [rMin, rMax] = boundsForAxis(dr, word.length, size);
       const [cMin, cMax] = boundsForAxis(dc, word.length, size);
       if (rMin > rMax || cMin > cMax) continue;
-      const r0 = randInt(rMin, rMax);
-      const c0 = randInt(cMin, cMax);
-      const cells = [];
-      let ok = true;
-      for (let i = 0; i < word.length; i++) {
-        const r = r0 + dr * i;
-        const c = c0 + dc * i;
-        const existing = grid[r][c];
-        if (existing && existing !== word[i]) { ok = false; break; }
-        cells.push({ r, c });
-      }
-      if (ok) {
-        cells.forEach((cell, i) => { grid[cell.r][cell.c] = word[i]; });
-        return cells;
+      for (let posAttempt = 0; posAttempt < 10; posAttempt++) {
+        const r0 = randInt(rMin, rMax);
+        const c0 = randInt(cMin, cMax);
+        const cells = [];
+        let ok = true;
+        for (let i = 0; i < word.length; i++) {
+          const r = r0 + dr * i;
+          const c = c0 + dc * i;
+          const existing = grid[r][c];
+          if (existing && existing !== word[i]) { ok = false; break; }
+          cells.push({ r, c });
+        }
+        if (ok) {
+          cells.forEach((cell, i) => { grid[cell.r][cell.c] = word[i]; });
+          directionUsage[dirIdx]++;
+          return cells;
+        }
       }
     }
     return null;
@@ -336,11 +347,17 @@
   function generatePuzzle() {
     grid = Array.from({ length: size }, () => Array(size).fill(null));
     placements = [];
+    directionUsage = Array(8).fill(0);
 
+    // no length-priority sort — a pure shuffle means each puzzle draws a
+    // genuine mix of word lengths, not the same longest handful every time.
+    // That mix matters for direction variety too: a puzzle of six 7-8
+    // letter words in an 8x8 grid fills 70%+ of the cells, leaving so
+    // little slack that tight packing dominates regardless of direction
+    // preference — a healthier length mix gives placements real room.
     const candidates = [...wordPool]
       .filter(w => w.length <= size)
-      .sort(() => Math.random() - 0.5)
-      .sort((a, b) => b.length - a.length); // longer words first — easier to place
+      .sort(() => Math.random() - 0.5);
     const target = DIFFICULTY[difficulty].wordCount;
 
     for (const word of candidates) {
