@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connect 4</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 12px 24px;
+    background: linear-gradient(135deg, #3c2418, #1f110a);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #ffe8db;
+    position: relative;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing: 2px;
+    color: #ff7043;
+    text-shadow: 0 0 10px rgba(255,112,67,0.5);
+  }
+  #homeBtn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: #3c2418;
+    color: #ff7043;
+    border: 2px solid #ff7043;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+  }
+  #homeBtn:hover { background: #4f301f; }
+  #modeBar, #difficultyBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 6px;
+    font-size: clamp(13px, 3.6vw, 15px);
+    justify-content: center;
+  }
+  #difficultyBar { display: none; margin-bottom: 10px; }
+  #modeBar label, #difficultyBar label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  #status {
+    font-size: clamp(16px, 4.5vw, 20px);
+    font-weight: bold;
+    margin: 6px 0 14px;
+    min-height: 26px;
+    text-align: center;
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: clamp(3px, 1vw, 6px);
+    background: #2d4f7c;
+    padding: clamp(6px, 1.6vw, 10px);
+    border-radius: 12px;
+    width: min(92vw, 420px);
+  }
+  .col {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: clamp(3px, 1vw, 6px);
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .col:hover { background: #3a5f8e55; }
+  .hole {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #17263b;
+  }
+  .hole.r { background: radial-gradient(circle at 35% 30%, #ff7a5c, #d62828); }
+  .hole.y { background: radial-gradient(circle at 35% 30%, #ffe066, #f4a300); }
+  button.action {
+    margin-top: 18px;
+    padding: 10px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #ff7043;
+    color: #1f110a;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button.action:hover { background: #ff8f66; }
+</style>
+</head>
+<body>
+  <a id="homeBtn" href="../">🏠 Menu</a>
+  <h1>🔴🟡 Connect 4</h1>
+
+  <div id="modeBar">
+    <label><input type="radio" name="mode" value="2p" checked> 2 Player</label>
+    <label><input type="radio" name="mode" value="cpu"> vs Computer</label>
+  </div>
+  <div id="difficultyBar">
+    <label><input type="radio" name="difficulty" value="easy" checked> Easy</label>
+    <label><input type="radio" name="difficulty" value="hard"> Hard</label>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="board"></div>
+
+  <button class="action" id="resetBtn">New Game</button>
+
+<script>
+(function () {
+  const ROWS = 6, COLS = 7;
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const resetBtn = document.getElementById('resetBtn');
+  const modeRadios = document.querySelectorAll('input[name="mode"]');
+  const difficultyBar = document.getElementById('difficultyBar');
+  const difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+  const DIRECTIONS = [[0,1],[1,0],[1,1],[1,-1]];
+
+  let board, current, gameOver, mode, difficulty, colEls;
+
+  function getMode() { return document.querySelector('input[name="mode"]:checked').value; }
+  function getDifficulty() { return document.querySelector('input[name="difficulty"]:checked').value; }
+
+  modeRadios.forEach(r => r.addEventListener('change', () => {
+    mode = getMode();
+    difficultyBar.style.display = mode === 'cpu' ? 'flex' : 'none';
+    r.blur();
+    newGame();
+  }));
+  difficultyRadios.forEach(r => r.addEventListener('change', () => {
+    difficulty = getDifficulty();
+    r.blur();
+    newGame();
+  }));
+
+  function newBoard() {
+    return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+  }
+
+  function dropPiece(b, col, player) {
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (!b[r][col]) { b[r][col] = player; return r; }
+    }
+    return -1;
+  }
+
+  function validCols(b) {
+    const cols = [];
+    for (let c = 0; c < COLS; c++) if (!b[0][c]) cols.push(c);
+    return cols;
+  }
+
+  function checkWinner(b) {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const p = b[r][c];
+        if (!p) continue;
+        for (const [dr, dc] of DIRECTIONS) {
+          let count = 1;
+          for (let i = 1; i < 4; i++) {
+            const nr = r + dr * i, nc = c + dc * i;
+            if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || b[nr][nc] !== p) break;
+            count++;
+          }
+          if (count >= 4) return p;
+        }
+      }
+    }
+    return null;
+  }
+
+  function isDraw(b) {
+    return !checkWinner(b) && b[0].every(c => c);
+  }
+
+  function buildBoard() {
+    boardEl.innerHTML = '';
+    colEls = [];
+    for (let c = 0; c < COLS; c++) {
+      const colEl = document.createElement('div');
+      colEl.className = 'col';
+      colEl.addEventListener('click', () => handleColClick(c));
+      const holes = [];
+      for (let r = 0; r < ROWS; r++) {
+        const hole = document.createElement('div');
+        hole.className = 'hole';
+        colEl.appendChild(hole);
+        holes.push(hole);
+      }
+      boardEl.appendChild(colEl);
+      colEls.push(holes);
+    }
+  }
+
+  function render() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const hole = colEls[c][r];
+        hole.classList.remove('r', 'y');
+        if (board[r][c] === 'R') hole.classList.add('r');
+        if (board[r][c] === 'Y') hole.classList.add('y');
+      }
+    }
+  }
+
+  function updateStatus(winner, draw) {
+    if (winner) {
+      statusEl.textContent = mode === 'cpu'
+        ? (winner === 'R' ? 'You win! 🎉' : 'Computer wins!')
+        : `${winner === 'R' ? 'Red' : 'Yellow'} wins! 🎉`;
+    } else if (draw) {
+      statusEl.textContent = "It's a draw!";
+    } else {
+      statusEl.textContent = mode === 'cpu'
+        ? (current === 'R' ? 'Your turn (Red)' : "Computer's turn…")
+        : `${current === 'R' ? 'Red' : 'Yellow'}'s turn`;
+    }
+  }
+
+  function newGame() {
+    board = newBoard();
+    current = 'R';
+    gameOver = false;
+    buildBoard();
+    render();
+    updateStatus();
+  }
+
+  function handleColClick(c) {
+    if (gameOver) return;
+    if (mode === 'cpu' && current === 'Y') return;
+    place(c, current);
+  }
+
+  function place(c, player) {
+    const r = dropPiece(board, c, player);
+    if (r === -1) return; // column full
+    render();
+
+    const winner = checkWinner(board);
+    const draw = isDraw(board);
+    if (winner || draw) {
+      gameOver = true;
+      updateStatus(winner, draw);
+      return;
+    }
+
+    current = current === 'R' ? 'Y' : 'R';
+    updateStatus();
+
+    if (mode === 'cpu' && current === 'Y' && !gameOver) {
+      setTimeout(computerMove, 450);
+    }
+  }
+
+  function computerMove() {
+    if (gameOver) return;
+    const depth = difficulty === 'easy' ? 2 : 6;
+    let col;
+    if (difficulty === 'easy' && Math.random() < 0.35) {
+      const cols = validCols(board);
+      col = cols[Math.floor(Math.random() * cols.length)];
+    } else {
+      col = minimax(board, depth, -Infinity, Infinity, true, 'Y', 'R').col;
+    }
+    place(col, 'Y');
+  }
+
+  function scoreWindow(cells, player, opponent) {
+    const pc = cells.filter(x => x === player).length;
+    const oc = cells.filter(x => x === opponent).length;
+    const ec = cells.filter(x => x === null).length;
+    if (pc === 4) return 100000;
+    if (pc === 3 && ec === 1) return 5;
+    if (pc === 2 && ec === 2) return 2;
+    if (oc === 3 && ec === 1) return -4;
+    return 0;
+  }
+
+  function evaluate(b, player) {
+    const opponent = player === 'R' ? 'Y' : 'R';
+    let score = 0;
+    for (let r = 0; r < ROWS; r++) if (b[r][3] === player) score += 3;
+
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c <= COLS - 4; c++)
+        score += scoreWindow([b[r][c], b[r][c+1], b[r][c+2], b[r][c+3]], player, opponent);
+    for (let c = 0; c < COLS; c++)
+      for (let r = 0; r <= ROWS - 4; r++)
+        score += scoreWindow([b[r][c], b[r+1][c], b[r+2][c], b[r+3][c]], player, opponent);
+    for (let r = 0; r <= ROWS - 4; r++)
+      for (let c = 0; c <= COLS - 4; c++)
+        score += scoreWindow([b[r][c], b[r+1][c+1], b[r+2][c+2], b[r+3][c+3]], player, opponent);
+    for (let r = 0; r <= ROWS - 4; r++)
+      for (let c = 3; c < COLS; c++)
+        score += scoreWindow([b[r][c], b[r+1][c-1], b[r+2][c-2], b[r+3][c-3]], player, opponent);
+
+    return score;
+  }
+
+  // depth-limited minimax with alpha-beta pruning — a full search is
+  // infeasible (branching factor ~7), so this looks a fixed number of moves
+  // ahead and scores the resulting positions with the heuristic above
+  function minimax(b, depth, alpha, beta, maximizing, aiPlayer, humanPlayer) {
+    const winner = checkWinner(b);
+    const cols = validCols(b);
+    if (winner === aiPlayer) return { score: 1000000 + depth };
+    if (winner === humanPlayer) return { score: -1000000 - depth };
+    if (cols.length === 0) return { score: 0 };
+    if (depth === 0) return { score: evaluate(b, aiPlayer) };
+
+    if (maximizing) {
+      let best = { score: -Infinity, col: cols[0] };
+      for (const c of cols) {
+        const r = dropPiece(b, c, aiPlayer);
+        const result = minimax(b, depth - 1, alpha, beta, false, aiPlayer, humanPlayer);
+        b[r][c] = null;
+        if (result.score > best.score) best = { score: result.score, col: c };
+        alpha = Math.max(alpha, best.score);
+        if (alpha >= beta) break;
+      }
+      return best;
+    } else {
+      let best = { score: Infinity, col: cols[0] };
+      for (const c of cols) {
+        const r = dropPiece(b, c, humanPlayer);
+        const result = minimax(b, depth - 1, alpha, beta, true, aiPlayer, humanPlayer);
+        b[r][c] = null;
+        if (result.score < best.score) best = { score: result.score, col: c };
+        beta = Math.min(beta, best.score);
+        if (alpha >= beta) break;
+      }
+      return best;
+    }
+  }
+
+  resetBtn.addEventListener('click', newGame);
+
+  // test-only hooks: safe to leave in production — reveal/manipulate only
+  // today's local game state, no server data, same trust model as other
+  // games' hooks. __testSetBoard exists so AI-behavior tests can construct
+  // an exact scenario without fighting the AI's own (unpredictable but
+  // reasonable) moves during setup.
+  window.__testGetBoard = () => board;
+  window.__testDropAt = (col) => handleColClick(col);
+  window.__testSetBoard = (newBoard, currentPlayer) => {
+    board = newBoard.map(row => [...row]);
+    current = currentPlayer;
+    gameOver = false;
+    render();
+    updateStatus();
+  };
+  window.__testTriggerComputerMove = () => computerMove();
+
+  mode = getMode();
+  difficulty = getDifficulty();
+  newGame();
+})();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed:', err));
+    });
+  }
+</script>
+</body>
+</html>
