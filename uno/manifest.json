@@ -1,0 +1,8 @@
+{
+  "name": "Uno",
+  "short_name": "Uno",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#12081f",
+  "theme_color": "#12081f"
+}
