@@ -11,6 +11,8 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - 🟩 **Wordle** — guess a hidden word in limited tries with letter feedback (correct position / wrong position / not in word). Easy (4 letters) or Hard (6 letters), each with its own shared, Firebase-backed word list.
 - 🔍 **Word Search** — find hidden words in a letter grid by clicking/dragging across them (any of the 8 directions, forwards or backwards). Easy (8×8, 6 words) or Hard (12×12, 10 words), drawing from a 200+ word bundled list plus a shared, Firebase-backed list anyone can add to.
 - 🔴🟡 **Connect 4** — 2 player, or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
+- 🎴 **Uno** — 2-4 players, same-device pass-and-play with a hand-off screen between turns so hands stay private. Full 108-card deck, all action/wild cards, CSS-drawn cards (no image assets).
+- 🃏 **Uno** — 2-4 players, same-device pass-and-play. Full 108-card deck, Skip/Reverse/Draw Two/Wild/Wild Draw Four, CSS-drawn cards (no image assets). A hand-off screen hides each player's cards until they tap through, so nobody sees anyone else's hand on a shared device.
 
 ## Structure
 
@@ -47,6 +49,10 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
+├── uno/
+│   ├── index.html
+│   ├── manifest.json
+│   └── sw.js
 └── tests/
     └── e2e/
         ├── dice.spec.js
@@ -55,7 +61,8 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
         ├── hangman.spec.js
         ├── wordle.spec.js
         ├── wordsearch.spec.js
-        └── connect4.spec.js
+        ├── connect4.spec.js
+        └── uno.spec.js
 ```
 
 Each game lives in its own folder and is fully self-contained — no shared dependencies between games. Every game has a `manifest.json` + `sw.js` for offline support (installable, and playable after the first visit with no connection).
