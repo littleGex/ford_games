@@ -118,6 +118,29 @@ test('a wild4 lets the player choose a color and forces the next player to draw 
   expect(state.currentPlayerIndex).toBe(2);
 });
 
+test('in 2-player, a skip returns the turn to the same player without showing the hand-off screen', async ({ page }) => {
+  await page.goto('/uno/');
+  await page.click('#overlayBtn'); // dismiss the initial hand-off
+
+  await page.evaluate(() => {
+    const state = window.__testGetState();
+    state.topDiscard = { color: 'red', type: 'number', value: 5 };
+    state.currentColor = 'red';
+    state.players[0].hand = [
+      { color: 'red', type: 'skip' },
+      { color: 'green', type: 'number', value: 7 }
+    ];
+    window.__testSetState(state);
+  });
+
+  await page.locator('#hand .card').first().click(); // play the skip
+
+  // still player 0's turn, hand-off overlay should NOT reappear
+  await expect(page.locator('#overlay')).not.toHaveClass(/visible/);
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.currentPlayerIndex).toBe(0);
+});
+
 test('emptying your hand wins the game', async ({ page }) => {
   await page.goto('/uno/');
 
