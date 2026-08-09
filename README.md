@@ -10,6 +10,7 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - 🎯 **Hangman** — guess the word before the figure is complete; 8 wrong guesses allowed. Words come from a built-in list plus a shared, Firebase-backed list anyone can add to.
 - 🟩 **Wordle** — guess a hidden word in limited tries with letter feedback (correct position / wrong position / not in word). Easy (4 letters) or Hard (6 letters), each with its own shared, Firebase-backed word list.
 - 🔍 **Word Search** — find hidden words in a letter grid by clicking/dragging across them (any of the 8 directions, forwards or backwards). Easy (8×8, 6 words) or Hard (12×12, 10 words), drawing from a 200+ word bundled list plus a shared, Firebase-backed list anyone can add to.
+- 🔴🟡 **Connect 4** — 2 player, or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
 
 ## Structure
 
@@ -42,6 +43,10 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
+├── connect4/
+│   ├── index.html
+│   ├── manifest.json
+│   └── sw.js
 └── tests/
     └── e2e/
         ├── dice.spec.js
@@ -49,7 +54,8 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
         ├── tictactoe.spec.js
         ├── hangman.spec.js
         ├── wordle.spec.js
-        └── wordsearch.spec.js
+        ├── wordsearch.spec.js
+        └── connect4.spec.js
 ```
 
 Each game lives in its own folder and is fully self-contained — no shared dependencies between games. Every game has a `manifest.json` + `sw.js` for offline support (installable, and playable after the first visit with no connection).
