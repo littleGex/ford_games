@@ -464,7 +464,15 @@
       steps = 2;
     }
     currentPlayerIndex = normalize(fromIdx + direction * steps, players.length);
-    showHandoff();
+    if (currentPlayerIndex === fromIdx) {
+      // same player continues — e.g. in 2-player, a skip/reverse/draw2/wild4
+      // returns the turn to the only opponent's opponent, i.e. themselves.
+      // No one else needs to look away, so skip the hand-off screen entirely.
+      renderHand();
+      updateStatus();
+    } else {
+      showHandoff();
+    }
   }
 
   drawPileEl.addEventListener('click', () => {
