@@ -185,7 +185,6 @@
   const AI_SPEED = 2.3;
   const KICK_POWER = 9;
   const KICK_RADIUS = 26;
-  const DRIBBLE_RADIUS = 34;
   const CONTROL_RADIUS = 25;
   const CHASE_RADIUS = 150;
   const SHOOT_RANGE = 300;
@@ -341,9 +340,29 @@
     joystick.addEventListener('pointerdown', e => { active = true; setFromEvent(e.clientX, e.clientY); });
     window.addEventListener('pointermove', e => { if (active) setFromEvent(e.clientX, e.clientY); });
     window.addEventListener('pointerup', reset);
+    window.addEventListener('pointercancel', reset); // some mobile gestures fire this instead of pointerup — without it the joystick can get stuck
     kickBtn.addEventListener('pointerdown', () => { kickHeld1 = true; });
   }
   setupJoystick();
+
+  const PICKUP_RADIUS = KICK_RADIUS;
+  const STICK_DIST = 16;
+
+  function computePossessor(candidates, b, pickupRadius) {
+    let best = null, bestDist = Infinity;
+    candidates.forEach(p => {
+      const d = dist(p, b);
+      if (d < pickupRadius && d < bestDist) { best = p; bestDist = d; }
+    });
+    return best;
+  }
+
+  function stickBallToPlayer(b, player, stickDist) {
+    b.x = player.x + player.facingX * stickDist;
+    b.y = player.y + player.facingY * stickDist;
+    b.vx = 0;
+    b.vy = 0;
+  }
 
   function step(dt) {
     if (paused) return;
@@ -364,9 +383,9 @@
       clampToPitch(p1);
     }
     const kick1 = keys[' '] || kickHeld1;
-    if (kick1 && dist(p1, ball) < KICK_RADIUS) applyKick(ball, p1, KICK_POWER);
     kickHeld1 = false;
 
+    let kick2 = false;
     if (mode === '2p') {
       let dx2 = 0, dy2 = 0;
       if (keys['arrowup']) dy2 -= 1;
@@ -381,27 +400,27 @@
         p2.facingY = dy2 / mag2;
         clampToPitch(p2);
       }
-      if (keys['enter'] && dist(p2, ball) < KICK_RADIUS) applyKick(ball, p2, KICK_POWER);
+      kick2 = keys['enter'];
     } else {
       const ownGoal = { x: PITCH.right, y: H / 2 };
       const opponentGoal = { x: PITCH.left, y: H / 2 };
       const decision = decideAI(p2, ball, ownGoal, opponentGoal);
       moveToward(p2, decision.target, AI_SPEED * dt);
-      if ((decision.action === 'shoot' || decision.action === 'dribble') && dist(p2, ball) < KICK_RADIUS) {
-        applyKick(ball, p2, decision.action === 'shoot' ? KICK_POWER : KICK_POWER * 0.5);
-      }
+      kick2 = decision.action === 'shoot';
     }
 
-    // gentle dribble: ball drifts toward a point just ahead of whichever player is close, if not just kicked
-    [p1, p2].forEach(p => {
-      const d = dist(p, ball);
-      if (d < DRIBBLE_RADIUS && d > 4) {
-        const targetX = p.x + p.facingX * 20;
-        const targetY = p.y + p.facingY * 20;
-        ball.vx += (targetX - ball.x) * 0.02 * dt;
-        ball.vy += (targetY - ball.y) * 0.02 * dt;
-      }
-    });
+    // exclusive possession: only whichever player is genuinely closest (and
+    // within pickup range) interacts with the ball this frame — this is
+    // what stops the ball being erratically tugged between both players
+    // at once, which is what the old "both players pull it" version did
+    const possessor = computePossessor([p1, p2], ball, PICKUP_RADIUS);
+    if (possessor === p1) {
+      if (kick1) applyKick(ball, p1, KICK_POWER);
+      else stickBallToPlayer(ball, p1, STICK_DIST);
+    } else if (possessor === p2) {
+      if (kick2) applyKick(ball, p2, KICK_POWER);
+      else stickBallToPlayer(ball, p2, STICK_DIST);
+    }
 
     updateBall(ball, dt);
     const goal = checkGoal(ball);
