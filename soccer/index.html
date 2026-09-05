@@ -436,16 +436,24 @@
     ctx.stroke();
   }
 
+  // same original pixel-style sprite as 5v5 soccer: two-tone shirt/shorts
+  // blocks with a facing tick — not a reproduction of any specific game's
+  // artwork
   function drawPlayer(p, color) {
-    ctx.beginPath();
+    const bodyW = 14, bodyH = 10, legH = 6;
     ctx.fillStyle = color;
-    ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+    ctx.fillRect(p.x - bodyW / 2, p.y - bodyH, bodyW, bodyH);
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(p.x - bodyW / 2, p.y, bodyW, legH);
+    ctx.beginPath();
+    ctx.fillStyle = '#f2c9a0';
+    ctx.arc(p.x, p.y - bodyH - 4, 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.strokeStyle = '#0006';
-    ctx.lineWidth = 3;
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(p.x + p.facingX * 18, p.y + p.facingY * 18);
+    ctx.strokeStyle = '#0008';
+    ctx.lineWidth = 2;
+    ctx.moveTo(p.x, p.y - bodyH / 2);
+    ctx.lineTo(p.x + p.facingX * 12, p.y - bodyH / 2 + p.facingY * 12);
     ctx.stroke();
   }
 
