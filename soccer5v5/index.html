@@ -102,8 +102,8 @@
   }
   button.action:hover { background: #6ee8a0; }
 
-  #touchControls { position: absolute; inset: 0; pointer-events: none; }
-  #joystick, #kickBtn { pointer-events: auto; }
+  #touchControls { position: absolute; inset: 0; pointer-events: none; touch-action: none; }
+  #joystick, #kickBtn { pointer-events: auto; touch-action: none; }
   #joystick {
     position: absolute;
     bottom: 16px;
@@ -122,6 +122,7 @@
     background: rgba(255,255,255,0.5);
     top: 28px;
     left: 28px;
+    pointer-events: none;
   }
   #kickBtn {
     position: absolute;
@@ -364,7 +365,7 @@
   document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
   function setupJoystick() {
-    let active = false;
+    let activePointerId = null;
     function setFromEvent(clientX, clientY) {
       const rect = joystick.getBoundingClientRect();
       const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
@@ -378,16 +379,32 @@
       joystickKnob.style.top = 28 + dy * 0.4 + 'px';
     }
     function reset() {
-      active = false;
+      activePointerId = null;
       joyVec.x = 0; joyVec.y = 0;
       joystickKnob.style.left = '28px';
       joystickKnob.style.top = '28px';
     }
-    joystick.addEventListener('pointerdown', e => { active = true; setFromEvent(e.clientX, e.clientY); });
-    window.addEventListener('pointermove', e => { if (active) setFromEvent(e.clientX, e.clientY); });
-    window.addEventListener('pointerup', reset);
-    window.addEventListener('pointercancel', reset); // some mobile gestures fire this instead of pointerup — without it the joystick can get stuck
-    kickBtn.addEventListener('pointerdown', () => { kickHeld1 = true; });
+    // track the specific pointer (finger) that started this drag — without
+    // this, releasing a totally different pointer (like tapping KICK with
+    // another finger) fires pointerup/pointercancel on window and resets
+    // the joystick even though the movement finger never lifted, causing a
+    // stop-start feel whenever kicking and moving at the same time
+    joystick.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      activePointerId = e.pointerId;
+      joystick.setPointerCapture(e.pointerId);
+      setFromEvent(e.clientX, e.clientY);
+    });
+    window.addEventListener('pointermove', e => {
+      if (e.pointerId === activePointerId) { e.preventDefault(); setFromEvent(e.clientX, e.clientY); }
+    });
+    window.addEventListener('pointerup', e => {
+      if (e.pointerId === activePointerId) reset();
+    });
+    window.addEventListener('pointercancel', e => {
+      if (e.pointerId === activePointerId) reset();
+    });
+    kickBtn.addEventListener('pointerdown', e => { e.preventDefault(); kickHeld1 = true; });
   }
   setupJoystick();
 
@@ -437,19 +454,31 @@
     team.activeIdx = pickActivePlayer(team.outfield, ball, team.activeIdx, SWITCH_HYSTERESIS);
     const active = team.outfield[team.activeIdx];
 
-    let dx = 0, dy = 0;
-    if (keys[keyMap.up]) dy -= 1;
-    if (keys[keyMap.down]) dy += 1;
-    if (keys[keyMap.left]) dx -= 1;
-    if (keys[keyMap.right]) dx += 1;
-    if (keyMap.useJoystick && (joyVec.x || joyVec.y)) { dx += joyVec.x; dy += joyVec.y; }
-    const mag = Math.hypot(dx, dy);
-    if (mag > 0) {
-      active.x += (dx / mag) * PLAYER_SPEED;
-      active.y += (dy / mag) * PLAYER_SPEED;
-      active.facingX = dx / mag;
-      active.facingY = dy / mag;
+    const usingJoystick = keyMap.useJoystick && (joyVec.x !== 0 || joyVec.y !== 0);
+    if (usingJoystick) {
+      const rawMag = Math.hypot(joyVec.x, joyVec.y);
+      const speedFraction = Math.min(1, rawMag);
+      const nx = joyVec.x / (rawMag || 1);
+      const ny = joyVec.y / (rawMag || 1);
+      active.x += nx * PLAYER_SPEED * speedFraction;
+      active.y += ny * PLAYER_SPEED * speedFraction;
+      active.facingX = nx;
+      active.facingY = ny;
       clampToPitch(active);
+    } else {
+      let dx = 0, dy = 0;
+      if (keys[keyMap.up]) dy -= 1;
+      if (keys[keyMap.down]) dy += 1;
+      if (keys[keyMap.left]) dx -= 1;
+      if (keys[keyMap.right]) dx += 1;
+      const mag = Math.hypot(dx, dy);
+      if (mag > 0) {
+        active.x += (dx / mag) * PLAYER_SPEED;
+        active.y += (dy / mag) * PLAYER_SPEED;
+        active.facingX = dx / mag;
+        active.facingY = dy / mag;
+        clampToPitch(active);
+      }
     }
     let kick = keys[keyMap.kick];
     if (keyMap.useJoystick && kickHeld1) { kick = true; kickHeld1 = false; }
