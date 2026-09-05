@@ -66,6 +66,21 @@ test('pressing kick near the ball sends it moving', async ({ page }) => {
   expect(speed).toBeGreaterThan(1);
 });
 
+test('the ball does not move on its own just from a player standing near it (no auto-dribble)', async ({ page }) => {
+  await page.goto('/soccer/');
+
+  await page.evaluate(() => {
+    window.__testSetState({
+      p1: { x: 400, y: 225, facingX: 1, facingY: 0 },
+      ball: { x: 410, y: 225, vx: 0, vy: 0 }
+    });
+    for (let i = 0; i < 30; i++) window.__testStep(1); // no kick key pressed
+  });
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(Math.hypot(state.ball.vx, state.ball.vy)).toBeLessThan(0.5);
+});
+
 test('reaching the win score ends the match with a message', async ({ page }) => {
   await page.goto('/soccer/');
 

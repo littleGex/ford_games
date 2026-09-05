@@ -185,7 +185,6 @@
   const AI_SPEED = 2.3;
   const KICK_POWER = 9;
   const KICK_RADIUS = 26;
-  const DRIBBLE_RADIUS = 34;
   const CONTROL_RADIUS = 25;
   const CHASE_RADIUS = 150;
   const SHOOT_RANGE = 300;
@@ -341,6 +340,7 @@
     joystick.addEventListener('pointerdown', e => { active = true; setFromEvent(e.clientX, e.clientY); });
     window.addEventListener('pointermove', e => { if (active) setFromEvent(e.clientX, e.clientY); });
     window.addEventListener('pointerup', reset);
+    window.addEventListener('pointercancel', reset); // some mobile gestures fire this instead of pointerup — without it the joystick can get stuck
     kickBtn.addEventListener('pointerdown', () => { kickHeld1 = true; });
   }
   setupJoystick();
@@ -391,17 +391,6 @@
         applyKick(ball, p2, decision.action === 'shoot' ? KICK_POWER : KICK_POWER * 0.5);
       }
     }
-
-    // gentle dribble: ball drifts toward a point just ahead of whichever player is close, if not just kicked
-    [p1, p2].forEach(p => {
-      const d = dist(p, ball);
-      if (d < DRIBBLE_RADIUS && d > 4) {
-        const targetX = p.x + p.facingX * 20;
-        const targetY = p.y + p.facingY * 20;
-        ball.vx += (targetX - ball.x) * 0.02 * dt;
-        ball.vy += (targetY - ball.y) * 0.02 * dt;
-      }
-    });
 
     updateBall(ball, dt);
     const goal = checkGoal(ball);

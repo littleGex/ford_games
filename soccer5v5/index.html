@@ -185,7 +185,6 @@
   const GK_SPEED = 2.0;
   const KICK_POWER = 9;
   const KICK_RADIUS = 26;
-  const DRIBBLE_RADIUS = 34;
   const CONTROL_RADIUS = 25;
   const CHASE_RADIUS = 150;
   const SHOOT_RANGE = 320;
@@ -387,9 +386,47 @@
     joystick.addEventListener('pointerdown', e => { active = true; setFromEvent(e.clientX, e.clientY); });
     window.addEventListener('pointermove', e => { if (active) setFromEvent(e.clientX, e.clientY); });
     window.addEventListener('pointerup', reset);
+    window.addEventListener('pointercancel', reset); // some mobile gestures fire this instead of pointerup — without it the joystick can get stuck
     kickBtn.addEventListener('pointerdown', () => { kickHeld1 = true; });
   }
   setupJoystick();
+
+  const GK_SAVE_RADIUS = 18;
+
+  // Checks the ball's whole path across this frame (not just its endpoint)
+  // against the keeper's collision circle — a point-only check can let a
+  // fast-moving ball "tunnel" past a small collision radius within a single
+  // frame, especially during a dropped-frame lag spike where dt is larger.
+  function segmentClosestPoint(p0, p1, center) {
+    const dx = p1.x - p0.x, dy = p1.y - p0.y;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq > 0 ? ((center.x - p0.x) * dx + (center.y - p0.y) * dy) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    return { x: p0.x + t * dx, y: p0.y + t * dy };
+  }
+
+  function resolveGoalkeeperCollision(prevPos, b, gk, minDist) {
+    const closest = segmentClosestPoint(prevPos, { x: b.x, y: b.y }, gk);
+    let dx = closest.x - gk.x, dy = closest.y - gk.y;
+    let d = Math.hypot(dx, dy);
+    if (d >= minDist) return;
+    if (d < 0.001) {
+      // degenerate: the ball's path ran exactly through the keeper's
+      // center — fall back to bouncing it straight back the way it came
+      const speed = Math.hypot(b.vx, b.vy) || 1;
+      dx = -b.vx / speed; dy = -b.vy / speed;
+      d = 1;
+    }
+    const nx = dx / d, ny = dy / d;
+    b.x = gk.x + nx * minDist;
+    b.y = gk.y + ny * minDist;
+    const vDotN = b.vx * nx + b.vy * ny;
+    if (vDotN < 0) {
+      b.vx -= 2 * vDotN * nx;
+      b.vy -= 2 * vDotN * ny;
+      b.vx *= 0.6; b.vy *= 0.6;
+    }
+  }
 
   function updateGoalkeeper(gk, team) {
     const targetY = Math.max(PITCH.goalTop + 12, Math.min(PITCH.goalBottom - 12, ball.y));
@@ -443,9 +480,6 @@
     updateGoalkeeper(team.gk, team);
   }
 
-  function allPlayers() {
-    return [teamL.gk, ...teamL.outfield, teamR.gk, ...teamR.outfield];
-  }
 
   function step(dt) {
     if (paused) return;
@@ -454,17 +488,10 @@
     if (teamR.controlType === 'human2') updateHumanTeam(teamR, { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright', kick: 'enter', useJoystick: false });
     if (teamR.controlType === 'ai') updateAITeam(teamR);
 
-    allPlayers().forEach(p => {
-      const d = dist(p, ball);
-      if (d < DRIBBLE_RADIUS && d > 4) {
-        const targetX = p.x + p.facingX * 20;
-        const targetY = p.y + p.facingY * 20;
-        ball.vx += (targetX - ball.x) * 0.02 * dt;
-        ball.vy += (targetY - ball.y) * 0.02 * dt;
-      }
-    });
-
+    const prevBallPos = { x: ball.x, y: ball.y };
     updateBall(ball, dt);
+    resolveGoalkeeperCollision(prevBallPos, ball, teamL.gk, GK_SAVE_RADIUS);
+    resolveGoalkeeperCollision(prevBallPos, ball, teamR.gk, GK_SAVE_RADIUS);
     const goal = checkGoal(ball);
     if (goal && !gameOver) afterGoal(goal);
   }
