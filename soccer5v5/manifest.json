@@ -1,0 +1,8 @@
+{
+  "name": "5v5 Soccer",
+  "short_name": "5v5 Soccer",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#061a10",
+  "theme_color": "#061a10"
+}
