@@ -66,19 +66,39 @@ test('pressing kick near the ball sends it moving', async ({ page }) => {
   expect(speed).toBeGreaterThan(1);
 });
 
-test('the ball does not move on its own just from a player standing near it (no auto-dribble)', async ({ page }) => {
+test('a player standing next to the ball with no kick pressed keeps it stuck to them (dribbling)', async ({ page }) => {
   await page.goto('/soccer/');
 
   await page.evaluate(() => {
     window.__testSetState({
       p1: { x: 400, y: 225, facingX: 1, facingY: 0 },
-      ball: { x: 410, y: 225, vx: 0, vy: 0 }
+      ball: { x: 410, y: 225, vx: 5, vy: -3 } // give it some initial velocity to confirm it gets zeroed once possessed
     });
-    for (let i = 0; i < 30; i++) window.__testStep(1); // no kick key pressed
+    for (let i = 0; i < 10; i++) window.__testStep(1); // no kick key pressed
   });
 
   const state = await page.evaluate(() => window.__testGetState());
-  expect(Math.hypot(state.ball.vx, state.ball.vy)).toBeLessThan(0.5);
+  // ball should be resting just ahead of p1 in their facing direction, not drifting off with its old velocity
+  expect(Math.abs(state.ball.x - (state.p1.x + 16))).toBeLessThan(2);
+  expect(Math.abs(state.ball.y - state.p1.y)).toBeLessThan(2);
+});
+
+test('a moving player carries the ball along with them while dribbling', async ({ page }) => {
+  await page.goto('/soccer/');
+
+  await page.evaluate(() => {
+    window.__testSetState({
+      p1: { x: 200, y: 225, facingX: 1, facingY: 0 },
+      ball: { x: 216, y: 225, vx: 0, vy: 0 }
+    });
+    window.__testSetKeys({ d: true }); // hold right, no kick
+    for (let i = 0; i < 20; i++) window.__testStep(1);
+    window.__testSetKeys({ d: false });
+  });
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.p1.x).toBeGreaterThan(240); // player has moved right substantially
+  expect(Math.abs(state.ball.x - (state.p1.x + 16))).toBeLessThan(2); // ball followed along
 });
 
 test('reaching the win score ends the match with a message', async ({ page }) => {

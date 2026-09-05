@@ -453,7 +453,6 @@
     }
     let kick = keys[keyMap.kick];
     if (keyMap.useJoystick && kickHeld1) { kick = true; kickHeld1 = false; }
-    if (kick && dist(active, ball) < KICK_RADIUS) applyKick(ball, active, KICK_POWER);
 
     team.outfield.forEach((p, i) => {
       if (i === team.activeIdx) return;
@@ -461,6 +460,7 @@
       moveToward(p, t, FORMATION_SPEED);
     });
     updateGoalkeeper(team.gk, team);
+    return { active, wantsKick: kick };
   }
 
   function updateAITeam(team) {
@@ -468,9 +468,6 @@
     const active = team.outfield[team.activeIdx];
     const decision = decideAI(active, ball, team.ownGoal, team.opponentGoal);
     moveToward(active, decision.target, AI_SPEED);
-    if ((decision.action === 'shoot' || decision.action === 'dribble') && dist(active, ball) < KICK_RADIUS) {
-      applyKick(ball, active, decision.action === 'shoot' ? KICK_POWER : KICK_POWER * 0.5);
-    }
 
     team.outfield.forEach((p, i) => {
       if (i === team.activeIdx) return;
@@ -478,15 +475,47 @@
       moveToward(p, t, FORMATION_SPEED);
     });
     updateGoalkeeper(team.gk, team);
+    return { active, wantsKick: decision.action === 'shoot' };
   }
 
+  const PICKUP_RADIUS = KICK_RADIUS;
+  const STICK_DIST = 16;
+
+  function computePossessor(candidates, b, pickupRadius) {
+    let best = null, bestDist = Infinity;
+    candidates.forEach(p => {
+      const d = dist(p, b);
+      if (d < pickupRadius && d < bestDist) { best = p; bestDist = d; }
+    });
+    return best;
+  }
+
+  function stickBallToPlayer(b, player, stickDist) {
+    b.x = player.x + player.facingX * stickDist;
+    b.y = player.y + player.facingY * stickDist;
+    b.vx = 0;
+    b.vy = 0;
+  }
 
   function step(dt) {
     if (paused) return;
 
-    if (teamL.controlType === 'human1') updateHumanTeam(teamL, { up: 'w', down: 's', left: 'a', right: 'd', kick: ' ', useJoystick: true });
-    if (teamR.controlType === 'human2') updateHumanTeam(teamR, { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright', kick: 'enter', useJoystick: false });
-    if (teamR.controlType === 'ai') updateAITeam(teamR);
+    const resultL = updateHumanTeam(teamL, { up: 'w', down: 's', left: 'a', right: 'd', kick: ' ', useJoystick: true });
+    const resultR = teamR.controlType === 'human2'
+      ? updateHumanTeam(teamR, { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright', kick: 'enter', useJoystick: false })
+      : updateAITeam(teamR);
+
+    // exclusive possession: only whichever active player (across both
+    // teams) is genuinely closest to the ball, and within pickup range,
+    // interacts with it this frame — reuses the same logic as 1v1 soccer
+    const possessor = computePossessor([resultL.active, resultR.active], ball, PICKUP_RADIUS);
+    if (possessor === resultL.active) {
+      if (resultL.wantsKick) applyKick(ball, resultL.active, KICK_POWER);
+      else stickBallToPlayer(ball, resultL.active, STICK_DIST);
+    } else if (possessor === resultR.active) {
+      if (resultR.wantsKick) applyKick(ball, resultR.active, KICK_POWER);
+      else stickBallToPlayer(ball, resultR.active, STICK_DIST);
+    }
 
     const prevBallPos = { x: ball.x, y: ball.y };
     updateBall(ball, dt);

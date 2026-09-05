@@ -75,18 +75,43 @@ test('goalkeepers track the ball vertically but stay near their own goal line', 
   expect(state.teamL.gk.x).toBeLessThan(80); // stayed near the left goal line, didn't chase upfield
 });
 
-test('the ball does not move on its own just from a player standing near it (no auto-dribble)', async ({ page }) => {
+test('a player standing next to the ball with no kick pressed keeps it stuck to them (dribbling)', async ({ page }) => {
   await page.goto('/soccer5v5/');
 
   await page.evaluate(() => {
     const state = window.__testGetState();
     const p = state.teamL.outfield[0];
-    window.__testSetState({ ball: { x: p.x + 10, y: p.y, vx: 0, vy: 0 } });
+    window.__testSetState({
+      teamL: { outfield: [{ x: p.x, y: p.y, facingX: 1, facingY: 0 }] },
+      ball: { x: p.x + 10, y: p.y, vx: 6, vy: -2 }
+    });
+    for (let i = 0; i < 10; i++) window.__testStep(1);
   });
-  await page.evaluate(() => { for (let i = 0; i < 30; i++) window.__testStep(1); });
 
   const state = await page.evaluate(() => window.__testGetState());
-  expect(Math.hypot(state.ball.vx, state.ball.vy)).toBeLessThan(0.5);
+  const p = state.teamL.outfield[0];
+  expect(Math.abs(state.ball.x - (p.x + 16))).toBeLessThan(2);
+  expect(Math.abs(state.ball.y - p.y)).toBeLessThan(2);
+});
+
+test('a moving player carries the ball along with them while dribbling (5v5)', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+
+  await page.evaluate(() => {
+    const state = window.__testGetState();
+    const p = state.teamL.outfield[0];
+    window.__testSetState({
+      teamL: { outfield: [{ x: p.x, y: p.y, facingX: 1, facingY: 0 }] },
+      ball: { x: p.x + 16, y: p.y, vx: 0, vy: 0 }
+    });
+    window.__testSetKeys({ d: true });
+    for (let i = 0; i < 20; i++) window.__testStep(1);
+    window.__testSetKeys({ d: false });
+  });
+
+  const state = await page.evaluate(() => window.__testGetState());
+  const p = state.teamL.outfield[0];
+  expect(Math.abs(state.ball.x - (p.x + 16))).toBeLessThan(2);
 });
 
 test('a shot aimed at the goalkeeper is saved rather than passing through', async ({ page }) => {
