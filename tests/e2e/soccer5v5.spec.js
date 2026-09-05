@@ -35,7 +35,14 @@ test('a ball hit into the right goal mouth scores for green (left team)', async 
   await page.goto('/soccer5v5/');
 
   await page.evaluate(() => {
-    window.__testSetState({ ball: { x: 940, y: 280, vx: 20, vy: 0 } });
+    // move both keepers well clear so this test purely checks scoring
+    // mechanics, independent of the goalkeeper save mechanic tested
+    // separately below
+    window.__testSetState({
+      teamL: { gk: { x: -500, y: -500 } },
+      teamR: { gk: { x: -500, y: -500 } },
+      ball: { x: 940, y: 280, vx: 20, vy: 0 }
+    });
   });
   await page.evaluate(() => {
     for (let i = 0; i < 20; i++) window.__testStep(1);
@@ -129,13 +136,17 @@ test('a shot aimed at the goalkeeper is saved rather than passing through', asyn
   expect(state.score2).toBe(0); // right team did not score
 });
 
-test('a shot well away from the keeper still scores (keeper only blocks nearby shots)', async ({ page }) => {
+test('a fast shot near the post beats a keeper who cannot track across in time', async ({ page }) => {
   await page.goto('/soccer5v5/');
 
   await page.evaluate(() => {
-    window.__testSetState({ ball: { x: 940, y: 280, vx: 20, vy: 0 } }); // aimed at right goal
+    // keeper stays at its normal home position (goal center, y=280) —
+    // the shot targets near the top post (y=215, close to the goal-mouth
+    // edge at 210) and is fast enough that the keeper (2 units/frame)
+    // cannot cover the ~65-unit gap in the handful of frames available
+    window.__testSetState({ ball: { x: 900, y: 215, vx: 25, vy: 0 } });
   });
-  await page.evaluate(() => { for (let i = 0; i < 20; i++) window.__testStep(1); });
+  await page.evaluate(() => { for (let i = 0; i < 6; i++) window.__testStep(1); });
 
   const state = await page.evaluate(() => window.__testGetState());
   expect(state.score1).toBe(1);
