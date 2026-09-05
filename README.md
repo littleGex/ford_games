@@ -13,6 +13,7 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - 🔴🟡 **Connect 4** — 2 player, or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
 - 🎴 **Uno** — 2-4 players, same-device pass-and-play with a hand-off screen between turns so hands stay private. Full 108-card deck, all action/wild cards, CSS-drawn cards (no image assets).
 - ⚽ **1v1 Soccer** — real-time canvas arcade soccer, inspired by retro top-down football games (an original build — no licensed clubs, players, or assets). 2 player (WASD vs arrow keys) or vs computer with rule-based AI. First to 3 goals wins.
+- 🥅 **5v5 Soccer** — full team match, same original art/engine style. Auto-switch control (you drive whichever of your outfielders is nearest the ball — goalkeepers are always computer-controlled), with teammates and opponents holding simple zonal formation positions rather than deliberate passing AI. 2 player or vs computer.
 - 🃏 **Uno** — 2-4 players, same-device pass-and-play. Full 108-card deck, Skip/Reverse/Draw Two/Wild/Wild Draw Four, CSS-drawn cards (no image assets). A hand-off screen hides each player's cards until they tap through, so nobody sees anyone else's hand on a shared device.
 
 ## Structure
@@ -58,6 +59,10 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
+├── soccer5v5/
+│   ├── index.html
+│   ├── manifest.json
+│   └── sw.js
 └── tests/
     └── e2e/
         ├── dice.spec.js
@@ -68,7 +73,8 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
         ├── wordsearch.spec.js
         ├── connect4.spec.js
         ├── uno.spec.js
-        └── soccer.spec.js
+        ├── soccer.spec.js
+        └── soccer5v5.spec.js
 ```
 
 Each game lives in its own folder and is fully self-contained — no shared dependencies between games. Every game has a `manifest.json` + `sw.js` for offline support (installable, and playable after the first visit with no connection).
