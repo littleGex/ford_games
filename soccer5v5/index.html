@@ -246,7 +246,7 @@
     </div>
   </div>
 
-  <p id="controlsHint">Control auto-switches to whichever of your outfield players is closest to the ball (look for the ring above their head). Player 1 (green): WASD + Space. Player 2 (yellow, 2-player mode): arrows + Enter. Touch: joystick + KICK controls Player 1. Goalkeepers are always computer-controlled.</p>
+  <p id="controlsHint">Control auto-switches to whichever of your outfield players is closest to the ball (look for the ring above their head). Player 1 (green): WASD + Space. Player 2 (yellow, 2-player mode): arrows + Enter. Touch: joystick + KICK controls Player 1. Goalkeepers move on their own and always clear the ball after holding it briefly — press your kick button to make your own keeper clear it right away.</p>
 
   <button class="action" id="resetBtn">New Match</button>
 
@@ -268,6 +268,9 @@
   const CONTROL_RADIUS = 25; // fixed — physical proximity, not "smarts"
   const HALF_LENGTHS = { 1: 60, 2: 120, 3: 180 };
   const NET_DEPTH = 26;
+  const GK_HOLD_RADIUS = 22;
+  const GK_HOLD_SECONDS = 1.3;
+  const GK_CLEAR_POWER = 7;
 
   // AI difficulty is entirely data — same decision code, different tuning.
   // "medium" reproduces the original fixed constants exactly, so 2-player
@@ -541,7 +544,7 @@
     const baseX = side === 'left' ? PITCH.left : PITCH.right;
     const mk = (dx, y, role) => {
       const home = { x: baseX + sign * dx, y };
-      return { x: home.x, y: home.y, facingX: sign, facingY: 0, role, homeSlot: home };
+      return { x: home.x, y: home.y, facingX: sign, facingY: 0, role, homeSlot: home, holding: false, holdTimer: 0 };
     };
     return {
       side, controlType,
@@ -757,6 +760,40 @@
     moveToward(gk, { x: gk.homeSlot.x, y: targetY }, GK_SPEED);
   }
 
+  // aims a clearance kick at the center circle — side-agnostic (always
+  // "away from immediate danger" regardless of which goal this keeper
+  // defends), and ignores the keeper's facing (which is mostly vertical
+  // from goal-line tracking, so blending it in like a normal kick would
+  // aim poorly)
+  function goalkeeperClear(gk) {
+    const target = { x: W / 2, y: H / 2 };
+    const dx = target.x - gk.x, dy = target.y - gk.y;
+    const d = Math.hypot(dx, dy) || 1;
+    ball.vx = (dx / d) * GK_CLEAR_POWER;
+    ball.vy = (dy / d) * GK_CLEAR_POWER;
+  }
+
+  // without this, a ball that comes to rest near a keeper (after a save, or
+  // just rolling in slowly) has no way to ever leave — keepers don't
+  // participate in the normal possession/kick system at all. This applies
+  // to both teams' keepers uniformly, so neither side can stall the match.
+  function updateGoalkeeperHold(team, dt) {
+    const gk = team.gk;
+    const ballSlow = Math.hypot(ball.vx, ball.vy) < 1;
+    if (dist(gk, ball) < GK_HOLD_RADIUS && ballSlow) {
+      if (!gk.holding) { gk.holding = true; gk.holdTimer = 0; }
+      gk.holdTimer += dt / 60; // dt is normalized to ~60fps units, so /60 ≈ elapsed seconds
+      if (gk.holdTimer >= GK_HOLD_SECONDS) {
+        goalkeeperClear(gk);
+        gk.holding = false;
+        gk.holdTimer = 0;
+      }
+    } else {
+      gk.holding = false;
+      gk.holdTimer = 0;
+    }
+  }
+
   function updateHumanTeam(team, keyMap) {
     // the human team's own switch responsiveness and formation tightness
     // stay fixed regardless of opponent skill — only the OPPONENT's AI
@@ -792,6 +829,14 @@
     }
     let kick = keys[keyMap.kick];
     if (keyMap.useJoystick && kickHeld1) { kick = true; kickHeld1 = false; }
+
+    // human agency: pressing kick clears your own keeper immediately if
+    // it's holding, instead of waiting out the auto-clear timer
+    if (team.gk.holding && kick) {
+      goalkeeperClear(team.gk);
+      team.gk.holding = false;
+      team.gk.holdTimer = 0;
+    }
 
     team.outfield.forEach((p, i) => {
       if (i === team.activeIdx) return;
@@ -861,6 +906,8 @@
     updateBall(ball, dt);
     resolveGoalkeeperCollision(prevBallPos, ball, teamL.gk, GK_SAVE_RADIUS);
     resolveGoalkeeperCollision(prevBallPos, ball, teamR.gk, GK_SAVE_RADIUS);
+    updateGoalkeeperHold(teamL, dt);
+    updateGoalkeeperHold(teamR, dt);
     const goal = checkGoal(ball);
     if (goal && !gameOver) afterGoal(goal);
   }
