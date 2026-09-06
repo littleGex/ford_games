@@ -256,6 +256,10 @@ test('completing a league match saves the result and offers to return to the lea
     });
   });
   await page.evaluate(() => { for (let i = 0; i < 20; i++) window.__testStep(1); });
+  // scoring triggers a 1400ms goal celebration during which the match is
+  // paused — the clock advance is deliberately a no-op while paused, so
+  // wait it out before trying to run the clock down
+  await page.waitForTimeout(1600);
   await page.evaluate(() => window.__testAdvanceClock(121));
   await page.click('#resetBtn'); // 2nd half
   await page.evaluate(() => window.__testAdvanceClock(121)); // full time
@@ -274,6 +278,7 @@ test('completing a league match saves the result and offers to return to the lea
 
 test('New Season clears saved results and resets the fixture list', async ({ page }) => {
   await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testClearLeagueSave());
   await page.evaluate(() => {
     window.__testStartLeagueMatch(1);
   });
@@ -285,6 +290,8 @@ test('New Season clears saved results and resets the fixture list', async ({ pag
     });
   });
   await page.evaluate(() => { for (let i = 0; i < 20; i++) window.__testStep(1); });
+  // wait out the goal celebration pause — see note in the test above
+  await page.waitForTimeout(1600);
   await page.evaluate(() => window.__testAdvanceClock(121));
   await page.click('#resetBtn');
   await page.evaluate(() => window.__testAdvanceClock(121));
@@ -298,6 +305,64 @@ test('New Season clears saved results and resets the fixture list', async ({ pag
   expect(Object.keys(save).length).toBe(0);
   const buttonCount = await page.locator('.fixtureRow button').count();
   expect(buttonCount).toBe(5); // all fixtures playable again
+});
+
+test('a goalkeeper holding a stationary ball auto-clears it after roughly 1.3 seconds', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+
+  await page.evaluate(() => {
+    const state = window.__testGetState();
+    const gk = state.teamL.gk;
+    window.__testSetState({ ball: { x: gk.x + 5, y: gk.y, vx: 0, vy: 0 } });
+  });
+
+  // step through ~1 second — should still be holding, not yet cleared
+  await page.evaluate(() => { for (let i = 0; i < 60; i++) window.__testStep(1); });
+  let state = await page.evaluate(() => window.__testGetState());
+  const ballSpeedMidway = Math.hypot(state.ball.vx, state.ball.vy);
+  expect(ballSpeedMidway).toBeLessThan(1);
+
+  // step past ~1.3 seconds total — should have auto-cleared by now
+  await page.evaluate(() => { for (let i = 0; i < 40; i++) window.__testStep(1); });
+  state = await page.evaluate(() => window.__testGetState());
+  const ballSpeedAfter = Math.hypot(state.ball.vx, state.ball.vy);
+  expect(ballSpeedAfter).toBeGreaterThan(3);
+});
+
+test('pressing kick clears your own keeper immediately, without waiting for the auto-clear timer', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+
+  await page.evaluate(() => {
+    const state = window.__testGetState();
+    const gk = state.teamL.gk;
+    window.__testSetState({ ball: { x: gk.x + 5, y: gk.y, vx: 0, vy: 0 } });
+  });
+
+  // a couple of frames to register as "holding", then press kick — well
+  // before the ~1.3s auto-clear would normally fire
+  await page.evaluate(() => { for (let i = 0; i < 10; i++) window.__testStep(1); });
+  await page.evaluate(() => {
+    window.__testSetKeys({ ' ': true });
+    window.__testStep(1);
+    window.__testSetKeys({ ' ': false });
+  });
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(Math.hypot(state.ball.vx, state.ball.vy)).toBeGreaterThan(3);
+});
+
+test('a goalkeeper does not hold a fast-moving ball', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+
+  await page.evaluate(() => {
+    const state = window.__testGetState();
+    const gk = state.teamR.gk;
+    window.__testSetState({ ball: { x: gk.x - 5, y: gk.y, vx: -15, vy: 0 } });
+  });
+  await page.evaluate(() => { for (let i = 0; i < 5; i++) window.__testStep(1); });
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.teamR.gk.holding).toBe(false);
 });
 
 test('New Match resets scores and formation positions', async ({ page }) => {
