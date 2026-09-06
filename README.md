@@ -13,7 +13,7 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - 🔴🟡 **Connect 4** — 2 player, or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
 - 🎴 **Uno** — 2-4 players, same-device pass-and-play with a hand-off screen between turns so hands stay private. Full 108-card deck, all action/wild cards, CSS-drawn cards (no image assets).
 - ⚽ **1v1 Soccer** — real-time canvas arcade soccer, inspired by retro top-down football games (an original build — no licensed clubs, players, or assets). 2 player (WASD vs arrow keys) or vs computer with rule-based AI. Timed match: two configurable halves (1/2/3 min), teams swap ends at half time, netted goals.
-- 🥅 **5v5 Soccer** — full team match, same original art/engine style. Auto-switch control (you drive whichever of your outfielders is nearest the ball — goalkeepers are always computer-controlled, with real collision physics so shots can't pass through them), with teammates and opponents holding simple zonal formation positions rather than deliberate passing AI. 2 player or vs computer, same timed-match structure as 1v1 Soccer.
+- 🥅 **5v5 Soccer** — full team match, same original art/engine style. Auto-switch control (you drive whichever of your outfielders is nearest the ball — goalkeepers are always computer-controlled, with real collision physics so shots can't pass through them), with teammates and opponents holding simple zonal formation positions rather than deliberate passing AI. 2 player, vs computer, or **League** mode: a single round-robin mini-season against 5 original opponent teams (own names/colors, no real clubs) of varying AI skill (easy/medium/hard — same decision code, different tuning), with a standings table saved locally in the browser.
 - 🃏 **Uno** — 2-4 players, same-device pass-and-play. Full 108-card deck, Skip/Reverse/Draw Two/Wild/Wild Draw Four, CSS-drawn cards (no image assets). A hand-off screen hides each player's cards until they tap through, so nobody sees anyone else's hand on a shared device.
 
 ## Structure
@@ -93,6 +93,12 @@ Backed by a Firebase Realtime Database, accessed via plain REST `fetch()` calls 
 ## Shared word lists (hangman, wordle, word search)
 
 All three let anyone add a word to a shared pool, stored in the same Firebase database as the leaderboard (different top-level nodes: `customWords` for hangman, `wordleWords/easy` and `wordleWords/hard` for wordle, `wordSearchWords` for word search). Each word is stored using the word itself as the key rather than a generated ID — this makes Firebase's own rules reject duplicate/simultaneous additions automatically, with no risk of a race condition even if two devices add the same word at once. Custom words load in the background on page load and are available starting with the next new word/game/puzzle — no need to wait on a network call before playing. There's no profanity filtering; since the site is public, anyone who can reach the page could technically add an inappropriate word.
+
+## 5v5 League mode
+
+A single round-robin mini-season: play each of 5 original opponent teams once (own names/colors, no real clubs — `Sunset Rovers`, `Meadowlark Athletic`, `River Town`, `Northfield United`, `Ironclad FC`). AI difficulty is entirely data — the same decision logic runs for every opponent, just tuned differently per skill tier (`easy`/`medium`/`hard`: AI speed, shooting range, chase radius, reaction time, and formation tightness all scale together). Standings (points, W/D/L, goals for/against) are computed from your results against each team — the other teams don't play each other, so this is a season built entirely around your fixtures, not a full simulated league.
+
+Saved to `localStorage` under `ford5v5LeagueSeason` — deliberately a small, plain JSON shape (per-team result only: score and W/D/L) rather than anything elaborate, so a future move to a persistent, shared backend (e.g. Firebase, following the same pattern as the leaderboard/word lists) — with a proper transfer market, budget, and squad-building career mode — could swap out how this is read/written without needing to redesign what it stores.
 
 ## Testing
 

@@ -215,6 +215,91 @@ test('reaching zero in the 2nd half ends the match with a final result', async (
   await expect(page.locator('#status')).toHaveText(/full time/i);
 });
 
+test('selecting League mode shows the fixtures panel and hides the pitch', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testClearLeagueSave());
+  await page.reload();
+
+  await page.click('input[name="mode"][value="league"]');
+
+  await expect(page.locator('#leaguePanel')).toBeVisible();
+  await expect(page.locator('#pitchWrap')).toBeHidden();
+  const fixtureCount = await page.locator('.fixtureRow').count();
+  expect(fixtureCount).toBe(5);
+});
+
+test('starting a league fixture applies that opponent\'s color and skill', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testClearLeagueSave());
+
+  const teams = await page.evaluate(() => window.__testGetLeagueTeams());
+  await page.evaluate(() => window.__testStartLeagueMatch(0));
+
+  await expect(page.locator('#pitchWrap')).toBeVisible();
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.teamR.color).toBe(teams[0].color);
+  expect(state.teamR.skillKey).toBe(teams[0].skill);
+  expect(state.teamR.name).toBe(teams[0].name);
+  expect(state.leagueOpponent.index).toBe(0);
+});
+
+test('completing a league match saves the result and offers to return to the league', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testClearLeagueSave());
+  await page.evaluate(() => window.__testStartLeagueMatch(2));
+
+  await page.evaluate(() => {
+    window.__testSetState({
+      teamL: { gk: { x: -500, y: -500 } },
+      teamR: { gk: { x: -500, y: -500 } },
+      ball: { x: 940, y: 280, vx: 20, vy: 0 }
+    });
+  });
+  await page.evaluate(() => { for (let i = 0; i < 20; i++) window.__testStep(1); });
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn'); // 2nd half
+  await page.evaluate(() => window.__testAdvanceClock(121)); // full time
+
+  await expect(page.locator('#resetBtn')).toHaveText('Back to League');
+  const save = await page.evaluate(() => window.__testGetLeagueSave());
+  expect(save[2]).toBeTruthy();
+  expect(save[2].result).toBe('W');
+  expect(save[2].userGoals).toBe(1);
+
+  await page.click('#resetBtn');
+  await expect(page.locator('#leaguePanel')).toBeVisible();
+  const fixtureResult = await page.locator('.fixtureRow').nth(2).locator('.result').textContent();
+  expect(fixtureResult).toContain('W');
+});
+
+test('New Season clears saved results and resets the fixture list', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => {
+    window.__testStartLeagueMatch(1);
+  });
+  await page.evaluate(() => {
+    window.__testSetState({
+      teamL: { gk: { x: -500, y: -500 } },
+      teamR: { gk: { x: -500, y: -500 } },
+      ball: { x: 940, y: 280, vx: 20, vy: 0 }
+    });
+  });
+  await page.evaluate(() => { for (let i = 0; i < 20; i++) window.__testStep(1); });
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn');
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn'); // back to league panel
+
+  let save = await page.evaluate(() => window.__testGetLeagueSave());
+  expect(Object.keys(save).length).toBeGreaterThan(0);
+
+  await page.click('#newSeasonBtn');
+  save = await page.evaluate(() => window.__testGetLeagueSave());
+  expect(Object.keys(save).length).toBe(0);
+  const buttonCount = await page.locator('.fixtureRow button').count();
+  expect(buttonCount).toBe(5); // all fixtures playable again
+});
+
 test('New Match resets scores and formation positions', async ({ page }) => {
   await page.goto('/soccer5v5/');
   await page.evaluate(() => window.__testSetState({ score1: 2, score2: 1 }));

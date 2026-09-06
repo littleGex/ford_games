@@ -67,6 +67,43 @@
     color: #a7d9bb;
   }
   #halfLengthBar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  #leaguePanel {
+    width: min(96vw, 560px);
+    background: #0d3320aa;
+    border: 2px solid #4ade8055;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  #leaguePanel h2 { margin: 0 0 10px; font-size: 18px; color: #4ade80; text-align: center; }
+  #leaguePanel h3 { margin: 14px 0 8px; font-size: 15px; color: #eafff0; }
+  #standingsTable { width: 100%; border-collapse: collapse; font-size: clamp(11px, 3vw, 13px); }
+  #standingsTable th, #standingsTable td { padding: 4px 6px; text-align: center; }
+  #standingsTable th:first-child, #standingsTable td:first-child { text-align: left; }
+  #standingsTable thead { border-bottom: 2px solid #4ade8055; color: #a7d9bb; }
+  #standingsTable tbody tr.you { font-weight: bold; color: #4ade80; }
+  .fixtureRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 4px;
+    border-bottom: 1px solid #eafff022;
+    font-size: clamp(12px, 3.2vw, 14px);
+  }
+  .fixtureRow .fixtureName { display: flex; align-items: center; gap: 8px; }
+  .fixtureRow .swatch { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .fixtureRow .result { color: #a7d9bb; font-size: 12px; }
+  .fixtureRow button {
+    padding: 6px 14px;
+    font-size: 12px;
+    border: none;
+    border-radius: 6px;
+    background: #4ade80;
+    color: #06210f;
+    font-weight: bold;
+    cursor: pointer;
+  }
   #scoreboard {
     display: flex;
     gap: 24px;
@@ -169,11 +206,25 @@
   <div id="modeBar">
     <label><input type="radio" name="mode" value="2p" checked> 2 Player</label>
     <label><input type="radio" name="mode" value="cpu"> vs Computer</label>
+    <label><input type="radio" name="mode" value="league"> League</label>
   </div>
   <div id="halfLengthBar">
     <label><input type="radio" name="halfLength" value="1"> 1 min halves</label>
     <label><input type="radio" name="halfLength" value="2" checked> 2 min halves</label>
     <label><input type="radio" name="halfLength" value="3"> 3 min halves</label>
+  </div>
+
+  <div id="leaguePanel" style="display:none;">
+    <h2>Mini League — Your Team</h2>
+    <table id="standingsTable">
+      <thead>
+        <tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr>
+      </thead>
+      <tbody id="standingsBody"></tbody>
+    </table>
+    <h3>Fixtures</h3>
+    <div id="fixturesList"></div>
+    <button class="action" id="newSeasonBtn">New Season</button>
   </div>
 
   <div id="scoreboard">
@@ -210,18 +261,34 @@
   const WALL_DAMPING = 0.7;
   const MIN_BALL_SPEED = 0.02;
   const PLAYER_SPEED = 2.6;
-  const AI_SPEED = 2.3;
   const FORMATION_SPEED = 1.7;
   const GK_SPEED = 2.0;
   const KICK_POWER = 9;
   const KICK_RADIUS = 26;
-  const CONTROL_RADIUS = 25;
-  const CHASE_RADIUS = 150;
-  const SHOOT_RANGE = 320;
-  const SWITCH_HYSTERESIS = 15;
-  const FORMATION_FOLLOW = 0.28;
+  const CONTROL_RADIUS = 25; // fixed — physical proximity, not "smarts"
   const HALF_LENGTHS = { 1: 60, 2: 120, 3: 180 };
   const NET_DEPTH = 26;
+
+  // AI difficulty is entirely data — same decision code, different tuning.
+  // "medium" reproduces the original fixed constants exactly, so 2-player
+  // and vs-Computer modes behave identically to before this was added.
+  const SKILL_PRESETS = {
+    easy:   { aiSpeed: 1.9, shootRange: 250, chaseRadius: 120, switchHysteresis: 24, formationFollow: 0.18 },
+    medium: { aiSpeed: 2.3, shootRange: 320, chaseRadius: 150, switchHysteresis: 15, formationFollow: 0.28 },
+    hard:   { aiSpeed: 2.7, shootRange: 380, chaseRadius: 180, switchHysteresis: 8,  formationFollow: 0.36 }
+  };
+
+  // the 5 league opponents — original names/colors, no real clubs. "Your
+  // Team" is always green and always human-controlled; these five are
+  // the AI opponents you play across a single round-robin mini-season.
+  const LEAGUE_TEAMS = [
+    { name: 'Sunset Rovers', color: '#fb923c', skill: 'easy' },
+    { name: 'Meadowlark Athletic', color: '#34d399', skill: 'easy' },
+    { name: 'River Town', color: '#60a5fa', skill: 'medium' },
+    { name: 'Northfield United', color: '#a78bfa', skill: 'medium' },
+    { name: 'Ironclad FC', color: '#f87171', skill: 'hard' }
+  ];
+  const LEAGUE_SAVE_KEY = 'ford5v5LeagueSeason';
 
   const scoreEl1 = document.getElementById('score1');
   const scoreEl2 = document.getElementById('score2');
@@ -234,14 +301,137 @@
   const joystick = document.getElementById('joystick');
   const joystickKnob = document.getElementById('joystickKnob');
   const kickBtn = document.getElementById('kickBtn');
+  const leaguePanel = document.getElementById('leaguePanel');
+  const standingsBody = document.getElementById('standingsBody');
+  const fixturesList = document.getElementById('fixturesList');
+  const newSeasonBtn = document.getElementById('newSeasonBtn');
+  const pitchWrap = document.getElementById('pitchWrap');
+  const scoreboardEl = document.getElementById('scoreboard');
+  const matchInfoEl = document.getElementById('matchInfo');
+  const controlsHintEl = document.getElementById('controlsHint');
 
   let mode, ball, teamL, teamR, score1, score2, gameOver, keys, joyVec, kickHeld1, paused, running;
   let half, matchPhase, matchTime, sidesSwapped;
+  let leagueOpponent = null; // { name, color, skill, index } when playing a league fixture, else null
 
   function getMode() { return document.querySelector('input[name="mode"]:checked').value; }
   function getHalfLength() { return HALF_LENGTHS[+document.querySelector('input[name="halfLength"]:checked').value]; }
-  modeRadios.forEach(r => r.addEventListener('change', () => { r.blur(); newMatch(); }));
-  halfLengthRadios.forEach(r => r.addEventListener('change', () => { r.blur(); newMatch(); }));
+
+  // --- league save data (localStorage) ---
+  // Kept deliberately minimal — this is intentionally a small, simple shape
+  // so a future career-mode rewrite (transfer budget, persistent squads,
+  // shared storage) can replace how it's read/written without needing to
+  // redesign what it stores.
+  function loadLeagueSave() {
+    try {
+      return JSON.parse(localStorage.getItem(LEAGUE_SAVE_KEY) || '{}');
+    } catch (err) {
+      console.error('[league] failed to read save:', err);
+      return {};
+    }
+  }
+  function saveLeagueResult(teamIndex, userGoals, oppGoals) {
+    const save = loadLeagueSave();
+    const result = userGoals > oppGoals ? 'W' : userGoals < oppGoals ? 'L' : 'D';
+    save[teamIndex] = { userGoals, oppGoals, result };
+    localStorage.setItem(LEAGUE_SAVE_KEY, JSON.stringify(save));
+  }
+  function clearLeagueSave() {
+    localStorage.removeItem(LEAGUE_SAVE_KEY);
+  }
+
+  function renderLeaguePanel() {
+    const save = loadLeagueSave();
+
+    // standings: "Your Team" plus all 5 opponents, points from the user's
+    // results (opponents don't play each other — this is a mini league
+    // built entirely around your fixtures, not a full simulated season)
+    const rows = [{ name: 'Your Team', you: true, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }];
+    LEAGUE_TEAMS.forEach((t, i) => rows.push({ name: t.name, you: false, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0, index: i }));
+
+    LEAGUE_TEAMS.forEach((t, i) => {
+      const r = save[i];
+      if (!r) return;
+      const you = rows[0];
+      const opp = rows[i + 1];
+      you.p++; opp.p++;
+      you.gf += r.userGoals; you.ga += r.oppGoals;
+      opp.gf += r.oppGoals; opp.ga += r.userGoals;
+      if (r.result === 'W') { you.w++; you.pts += 3; opp.l++; }
+      else if (r.result === 'L') { you.l++; opp.w++; opp.pts += 3; }
+      else { you.d++; opp.d++; you.pts++; opp.pts++; }
+    });
+
+    rows.sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+    standingsBody.innerHTML = rows.map(r =>
+      `<tr class="${r.you ? 'you' : ''}"><td>${r.name}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.pts}</td></tr>`
+    ).join('');
+
+    fixturesList.innerHTML = '';
+    LEAGUE_TEAMS.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'fixtureRow';
+      const r = save[i];
+      const nameHtml = `<span class="fixtureName"><span class="swatch" style="background:${t.color}"></span>${t.name} <span style="color:#a7d9bb; font-size:11px;">(${t.skill})</span></span>`;
+      if (r) {
+        row.innerHTML = `${nameHtml}<span class="result">${r.result} ${r.userGoals}-${r.oppGoals}</span>`;
+      } else {
+        row.innerHTML = nameHtml;
+        const btn = document.createElement('button');
+        btn.textContent = 'Play';
+        btn.addEventListener('click', () => startLeagueMatch(i));
+        row.appendChild(btn);
+      }
+      fixturesList.appendChild(row);
+    });
+  }
+
+  function showLeaguePanel() {
+    leaguePanel.style.display = 'block';
+    pitchWrap.style.display = 'none';
+    scoreboardEl.style.display = 'none';
+    matchInfoEl.style.display = 'none';
+    statusEl.style.display = 'none';
+    controlsHintEl.style.display = 'none';
+    resetBtn.style.display = 'none';
+    renderLeaguePanel();
+  }
+
+  function showMatchUI() {
+    leaguePanel.style.display = 'none';
+    pitchWrap.style.display = '';
+    scoreboardEl.style.display = '';
+    matchInfoEl.style.display = '';
+    statusEl.style.display = '';
+    controlsHintEl.style.display = '';
+    resetBtn.style.display = '';
+  }
+
+  function startLeagueMatch(teamIndex) {
+    const t = LEAGUE_TEAMS[teamIndex];
+    leagueOpponent = { name: t.name, color: t.color, skill: t.skill, index: teamIndex };
+    showMatchUI();
+    newMatch();
+  }
+
+  newSeasonBtn.addEventListener('click', () => {
+    clearLeagueSave();
+    renderLeaguePanel();
+  });
+
+  modeRadios.forEach(r => r.addEventListener('change', () => {
+    r.blur();
+    mode = getMode();
+    if (mode === 'league') {
+      leagueOpponent = null;
+      showLeaguePanel();
+    } else {
+      leagueOpponent = null;
+      showMatchUI();
+      newMatch();
+    }
+  }));
+  halfLengthRadios.forEach(r => r.addEventListener('change', () => { r.blur(); if (mode !== 'league') newMatch(); }));
 
   function formatClock(seconds) {
     const m = Math.floor(seconds / 60);
@@ -293,14 +483,14 @@
     b.vy = (dirY / mag) * power;
   }
 
-  function decideAI(ai, b, ownGoal, opponentGoal) {
+  function decideAI(ai, b, ownGoal, opponentGoal, skill) {
     const distToBall = dist(ai, b);
     if (distToBall < CONTROL_RADIUS) {
       const distToGoal = dist(b, opponentGoal);
-      return { action: distToGoal < SHOOT_RANGE ? 'shoot' : 'dribble', target: opponentGoal };
+      return { action: distToGoal < skill.shootRange ? 'shoot' : 'dribble', target: opponentGoal };
     }
     const ballNearerOwnGoal = dist(b, ownGoal) < dist(b, opponentGoal);
-    if (ballNearerOwnGoal || distToBall < CHASE_RADIUS) {
+    if (ballNearerOwnGoal || distToBall < skill.chaseRadius) {
       return { action: 'chase', target: b };
     }
     return {
@@ -346,7 +536,7 @@
     clampToPitch(player);
   }
 
-  function makeTeam(side, controlType) {
+  function makeTeam(side, controlType, color, skillKey) {
     const sign = side === 'left' ? 1 : -1;
     const baseX = side === 'left' ? PITCH.left : PITCH.right;
     const mk = (dx, y, role) => {
@@ -355,6 +545,10 @@
     };
     return {
       side, controlType,
+      color: color || (side === 'left' ? '#4ade80' : '#fbbf24'),
+      name: null, // set by league fixtures; null in 2P/vs-Computer modes
+      skillKey: skillKey || 'medium',
+      skill: SKILL_PRESETS[skillKey || 'medium'],
       gk: mk(15, H / 2, 'gk'),
       outfield: [mk(160, H * 0.32, 'd'), mk(160, H * 0.68, 'd'), mk(380, H * 0.32, 'a'), mk(380, H * 0.68, 'a')],
       activeIdx: 0,
@@ -376,7 +570,12 @@
     matchPhase = 'playing';
     matchTime = getHalfLength();
     teamL = makeTeam('left', 'human1');
-    teamR = makeTeam('right', mode === '2p' ? 'human2' : 'ai');
+    if (leagueOpponent) {
+      teamR = makeTeam('right', 'ai', leagueOpponent.color, leagueOpponent.skill);
+      teamR.name = leagueOpponent.name;
+    } else {
+      teamR = makeTeam('right', mode === '2p' ? 'human2' : 'ai');
+    }
     ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
     score1 = 0; score2 = 0;
     gameOver = false;
@@ -393,11 +592,13 @@
     // green (score1) attacks right in the 1st half, left in the 2nd —
     // this keeps the attribution correct after teams swap ends
     const greenAttacksRight = !sidesSwapped;
-    if ((side === 'right') === greenAttacksRight) score1++; else score2++;
+    const greenScored = (side === 'right') === greenAttacksRight;
+    if (greenScored) score1++; else score2++;
     scoreEl1.textContent = score1;
     scoreEl2.textContent = score2;
     paused = true;
-    statusEl.textContent = ((side === 'right') === greenAttacksRight) ? 'Goal, Green! ⚽' : 'Goal, Yellow! ⚽';
+    const opponentLabel = teamR.name || 'Yellow';
+    statusEl.textContent = greenScored ? 'Goal, Green! ⚽' : `Goal, ${opponentLabel}! ⚽`;
     setTimeout(() => {
       if (gameOver || matchPhase !== 'playing') return;
       ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
@@ -416,11 +617,13 @@
     halfLabelEl.textContent = '2nd Half';
     clockEl.textContent = formatClock(matchTime);
     // regenerate each team's formation on the opposite side, keeping who
-    // controls them (human1/human2/ai) fixed to the team identity
-    const teamLControl = teamL.controlType;
-    const teamRControl = teamR.controlType;
-    teamL = makeTeam('right', teamLControl);
-    teamR = makeTeam('left', teamRControl);
+    // controls them, their color, and their skill fixed to the team identity
+    const teamLControl = teamL.controlType, teamLColor = teamL.color, teamLSkill = teamL.skillKey, teamLName = teamL.name;
+    const teamRControl = teamR.controlType, teamRColor = teamR.color, teamRSkill = teamR.skillKey, teamRName = teamR.name;
+    teamL = makeTeam('right', teamLControl, teamLColor, teamLSkill);
+    teamL.name = teamLName;
+    teamR = makeTeam('left', teamRControl, teamRColor, teamRSkill);
+    teamR.name = teamRName;
     ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
     paused = false;
     statusEl.textContent = '';
@@ -441,14 +644,20 @@
     matchPhase = 'fulltime';
     gameOver = true;
     paused = true;
+    const opponentLabel = teamR.name || 'Yellow';
     if (score1 === score2) {
       statusEl.textContent = `Full Time — it's a draw! ${score1}-${score2}`;
     } else {
       statusEl.textContent = score1 > score2
         ? `🎉 Full Time — Green wins ${score1}-${score2}!`
-        : `🎉 Full Time — Yellow wins ${score2}-${score1}!`;
+        : `🎉 Full Time — ${opponentLabel} wins ${score2}-${score1}!`;
     }
-    resetBtn.textContent = 'New Match';
+    if (leagueOpponent) {
+      saveLeagueResult(leagueOpponent.index, score1, score2);
+      resetBtn.textContent = 'Back to League';
+    } else {
+      resetBtn.textContent = 'New Match';
+    }
   }
 
   // ---- input ----
@@ -549,7 +758,10 @@
   }
 
   function updateHumanTeam(team, keyMap) {
-    team.activeIdx = pickActivePlayer(team.outfield, ball, team.activeIdx, SWITCH_HYSTERESIS);
+    // the human team's own switch responsiveness and formation tightness
+    // stay fixed regardless of opponent skill — only the OPPONENT's AI
+    // should get harder/easier, not penalize/help the human player
+    team.activeIdx = pickActivePlayer(team.outfield, ball, team.activeIdx, SKILL_PRESETS.medium.switchHysteresis);
     const active = team.outfield[team.activeIdx];
 
     const usingJoystick = keyMap.useJoystick && (joyVec.x !== 0 || joyVec.y !== 0);
@@ -583,7 +795,7 @@
 
     team.outfield.forEach((p, i) => {
       if (i === team.activeIdx) return;
-      const t = formationTarget(p.homeSlot, ball, FORMATION_FOLLOW, 90, 90);
+      const t = formationTarget(p.homeSlot, ball, SKILL_PRESETS.medium.formationFollow, 90, 90);
       moveToward(p, t, FORMATION_SPEED);
     });
     updateGoalkeeper(team.gk, team);
@@ -591,14 +803,15 @@
   }
 
   function updateAITeam(team) {
-    team.activeIdx = pickActivePlayer(team.outfield, ball, team.activeIdx, SWITCH_HYSTERESIS);
+    const skill = team.skill;
+    team.activeIdx = pickActivePlayer(team.outfield, ball, team.activeIdx, skill.switchHysteresis);
     const active = team.outfield[team.activeIdx];
-    const decision = decideAI(active, ball, team.ownGoal, team.opponentGoal);
-    moveToward(active, decision.target, AI_SPEED);
+    const decision = decideAI(active, ball, team.ownGoal, team.opponentGoal, skill);
+    moveToward(active, decision.target, skill.aiSpeed);
 
     team.outfield.forEach((p, i) => {
       if (i === team.activeIdx) return;
-      const t = formationTarget(p.homeSlot, ball, FORMATION_FOLLOW, 90, 90);
+      const t = formationTarget(p.homeSlot, ball, skill.formationFollow, 90, 90);
       moveToward(p, t, FORMATION_SPEED);
     });
     updateGoalkeeper(team.gk, team);
@@ -701,13 +914,19 @@
     ctx.stroke();
     ctx.beginPath(); ctx.arc(W / 2, H / 2, 55, 0, Math.PI * 2); ctx.stroke();
 
-    drawGoalNet(PITCH.left, -1, '#4ade80');
-    drawGoalNet(PITCH.right, 1, '#fbbf24');
+    // goal net color follows whichever team is CURRENTLY on that side —
+    // teamL/teamR swap sides at half time, so this can't be a fixed
+    // left=teamL assumption (that was harmless while both were always
+    // green/yellow, but wrong once team colors became data)
+    const leftTeam = teamL.side === 'left' ? teamL : teamR;
+    const rightTeam = teamL.side === 'left' ? teamR : teamL;
+    drawGoalNet(PITCH.left, -1, leftTeam.color);
+    drawGoalNet(PITCH.right, 1, rightTeam.color);
 
-    drawPlayer(teamL.gk, '#4ade80', false);
-    teamL.outfield.forEach((p, i) => drawPlayer(p, '#4ade80', teamL.controlType.startsWith('human') && i === teamL.activeIdx));
-    drawPlayer(teamR.gk, '#fbbf24', false);
-    teamR.outfield.forEach((p, i) => drawPlayer(p, '#fbbf24', teamR.controlType === 'human2' && i === teamR.activeIdx));
+    drawPlayer(teamL.gk, teamL.color, false);
+    teamL.outfield.forEach((p, i) => drawPlayer(p, teamL.color, teamL.controlType.startsWith('human') && i === teamL.activeIdx));
+    drawPlayer(teamR.gk, teamR.color, false);
+    teamR.outfield.forEach((p, i) => drawPlayer(p, teamR.color, teamR.controlType === 'human2' && i === teamR.activeIdx));
 
     ctx.beginPath();
     ctx.fillStyle = '#fff';
@@ -771,7 +990,10 @@
 
   resetBtn.addEventListener('click', () => {
     if (matchPhase === 'halftime') startSecondHalf();
-    else newMatch();
+    else if (matchPhase === 'fulltime' && leagueOpponent) {
+      leagueOpponent = null;
+      showLeaguePanel();
+    } else newMatch();
   });
 
   // test-only hooks: safe to leave in production — reveal/manipulate only
@@ -779,10 +1001,11 @@
   // games' hooks
   window.__testGetState = () => ({
     ball: { ...ball },
-    teamL: { activeIdx: teamL.activeIdx, gk: { ...teamL.gk }, outfield: teamL.outfield.map(p => ({ ...p })) },
-    teamR: { activeIdx: teamR.activeIdx, gk: { ...teamR.gk }, outfield: teamR.outfield.map(p => ({ ...p })) },
+    teamL: { activeIdx: teamL.activeIdx, gk: { ...teamL.gk }, outfield: teamL.outfield.map(p => ({ ...p })), color: teamL.color, name: teamL.name },
+    teamR: { activeIdx: teamR.activeIdx, gk: { ...teamR.gk }, outfield: teamR.outfield.map(p => ({ ...p })), color: teamR.color, name: teamR.name, skillKey: teamR.skillKey },
     score1, score2, gameOver, mode, paused,
-    half, matchPhase, matchTime, sidesSwapped
+    half, matchPhase, matchTime, sidesSwapped,
+    leagueOpponent: leagueOpponent ? { ...leagueOpponent } : null
   });
   window.__testSetState = (state) => {
     if (state.ball) Object.assign(ball, state.ball);
@@ -815,6 +1038,10 @@
     }
   };
   window.__testStartSecondHalf = () => startSecondHalf();
+  window.__testStartLeagueMatch = (index) => startLeagueMatch(index);
+  window.__testGetLeagueSave = () => loadLeagueSave();
+  window.__testClearLeagueSave = () => clearLeagueSave();
+  window.__testGetLeagueTeams = () => LEAGUE_TEAMS.map(t => ({ ...t }));
 
   newMatch();
   running = true;
