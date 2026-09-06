@@ -233,20 +233,41 @@ test('starting a league fixture applies that opponent\'s color and skill', async
   await page.evaluate(() => window.__testClearLeagueSave());
 
   const teams = await page.evaluate(() => window.__testGetLeagueTeams());
-  await page.evaluate(() => window.__testStartLeagueMatch(0));
+  // team indices are 1-based in the league (0 is "Your Team")
+  await page.evaluate(() => window.__testStartLeagueMatch(1));
 
   await expect(page.locator('#pitchWrap')).toBeVisible();
   const state = await page.evaluate(() => window.__testGetState());
   expect(state.teamR.color).toBe(teams[0].color);
   expect(state.teamR.skillKey).toBe(teams[0].skill);
   expect(state.teamR.name).toBe(teams[0].name);
-  expect(state.leagueOpponent.index).toBe(0);
+  expect(state.leagueOpponent.index).toBe(1);
+});
+
+test('the schedule is a valid single round-robin: 6 teams, 5 rounds, everyone plays everyone once', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  const schedule = await page.evaluate(() => window.__testGetSchedule());
+
+  expect(schedule).toHaveLength(5);
+  expect(schedule.every(round => round.length === 3)).toBeTruthy();
+
+  const pairings = new Set();
+  const playCounts = Array(6).fill(0);
+  schedule.forEach(round => round.forEach(([a, b]) => {
+    pairings.add([a, b].sort().join('-'));
+    playCounts[a]++; playCounts[b]++;
+  }));
+  expect(pairings.size).toBe(15); // every unique pair exactly once
+  expect(playCounts.every(c => c === 5)).toBeTruthy();
+
+  // you play exactly one match per round
+  expect(schedule.every(round => round.filter(p => p.includes(0)).length === 1)).toBeTruthy();
 });
 
 test('completing a league match saves the result and offers to return to the league', async ({ page }) => {
   await page.goto('/soccer5v5/');
   await page.evaluate(() => window.__testClearLeagueSave());
-  await page.evaluate(() => window.__testStartLeagueMatch(2));
+  await page.evaluate(() => window.__testStartLeagueMatch(3));
 
   await page.evaluate(() => {
     window.__testSetState({
@@ -265,15 +286,56 @@ test('completing a league match saves the result and offers to return to the lea
   await page.evaluate(() => window.__testAdvanceClock(121)); // full time
 
   await expect(page.locator('#resetBtn')).toHaveText('Back to League');
+
   const save = await page.evaluate(() => window.__testGetLeagueSave());
-  expect(save[2]).toBeTruthy();
-  expect(save[2].result).toBe('W');
-  expect(save[2].userGoals).toBe(1);
+  const round = await page.evaluate(() => window.__testRoundForOpponent(3));
+  expect(save.played).toContain(round);
+  // all 3 matches from that round should be recorded: yours plus 2 simulated
+  const roundKeys = Object.keys(save.results).filter(k => k.startsWith(`${round}-`));
+  expect(roundKeys).toHaveLength(3);
+
+  // your own result should be a 1-0 win, oriented correctly regardless of
+  // whether the schedule listed you as home or away
+  const yourMatch = roundKeys.map(k => save.results[k]).find(r => r.home === 0 || r.away === 0);
+  const yourGoals = yourMatch.home === 0 ? yourMatch.hg : yourMatch.ag;
+  const oppGoals = yourMatch.home === 0 ? yourMatch.ag : yourMatch.hg;
+  expect(yourGoals).toBe(1);
+  expect(oppGoals).toBe(0);
 
   await page.click('#resetBtn');
   await expect(page.locator('#leaguePanel')).toBeVisible();
-  const fixtureResult = await page.locator('.fixtureRow').nth(2).locator('.result').textContent();
+  const fixtureResult = await page.locator('.fixtureRow').nth(round).locator('.result').textContent();
   expect(fixtureResult).toContain('W');
+});
+
+test('after one round every team in the table has played exactly one match', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testClearLeagueSave());
+  await page.evaluate(() => window.__testStartLeagueMatch(1));
+
+  await page.evaluate(() => {
+    window.__testSetState({
+      teamL: { gk: { x: -500, y: -500 } },
+      teamR: { gk: { x: -500, y: -500 } }
+    });
+  });
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn');
+  await page.evaluate(() => window.__testAdvanceClock(121));
+
+  const standings = await page.evaluate(() => window.__testGetStandings());
+  expect(standings).toHaveLength(6);
+  // the AI-vs-AI matches from this round were simulated too, so every team
+  // — not just yours and your opponent's — should show one match played
+  expect(standings.every(r => r.p === 1)).toBeTruthy();
+  // points awarded must be consistent: 3 for a win, 2 shared for a draw
+  const totalPts = standings.reduce((s, r) => s + r.pts, 0);
+  expect(totalPts).toBeGreaterThanOrEqual(6);
+  expect(totalPts).toBeLessThanOrEqual(9);
+  // goals scored must balance goals conceded across the whole table
+  const gf = standings.reduce((s, r) => s + r.gf, 0);
+  const ga = standings.reduce((s, r) => s + r.ga, 0);
+  expect(gf).toBe(ga);
 });
 
 test('New Season clears saved results and resets the fixture list', async ({ page }) => {
@@ -298,11 +360,13 @@ test('New Season clears saved results and resets the fixture list', async ({ pag
   await page.click('#resetBtn'); // back to league panel
 
   let save = await page.evaluate(() => window.__testGetLeagueSave());
-  expect(Object.keys(save).length).toBeGreaterThan(0);
+  expect(Object.keys(save.results).length).toBeGreaterThan(0);
+  expect(save.played.length).toBeGreaterThan(0);
 
   await page.click('#newSeasonBtn');
   save = await page.evaluate(() => window.__testGetLeagueSave());
-  expect(Object.keys(save).length).toBe(0);
+  expect(Object.keys(save.results).length).toBe(0);
+  expect(save.played.length).toBe(0);
   const buttonCount = await page.locator('.fixtureRow button').count();
   expect(buttonCount).toBe(5); // all fixtures playable again
 });

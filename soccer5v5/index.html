@@ -218,7 +218,7 @@
     <h2>Mini League — Your Team</h2>
     <table id="standingsTable">
       <thead>
-        <tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Pts</th></tr>
+        <tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr>
       </thead>
       <tbody id="standingsBody"></tbody>
     </table>
@@ -320,73 +320,176 @@
   function getMode() { return document.querySelector('input[name="mode"]:checked').value; }
   function getHalfLength() { return HALF_LENGTHS[+document.querySelector('input[name="halfLength"]:checked').value]; }
 
-  // --- league save data (localStorage) ---
-  // Kept deliberately minimal — this is intentionally a small, simple shape
-  // so a future career-mode rewrite (transfer budget, persistent squads,
-  // shared storage) can replace how it's read/written without needing to
-  // redesign what it stores.
+  // --- league season data (localStorage) ---
+  // Save shape: { results: { "<round>-<matchIdx>": {home, away, hg, ag} },
+  //               played: [roundIndices the user has completed] }
+  // Team indices: 0 = You, 1..5 = LEAGUE_TEAMS[0..4].
+  // Deliberately a plain data shape so a future career mode (budgets,
+  // transfers, shared/remote storage) can change how this is read and
+  // written without redesigning what it stores.
+  const TEAM_STRENGTH = { easy: 1.0, medium: 1.8, hard: 2.6 };
+
+  // Circle-method single round robin: 6 teams, 5 rounds, 3 matches per
+  // round. You play exactly once per round; the other two matches that
+  // round are AI vs AI and get simulated when you finish yours.
+  function buildSchedule(n) {
+    const teams = Array.from({ length: n }, (_, i) => i);
+    const rounds = [];
+    const fixed = teams[0];
+    const rotating = teams.slice(1);
+    for (let r = 0; r < n - 1; r++) {
+      const pairs = [[fixed, rotating[rotating.length - 1]]];
+      for (let i = 0; i < (n - 2) / 2; i++) {
+        pairs.push([rotating[i], rotating[rotating.length - 2 - i]]);
+      }
+      rounds.push(pairs);
+      rotating.unshift(rotating.pop());
+    }
+    return rounds;
+  }
+  const SCHEDULE = buildSchedule(6);
+
+  function teamMeta(index) {
+    if (index === 0) return { name: 'Your Team', color: '#4ade80', skill: 'medium', you: true };
+    const t = LEAGUE_TEAMS[index - 1];
+    return { name: t.name, color: t.color, skill: t.skill, you: false };
+  }
+
+  // Knuth's Poisson sampler — produces realistic football scorelines
+  // (mostly 0-3 goals, blowouts rare) rather than a flat random range
+  function poissonSample(lambda) {
+    const L = Math.exp(-lambda);
+    let k = 0, p = 1;
+    do { k++; p *= Math.random(); } while (p > L);
+    return k - 1;
+  }
+
+  function simulateMatch(strA, strB) {
+    const lambdaA = Math.max(0.25, Math.min(3.2, 1.15 + 0.45 * (strA - strB)));
+    const lambdaB = Math.max(0.25, Math.min(3.2, 1.15 + 0.45 * (strB - strA)));
+    return { hg: poissonSample(lambdaA), ag: poissonSample(lambdaB) };
+  }
+
   function loadLeagueSave() {
     try {
-      return JSON.parse(localStorage.getItem(LEAGUE_SAVE_KEY) || '{}');
+      const raw = JSON.parse(localStorage.getItem(LEAGUE_SAVE_KEY) || '{}');
+      return { results: raw.results || {}, played: raw.played || [] };
     } catch (err) {
       console.error('[league] failed to read save:', err);
-      return {};
+      return { results: {}, played: [] };
     }
   }
-  function saveLeagueResult(teamIndex, userGoals, oppGoals) {
-    const save = loadLeagueSave();
-    const result = userGoals > oppGoals ? 'W' : userGoals < oppGoals ? 'L' : 'D';
-    save[teamIndex] = { userGoals, oppGoals, result };
+  function writeLeagueSave(save) {
     localStorage.setItem(LEAGUE_SAVE_KEY, JSON.stringify(save));
   }
   function clearLeagueSave() {
     localStorage.removeItem(LEAGUE_SAVE_KEY);
   }
 
+  // returns the round index of the user's fixture against a given opponent
+  function roundForOpponent(teamIndex) {
+    return SCHEDULE.findIndex(round => round.some(([h, a]) => (h === 0 && a === teamIndex) || (a === 0 && h === teamIndex)));
+  }
+
+  // records the user's result AND simulates the other two matches from the
+  // same round, so the whole league progresses together
+  function saveLeagueRound(teamIndex, userGoals, oppGoals) {
+    const save = loadLeagueSave();
+    const roundIdx = roundForOpponent(teamIndex);
+    if (roundIdx === -1 || save.played.includes(roundIdx)) return;
+
+    SCHEDULE[roundIdx].forEach(([home, away], matchIdx) => {
+      const key = `${roundIdx}-${matchIdx}`;
+      if (save.results[key]) return;
+      if (home === 0 || away === 0) {
+        // the user's own match — use the real scoreline, oriented correctly
+        save.results[key] = home === 0
+          ? { home, away, hg: userGoals, ag: oppGoals }
+          : { home, away, hg: oppGoals, ag: userGoals };
+      } else {
+        const sim = simulateMatch(TEAM_STRENGTH[teamMeta(home).skill], TEAM_STRENGTH[teamMeta(away).skill]);
+        save.results[key] = { home, away, hg: sim.hg, ag: sim.ag };
+      }
+    });
+    save.played.push(roundIdx);
+    writeLeagueSave(save);
+  }
+
+  function computeStandings(save) {
+    const rows = Array.from({ length: 6 }, (_, i) => {
+      const m = teamMeta(i);
+      return { index: i, name: m.name, color: m.color, you: m.you, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+    });
+    Object.values(save.results).forEach(r => {
+      const H = rows[r.home], A = rows[r.away];
+      H.p++; A.p++;
+      H.gf += r.hg; H.ga += r.ag;
+      A.gf += r.ag; A.ga += r.hg;
+      if (r.hg > r.ag) { H.w++; H.pts += 3; A.l++; }
+      else if (r.ag > r.hg) { A.w++; A.pts += 3; H.l++; }
+      else { H.d++; A.d++; H.pts++; A.pts++; }
+    });
+    rows.sort((a, b) =>
+      b.pts - a.pts ||
+      ((b.gf - b.ga) - (a.gf - a.ga)) ||
+      b.gf - a.gf ||
+      a.name.localeCompare(b.name)
+    );
+    return rows;
+  }
+
   function renderLeaguePanel() {
     const save = loadLeagueSave();
+    const table = computeStandings(save);
 
-    // standings: "Your Team" plus all 5 opponents, points from the user's
-    // results (opponents don't play each other — this is a mini league
-    // built entirely around your fixtures, not a full simulated season)
-    const rows = [{ name: 'Your Team', you: true, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }];
-    LEAGUE_TEAMS.forEach((t, i) => rows.push({ name: t.name, you: false, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0, index: i }));
-
-    LEAGUE_TEAMS.forEach((t, i) => {
-      const r = save[i];
-      if (!r) return;
-      const you = rows[0];
-      const opp = rows[i + 1];
-      you.p++; opp.p++;
-      you.gf += r.userGoals; you.ga += r.oppGoals;
-      opp.gf += r.oppGoals; opp.ga += r.userGoals;
-      if (r.result === 'W') { you.w++; you.pts += 3; opp.l++; }
-      else if (r.result === 'L') { you.l++; opp.w++; opp.pts += 3; }
-      else { you.d++; opp.d++; you.pts++; opp.pts++; }
-    });
-
-    rows.sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
-    standingsBody.innerHTML = rows.map(r =>
-      `<tr class="${r.you ? 'you' : ''}"><td>${r.name}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.pts}</td></tr>`
+    standingsBody.innerHTML = table.map((r, i) =>
+      `<tr class="${r.you ? 'you' : ''}"><td>${i + 1}. ${r.name}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gf - r.ga}</td><td>${r.pts}</td></tr>`
     ).join('');
 
     fixturesList.innerHTML = '';
-    LEAGUE_TEAMS.forEach((t, i) => {
+    SCHEDULE.forEach((round, roundIdx) => {
+      const yourPair = round.find(([h, a]) => h === 0 || a === 0);
+      const opponentIndex = yourPair[0] === 0 ? yourPair[1] : yourPair[0];
+      const opp = teamMeta(opponentIndex);
+      const donePlayed = save.played.includes(roundIdx);
+
       const row = document.createElement('div');
       row.className = 'fixtureRow';
-      const r = save[i];
-      const nameHtml = `<span class="fixtureName"><span class="swatch" style="background:${t.color}"></span>${t.name} <span style="color:#a7d9bb; font-size:11px;">(${t.skill})</span></span>`;
-      if (r) {
-        row.innerHTML = `${nameHtml}<span class="result">${r.result} ${r.userGoals}-${r.oppGoals}</span>`;
+      const nameHtml = `<span class="fixtureName"><span class="swatch" style="background:${opp.color}"></span>R${roundIdx + 1} v ${opp.name} <span style="color:#a7d9bb; font-size:11px;">(${opp.skill})</span></span>`;
+
+      if (donePlayed) {
+        const key = Object.keys(save.results).find(k => k.startsWith(`${roundIdx}-`) && (save.results[k].home === 0 || save.results[k].away === 0));
+        const res = save.results[key];
+        const userGoals = res.home === 0 ? res.hg : res.ag;
+        const oppGoals = res.home === 0 ? res.ag : res.hg;
+        const letter = userGoals > oppGoals ? 'W' : userGoals < oppGoals ? 'L' : 'D';
+        row.innerHTML = `${nameHtml}<span class="result">${letter} ${userGoals}-${oppGoals}</span>`;
       } else {
         row.innerHTML = nameHtml;
         const btn = document.createElement('button');
         btn.textContent = 'Play';
-        btn.addEventListener('click', () => startLeagueMatch(i));
+        btn.addEventListener('click', () => startLeagueMatch(opponentIndex));
         row.appendChild(btn);
       }
       fixturesList.appendChild(row);
     });
+
+    // show the other results from each completed round, so the AI matches
+    // are visible rather than just silently affecting the table
+    const otherResults = [];
+    save.played.slice().sort((a, b) => a - b).forEach(roundIdx => {
+      SCHEDULE[roundIdx].forEach(([home, away], matchIdx) => {
+        if (home === 0 || away === 0) return;
+        const res = save.results[`${roundIdx}-${matchIdx}`];
+        if (res) otherResults.push(`R${roundIdx + 1}: ${teamMeta(home).name} ${res.hg}-${res.ag} ${teamMeta(away).name}`);
+      });
+    });
+    if (otherResults.length) {
+      const el = document.createElement('div');
+      el.style.cssText = 'margin-top:12px; font-size:12px; color:#a7d9bb; line-height:1.6;';
+      el.innerHTML = '<strong style="color:#eafff0;">Other results</strong><br>' + otherResults.join('<br>');
+      fixturesList.appendChild(el);
+    }
   }
 
   function showLeaguePanel() {
@@ -411,8 +514,8 @@
   }
 
   function startLeagueMatch(teamIndex) {
-    const t = LEAGUE_TEAMS[teamIndex];
-    leagueOpponent = { name: t.name, color: t.color, skill: t.skill, index: teamIndex };
+    const m = teamMeta(teamIndex);
+    leagueOpponent = { name: m.name, color: m.color, skill: m.skill, index: teamIndex };
     showMatchUI();
     newMatch();
   }
@@ -656,7 +759,7 @@
         : `🎉 Full Time — ${opponentLabel} wins ${score2}-${score1}!`;
     }
     if (leagueOpponent) {
-      saveLeagueResult(leagueOpponent.index, score1, score2);
+      saveLeagueRound(leagueOpponent.index, score1, score2);
       resetBtn.textContent = 'Back to League';
     } else {
       resetBtn.textContent = 'New Match';
@@ -1089,6 +1192,9 @@
   window.__testGetLeagueSave = () => loadLeagueSave();
   window.__testClearLeagueSave = () => clearLeagueSave();
   window.__testGetLeagueTeams = () => LEAGUE_TEAMS.map(t => ({ ...t }));
+  window.__testGetSchedule = () => SCHEDULE.map(r => r.map(p => [...p]));
+  window.__testGetStandings = () => computeStandings(loadLeagueSave());
+  window.__testRoundForOpponent = (teamIndex) => roundForOpponent(teamIndex);
 
   newMatch();
   running = true;
