@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>5v5 Soccer</title>
 <link rel="manifest" href="manifest.json">
 <style>
@@ -57,6 +57,16 @@
     z-index: 25;
   }
   #modeBar label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  #halfLengthBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-bottom: 10px;
+    font-size: clamp(12px, 3.2vw, 14px);
+    justify-content: center;
+    color: #a7d9bb;
+  }
+  #halfLengthBar label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
   #scoreboard {
     display: flex;
     gap: 24px;
@@ -67,6 +77,16 @@
   }
   #scoreboard .team1 { color: #4ade80; }
   #scoreboard .team2 { color: #fbbf24; }
+  #matchInfo {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(14px, 3.8vw, 17px);
+    margin-bottom: 4px;
+    color: #eafff0;
+  }
+  #clock { font-weight: bold; font-variant-numeric: tabular-nums; }
   #status {
     font-size: clamp(14px, 3.8vw, 17px);
     min-height: 22px;
@@ -150,11 +170,20 @@
     <label><input type="radio" name="mode" value="2p" checked> 2 Player</label>
     <label><input type="radio" name="mode" value="cpu"> vs Computer</label>
   </div>
+  <div id="halfLengthBar">
+    <label><input type="radio" name="halfLength" value="1"> 1 min halves</label>
+    <label><input type="radio" name="halfLength" value="2" checked> 2 min halves</label>
+    <label><input type="radio" name="halfLength" value="3"> 3 min halves</label>
+  </div>
 
   <div id="scoreboard">
     <span class="team1" id="score1">0</span>
     <span>–</span>
     <span class="team2" id="score2">0</span>
+  </div>
+  <div id="matchInfo">
+    <span id="halfLabel">1st Half</span>
+    <span id="clock">2:00</span>
   </div>
   <div id="status"></div>
 
@@ -191,21 +220,34 @@
   const SHOOT_RANGE = 320;
   const SWITCH_HYSTERESIS = 15;
   const FORMATION_FOLLOW = 0.28;
-  const WIN_SCORE = 3;
+  const HALF_LENGTHS = { 1: 60, 2: 120, 3: 180 };
+  const NET_DEPTH = 26;
 
   const scoreEl1 = document.getElementById('score1');
   const scoreEl2 = document.getElementById('score2');
   const statusEl = document.getElementById('status');
   const resetBtn = document.getElementById('resetBtn');
   const modeRadios = document.querySelectorAll('input[name="mode"]');
+  const halfLengthRadios = document.querySelectorAll('input[name="halfLength"]');
+  const halfLabelEl = document.getElementById('halfLabel');
+  const clockEl = document.getElementById('clock');
   const joystick = document.getElementById('joystick');
   const joystickKnob = document.getElementById('joystickKnob');
   const kickBtn = document.getElementById('kickBtn');
 
   let mode, ball, teamL, teamR, score1, score2, gameOver, keys, joyVec, kickHeld1, paused, running;
+  let half, matchPhase, matchTime, sidesSwapped;
 
   function getMode() { return document.querySelector('input[name="mode"]:checked').value; }
+  function getHalfLength() { return HALF_LENGTHS[+document.querySelector('input[name="halfLength"]:checked').value]; }
   modeRadios.forEach(r => r.addEventListener('change', () => { r.blur(); newMatch(); }));
+  halfLengthRadios.forEach(r => r.addEventListener('change', () => { r.blur(); newMatch(); }));
+
+  function formatClock(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  }
 
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
@@ -226,6 +268,11 @@
       if (b.x < PITCH.left) { b.x = PITCH.left; b.vx = -b.vx * WALL_DAMPING; }
       if (b.x > PITCH.right) { b.x = PITCH.right; b.vx = -b.vx * WALL_DAMPING; }
     }
+
+    // keep the ball visually within the net area once it's gone in, rather
+    // than letting a hard shot's momentum carry it past the back of the net
+    if (b.x < PITCH.left - NET_DEPTH) b.x = PITCH.left - NET_DEPTH;
+    if (b.x > PITCH.right + NET_DEPTH) b.x = PITCH.right + NET_DEPTH;
   }
 
   function checkGoal(b) {
@@ -324,32 +371,35 @@
 
   function newMatch() {
     mode = getMode();
+    half = 1;
+    sidesSwapped = false;
+    matchPhase = 'playing';
+    matchTime = getHalfLength();
     teamL = makeTeam('left', 'human1');
     teamR = makeTeam('right', mode === '2p' ? 'human2' : 'ai');
     ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
-    resetTeamPositions(teamL);
-    resetTeamPositions(teamR);
     score1 = 0; score2 = 0;
     gameOver = false;
     paused = false;
     scoreEl1.textContent = score1;
     scoreEl2.textContent = score2;
     statusEl.textContent = '';
+    halfLabelEl.textContent = '1st Half';
+    clockEl.textContent = formatClock(matchTime);
+    resetBtn.textContent = 'New Match';
   }
 
   function afterGoal(side) {
-    if (side === 'right') score1++; else score2++;
+    // green (score1) attacks right in the 1st half, left in the 2nd —
+    // this keeps the attribution correct after teams swap ends
+    const greenAttacksRight = !sidesSwapped;
+    if ((side === 'right') === greenAttacksRight) score1++; else score2++;
     scoreEl1.textContent = score1;
     scoreEl2.textContent = score2;
     paused = true;
-    if (score1 >= WIN_SCORE || score2 >= WIN_SCORE) {
-      gameOver = true;
-      statusEl.textContent = score1 > score2 ? '🎉 Green wins the match!' : '🎉 Yellow wins the match!';
-      return;
-    }
-    statusEl.textContent = side === 'right' ? 'Goal, Green! ⚽' : 'Goal, Yellow! ⚽';
+    statusEl.textContent = ((side === 'right') === greenAttacksRight) ? 'Goal, Green! ⚽' : 'Goal, Yellow! ⚽';
     setTimeout(() => {
-      if (gameOver) return;
+      if (gameOver || matchPhase !== 'playing') return;
       ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
       resetTeamPositions(teamL);
       resetTeamPositions(teamR);
@@ -358,11 +408,59 @@
     }, 1400);
   }
 
+  function startSecondHalf() {
+    half = 2;
+    sidesSwapped = true;
+    matchPhase = 'playing';
+    matchTime = getHalfLength();
+    halfLabelEl.textContent = '2nd Half';
+    clockEl.textContent = formatClock(matchTime);
+    // regenerate each team's formation on the opposite side, keeping who
+    // controls them (human1/human2/ai) fixed to the team identity
+    const teamLControl = teamL.controlType;
+    const teamRControl = teamR.controlType;
+    teamL = makeTeam('right', teamLControl);
+    teamR = makeTeam('left', teamRControl);
+    ball = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
+    paused = false;
+    statusEl.textContent = '';
+  }
+
+  function endHalf() {
+    matchTime = 0;
+    clockEl.textContent = formatClock(0);
+    matchPhase = 'halftime';
+    paused = true;
+    statusEl.textContent = 'Half Time — tap New Half to continue';
+    resetBtn.textContent = 'Start 2nd Half';
+  }
+
+  function endMatch() {
+    matchTime = 0;
+    clockEl.textContent = formatClock(0);
+    matchPhase = 'fulltime';
+    gameOver = true;
+    paused = true;
+    if (score1 === score2) {
+      statusEl.textContent = `Full Time — it's a draw! ${score1}-${score2}`;
+    } else {
+      statusEl.textContent = score1 > score2
+        ? `🎉 Full Time — Green wins ${score1}-${score2}!`
+        : `🎉 Full Time — Yellow wins ${score2}-${score1}!`;
+    }
+    resetBtn.textContent = 'New Match';
+  }
+
   // ---- input ----
   keys = {};
   joyVec = { x: 0, y: 0 };
   document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
   document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+  // extra safeguard for older iOS Safari, which can still fire gesturestart
+  // on a second touch point even with user-scalable=no set — without this,
+  // a two-finger touch (joystick + kick) can get hijacked as a zoom gesture
+  document.addEventListener('gesturestart', e => e.preventDefault());
 
   function setupJoystick() {
     let activePointerId = null;
@@ -554,6 +652,45 @@
     if (goal && !gameOver) afterGoal(goal);
   }
 
+  function drawGoalNet(postX, extendDirection, color) {
+    const farX = postX + extendDirection * NET_DEPTH;
+    const left = Math.min(postX, farX), right = Math.max(postX, farX);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(left, PITCH.goalTop, right - left, PITCH.goalBottom - PITCH.goalTop);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    const meshGap = 6;
+    for (let x = left; x <= right; x += meshGap) {
+      ctx.beginPath();
+      ctx.moveTo(x, PITCH.goalTop);
+      ctx.lineTo(x, PITCH.goalBottom);
+      ctx.stroke();
+    }
+    for (let y = PITCH.goalTop; y <= PITCH.goalBottom; y += meshGap) {
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(right, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(postX, PITCH.goalTop); ctx.lineTo(farX, PITCH.goalTop);
+    ctx.moveTo(postX, PITCH.goalBottom); ctx.lineTo(farX, PITCH.goalBottom);
+    ctx.moveTo(farX, PITCH.goalTop); ctx.lineTo(farX, PITCH.goalBottom);
+    ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(postX, PITCH.goalTop);
+    ctx.lineTo(postX, PITCH.goalBottom);
+    ctx.stroke();
+  }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
     ctx.strokeStyle = '#eafff088';
@@ -564,11 +701,8 @@
     ctx.stroke();
     ctx.beginPath(); ctx.arc(W / 2, H / 2, 55, 0, Math.PI * 2); ctx.stroke();
 
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#4ade80';
-    ctx.strokeRect(PITCH.left - 4, PITCH.goalTop, 4, PITCH.goalBottom - PITCH.goalTop);
-    ctx.strokeStyle = '#fbbf24';
-    ctx.strokeRect(PITCH.right, PITCH.goalTop, 4, PITCH.goalBottom - PITCH.goalTop);
+    drawGoalNet(PITCH.left, -1, '#4ade80');
+    drawGoalNet(PITCH.right, 1, '#fbbf24');
 
     drawPlayer(teamL.gk, '#4ade80', false);
     teamL.outfield.forEach((p, i) => drawPlayer(p, '#4ade80', teamL.controlType.startsWith('human') && i === teamL.activeIdx));
@@ -615,14 +749,30 @@
   function loop(t) {
     if (!running) return;
     if (lastTime === null) lastTime = t;
-    const dt = Math.min((t - lastTime) / 16.67, 3);
+    const rawElapsedMs = t - lastTime;
+    const dt = Math.min(rawElapsedMs / 16.67, 3);
     lastTime = t;
+
+    if (matchPhase === 'playing' && !paused) {
+      matchTime -= rawElapsedMs / 1000;
+      if (matchTime <= 0) {
+        matchTime = 0;
+        clockEl.textContent = formatClock(0);
+        if (half === 1) endHalf(); else endMatch();
+      } else {
+        clockEl.textContent = formatClock(matchTime);
+      }
+    }
+
     step(dt);
     draw();
     requestAnimationFrame(loop);
   }
 
-  resetBtn.addEventListener('click', newMatch);
+  resetBtn.addEventListener('click', () => {
+    if (matchPhase === 'halftime') startSecondHalf();
+    else newMatch();
+  });
 
   // test-only hooks: safe to leave in production — reveal/manipulate only
   // today's local game state, no server data, same trust model as other
@@ -631,7 +781,8 @@
     ball: { ...ball },
     teamL: { activeIdx: teamL.activeIdx, gk: { ...teamL.gk }, outfield: teamL.outfield.map(p => ({ ...p })) },
     teamR: { activeIdx: teamR.activeIdx, gk: { ...teamR.gk }, outfield: teamR.outfield.map(p => ({ ...p })) },
-    score1, score2, gameOver, mode, paused
+    score1, score2, gameOver, mode, paused,
+    half, matchPhase, matchTime, sidesSwapped
   });
   window.__testSetState = (state) => {
     if (state.ball) Object.assign(ball, state.ball);
@@ -647,9 +798,23 @@
     if (state.score2 !== undefined) { score2 = state.score2; scoreEl2.textContent = score2; }
     if (state.paused !== undefined) paused = state.paused;
     if (state.gameOver !== undefined) gameOver = state.gameOver;
+    if (state.matchTime !== undefined) { matchTime = state.matchTime; clockEl.textContent = formatClock(matchTime); }
+    if (state.half !== undefined) half = state.half;
   };
   window.__testSetKeys = (k) => { Object.assign(keys, k); };
   window.__testStep = (dt) => step(dt !== undefined ? dt : 1);
+  window.__testAdvanceClock = (seconds) => {
+    if (matchPhase !== 'playing' || paused) return;
+    matchTime -= seconds;
+    if (matchTime <= 0) {
+      matchTime = 0;
+      clockEl.textContent = formatClock(0);
+      if (half === 1) endHalf(); else endMatch();
+    } else {
+      clockEl.textContent = formatClock(matchTime);
+    }
+  };
+  window.__testStartSecondHalf = () => startSecondHalf();
 
   newMatch();
   running = true;

@@ -152,6 +152,69 @@ test('a fast shot near the post beats a keeper who cannot track across in time',
   expect(state.score1).toBe(1);
 });
 
+test('the clock counts down and reaching zero in the 1st half triggers half time', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+
+  await page.evaluate(() => window.__testAdvanceClock(119));
+  let state = await page.evaluate(() => window.__testGetState());
+  expect(state.matchPhase).toBe('playing');
+
+  await page.evaluate(() => window.__testAdvanceClock(2));
+  state = await page.evaluate(() => window.__testGetState());
+  expect(state.matchPhase).toBe('halftime');
+  await expect(page.locator('#status')).toHaveText(/half time/i);
+});
+
+test('starting the 2nd half swaps sides — teams regenerate on the opposite half of the pitch', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  const beforeGkX = (await page.evaluate(() => window.__testGetState())).teamL.gk.x;
+
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn');
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.half).toBe(2);
+  expect(state.sidesSwapped).toBe(true);
+  expect(state.matchPhase).toBe('playing');
+  expect(Math.round(state.matchTime)).toBe(120);
+  // team L's goalkeeper should now be anchored near the opposite goal
+  expect(Math.sign(state.teamL.gk.x - 500)).not.toBe(Math.sign(beforeGkX - 500));
+});
+
+test('scoring attribution flips correctly after sides swap in the 2nd half', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn');
+
+  await page.evaluate(() => {
+    // move both keepers well clear — after the swap, team L's keeper now
+    // guards the right goal, and a shot near x=940 would otherwise be
+    // saved rather than testing what this test actually cares about
+    window.__testSetState({
+      teamL: { gk: { x: -500, y: -500 } },
+      teamR: { gk: { x: -500, y: -500 } },
+      ball: { x: 940, y: 280, vx: 20, vy: 0 }
+    });
+  });
+  await page.evaluate(() => { for (let i = 0; i < 20; i++) window.__testStep(1); });
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.score2).toBe(1);
+  expect(state.score1).toBe(0);
+});
+
+test('reaching zero in the 2nd half ends the match with a final result', async ({ page }) => {
+  await page.goto('/soccer5v5/');
+  await page.evaluate(() => window.__testAdvanceClock(121));
+  await page.click('#resetBtn');
+  await page.evaluate(() => window.__testAdvanceClock(121));
+
+  const state = await page.evaluate(() => window.__testGetState());
+  expect(state.matchPhase).toBe('fulltime');
+  expect(state.gameOver).toBe(true);
+  await expect(page.locator('#status')).toHaveText(/full time/i);
+});
+
 test('New Match resets scores and formation positions', async ({ page }) => {
   await page.goto('/soccer5v5/');
   await page.evaluate(() => window.__testSetState({ score1: 2, score2: 1 }));
