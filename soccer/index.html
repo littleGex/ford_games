@@ -419,8 +419,9 @@
   document.addEventListener('gesturestart', e => e.preventDefault());
 
   function setupJoystick() {
-    let activePointerId = null;
-    function setFromEvent(clientX, clientY) {
+    let joystickTouchId = null;
+
+    function setFromPoint(clientX, clientY) {
       const rect = joystick.getBoundingClientRect();
       const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
       let dx = clientX - cx, dy = clientY - cy;
@@ -432,33 +433,61 @@
       joystickKnob.style.left = 28 + dx * 0.4 + 'px';
       joystickKnob.style.top = 28 + dy * 0.4 + 'px';
     }
-    function reset() {
-      activePointerId = null;
+    function resetJoystick() {
+      joystickTouchId = null;
       joyVec.x = 0; joyVec.y = 0;
       joystickKnob.style.left = '28px';
       joystickKnob.style.top = '28px';
     }
-    // track the specific pointer (finger) that started this drag — without
-    // this, releasing a totally different pointer (like tapping KICK with
-    // another finger) fires pointerup/pointercancel on window and resets
-    // the joystick even though the movement finger never lifted, causing a
-    // stop-start feel whenever kicking and moving at the same time
-    joystick.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      activePointerId = e.pointerId;
-      joystick.setPointerCapture(e.pointerId);
-      setFromEvent(e.clientX, e.clientY);
-    });
-    window.addEventListener('pointermove', e => {
-      if (e.pointerId === activePointerId) { e.preventDefault(); setFromEvent(e.clientX, e.clientY); }
-    });
-    window.addEventListener('pointerup', e => {
-      if (e.pointerId === activePointerId) reset();
-    });
-    window.addEventListener('pointercancel', e => {
-      if (e.pointerId === activePointerId) reset();
-    });
-    kickBtn.addEventListener('pointerdown', e => { e.preventDefault(); kickHeld1 = true; });
+    function hits(el, x, y) {
+      const r = el.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }
+
+    // Touch Events rather than Pointer Events: iOS Safari's multi-touch
+    // pointer support is unreliable — capturing the first pointer and
+    // calling preventDefault on it can stop pointer events being generated
+    // for a second simultaneous touch, which meant the KICK button simply
+    // never fired while a finger was held on the joystick. Touch events
+    // handle multi-touch properly via per-touch identifiers.
+    document.addEventListener('touchstart', e => {
+      let handled = false;
+      for (const t of e.changedTouches) {
+        if (joystickTouchId === null && hits(joystick, t.clientX, t.clientY)) {
+          joystickTouchId = t.identifier;
+          setFromPoint(t.clientX, t.clientY);
+          handled = true;
+        } else if (hits(kickBtn, t.clientX, t.clientY)) {
+          kickHeld1 = true;
+          handled = true;
+        }
+      }
+      if (handled) e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joystickTouchId) {
+          setFromPoint(t.clientX, t.clientY);
+          e.preventDefault();
+        }
+      }
+    }, { passive: false });
+
+    function endTouches(e) {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joystickTouchId) resetJoystick();
+      }
+    }
+    document.addEventListener('touchend', endTouches);
+    document.addEventListener('touchcancel', endTouches);
+
+    // mouse fallback, for desktop testing of the touch controls
+    let mouseDragging = false;
+    joystick.addEventListener('mousedown', e => { mouseDragging = true; setFromPoint(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', e => { if (mouseDragging) setFromPoint(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', () => { if (mouseDragging) { mouseDragging = false; resetJoystick(); } });
+    kickBtn.addEventListener('mousedown', () => { kickHeld1 = true; });
   }
   setupJoystick();
 
