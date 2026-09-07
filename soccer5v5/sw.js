@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soccer5v5-cache-v10';
+const CACHE_NAME = 'soccer5v5-cache-v11';
 const urlsToCache = [
   './',
   './index.html',

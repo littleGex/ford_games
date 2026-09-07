@@ -271,6 +271,9 @@
   const GK_HOLD_RADIUS = 22;
   const GK_HOLD_SECONDS = 1.3;
   const GK_CLEAR_POWER = 7;
+  const GK_RETRIEVE_RADIUS = 130; // how far a keeper will come off its line for a dead ball
+  const GK_MAX_ROAM = 150;        // never strays further than this from its goal line
+  const GK_SLOW_BALL = 1.2;       // ball speed below which it counts as "dead"
 
   // AI difficulty is entirely data — same decision code, different tuning.
   // "medium" reproduces the original fixed constants exactly, so 2-player
@@ -778,8 +781,9 @@
   document.addEventListener('gesturestart', e => e.preventDefault());
 
   function setupJoystick() {
-    let activePointerId = null;
-    function setFromEvent(clientX, clientY) {
+    let joystickTouchId = null;
+
+    function setFromPoint(clientX, clientY) {
       const rect = joystick.getBoundingClientRect();
       const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
       let dx = clientX - cx, dy = clientY - cy;
@@ -791,33 +795,61 @@
       joystickKnob.style.left = 28 + dx * 0.4 + 'px';
       joystickKnob.style.top = 28 + dy * 0.4 + 'px';
     }
-    function reset() {
-      activePointerId = null;
+    function resetJoystick() {
+      joystickTouchId = null;
       joyVec.x = 0; joyVec.y = 0;
       joystickKnob.style.left = '28px';
       joystickKnob.style.top = '28px';
     }
-    // track the specific pointer (finger) that started this drag — without
-    // this, releasing a totally different pointer (like tapping KICK with
-    // another finger) fires pointerup/pointercancel on window and resets
-    // the joystick even though the movement finger never lifted, causing a
-    // stop-start feel whenever kicking and moving at the same time
-    joystick.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      activePointerId = e.pointerId;
-      joystick.setPointerCapture(e.pointerId);
-      setFromEvent(e.clientX, e.clientY);
-    });
-    window.addEventListener('pointermove', e => {
-      if (e.pointerId === activePointerId) { e.preventDefault(); setFromEvent(e.clientX, e.clientY); }
-    });
-    window.addEventListener('pointerup', e => {
-      if (e.pointerId === activePointerId) reset();
-    });
-    window.addEventListener('pointercancel', e => {
-      if (e.pointerId === activePointerId) reset();
-    });
-    kickBtn.addEventListener('pointerdown', e => { e.preventDefault(); kickHeld1 = true; });
+    function hits(el, x, y) {
+      const r = el.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }
+
+    // Touch Events rather than Pointer Events: iOS Safari's multi-touch
+    // pointer support is unreliable — capturing the first pointer and
+    // calling preventDefault on it can stop pointer events being generated
+    // for a second simultaneous touch, which meant the KICK button simply
+    // never fired while a finger was held on the joystick. Touch events
+    // handle multi-touch properly via per-touch identifiers.
+    document.addEventListener('touchstart', e => {
+      let handled = false;
+      for (const t of e.changedTouches) {
+        if (joystickTouchId === null && hits(joystick, t.clientX, t.clientY)) {
+          joystickTouchId = t.identifier;
+          setFromPoint(t.clientX, t.clientY);
+          handled = true;
+        } else if (hits(kickBtn, t.clientX, t.clientY)) {
+          kickHeld1 = true;
+          handled = true;
+        }
+      }
+      if (handled) e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', e => {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joystickTouchId) {
+          setFromPoint(t.clientX, t.clientY);
+          e.preventDefault();
+        }
+      }
+    }, { passive: false });
+
+    function endTouches(e) {
+      for (const t of e.changedTouches) {
+        if (t.identifier === joystickTouchId) resetJoystick();
+      }
+    }
+    document.addEventListener('touchend', endTouches);
+    document.addEventListener('touchcancel', endTouches);
+
+    // mouse fallback, for desktop testing of the touch controls
+    let mouseDragging = false;
+    joystick.addEventListener('mousedown', e => { mouseDragging = true; setFromPoint(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', e => { if (mouseDragging) setFromPoint(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', () => { if (mouseDragging) { mouseDragging = false; resetJoystick(); } });
+    kickBtn.addEventListener('mousedown', () => { kickHeld1 = true; });
   }
   setupJoystick();
 
@@ -859,8 +891,29 @@
   }
 
   function updateGoalkeeper(gk, team) {
-    const targetY = Math.max(PITCH.goalTop + 12, Math.min(PITCH.goalBottom - 12, ball.y));
-    moveToward(gk, { x: gk.homeSlot.x, y: targetY }, GK_SPEED);
+    // A keeper that only ever tracks the ball's Y along its own goal line
+    // can never reach a ball resting even slightly away from it — which is
+    // most of the time, since saves rebound the ball well clear. So when
+    // the ball is dead and close enough, the keeper steps off its line to
+    // go and fetch it, then the hold/clear logic below puts it back in play.
+    const ballDead = Math.hypot(ball.vx, ball.vy) < GK_SLOW_BALL;
+    const withinReach = dist(gk, ball) < GK_RETRIEVE_RADIUS;
+    const onOwnSide = Math.abs(ball.x - gk.homeSlot.x) < GK_MAX_ROAM;
+
+    if (gk.holding) {
+      // already caught it — stand still until the clearance
+    } else if (ballDead && withinReach && onOwnSide) {
+      moveToward(gk, ball, GK_SPEED);
+    } else {
+      const targetY = Math.max(PITCH.goalTop + 12, Math.min(PITCH.goalBottom - 12, ball.y));
+      moveToward(gk, { x: gk.homeSlot.x, y: targetY }, GK_SPEED);
+    }
+
+    // hard clamp so the keeper never wanders too far upfield
+    const isLeftGoal = gk.homeSlot.x < W / 2;
+    const limit = isLeftGoal ? gk.homeSlot.x + GK_MAX_ROAM : gk.homeSlot.x - GK_MAX_ROAM;
+    gk.x = isLeftGoal ? Math.min(gk.x, limit) : Math.max(gk.x, limit);
+    clampToPitch(gk);
   }
 
   // aims a clearance kick at the center circle — side-agnostic (always
@@ -882,10 +935,17 @@
   // to both teams' keepers uniformly, so neither side can stall the match.
   function updateGoalkeeperHold(team, dt) {
     const gk = team.gk;
-    const ballSlow = Math.hypot(ball.vx, ball.vy) < 1;
+    const ballSlow = Math.hypot(ball.vx, ball.vy) < GK_SLOW_BALL;
     if (dist(gk, ball) < GK_HOLD_RADIUS && ballSlow) {
       if (!gk.holding) { gk.holding = true; gk.holdTimer = 0; }
       gk.holdTimer += dt / 60; // dt is normalized to ~60fps units, so /60 ≈ elapsed seconds
+      // pin the ball to the keeper's hands — without this the per-frame
+      // collision push shoves the ball away faster than the keeper can
+      // close on it, so it gets dribbled upfield and never actually held
+      ball.x = gk.x;
+      ball.y = gk.y;
+      ball.vx = 0;
+      ball.vy = 0;
       if (gk.holdTimer >= GK_HOLD_SECONDS) {
         goalkeeperClear(gk);
         gk.holding = false;
@@ -996,7 +1056,8 @@
     // exclusive possession: only whichever active player (across both
     // teams) is genuinely closest to the ball, and within pickup range,
     // interacts with it this frame — reuses the same logic as 1v1 soccer
-    const possessor = computePossessor([resultL.active, resultR.active], ball, PICKUP_RADIUS);
+    const keeperHasBall = teamL.gk.holding || teamR.gk.holding;
+    const possessor = keeperHasBall ? null : computePossessor([resultL.active, resultR.active], ball, PICKUP_RADIUS);
     if (possessor === resultL.active) {
       if (resultL.wantsKick) applyKick(ball, resultL.active, KICK_POWER);
       else stickBallToPlayer(ball, resultL.active, STICK_DIST);
@@ -1007,8 +1068,10 @@
 
     const prevBallPos = { x: ball.x, y: ball.y };
     updateBall(ball, dt);
-    resolveGoalkeeperCollision(prevBallPos, ball, teamL.gk, GK_SAVE_RADIUS);
-    resolveGoalkeeperCollision(prevBallPos, ball, teamR.gk, GK_SAVE_RADIUS);
+    // a keeper that has caught the ball holds onto it — only bounce the
+    // ball off keepers that aren't currently holding it
+    if (!teamL.gk.holding) resolveGoalkeeperCollision(prevBallPos, ball, teamL.gk, GK_SAVE_RADIUS);
+    if (!teamR.gk.holding) resolveGoalkeeperCollision(prevBallPos, ball, teamR.gk, GK_SAVE_RADIUS);
     updateGoalkeeperHold(teamL, dt);
     updateGoalkeeperHold(teamR, dt);
     const goal = checkGoal(ball);
