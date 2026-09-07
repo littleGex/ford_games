@@ -289,6 +289,11 @@
     const mag = Math.hypot(dirX, dirY) || 1;
     b.vx = (dirX / mag) * power;
     b.vy = (dirY / mag) * power;
+    // without this, the possession system (which checks distance only, not
+    // ball speed) can find the kicker still "closest" one frame later and
+    // instantly snap the ball back to their feet with zero velocity,
+    // cancelling the kick before it ever visibly leaves
+    b.immunity = POSSESSION_IMMUNITY_FRAMES;
   }
 
   function decideAI(ai, b, ownGoal, opponentGoal) {
@@ -493,6 +498,7 @@
 
   const PICKUP_RADIUS = KICK_RADIUS;
   const STICK_DIST = 16;
+  const POSSESSION_IMMUNITY_FRAMES = 15; // ~250ms — long enough for any kick to clear pickup range before it can be re-grabbed and frozen
 
   function computePossessor(candidates, b, pickupRadius) {
     let best = null, bestDist = Infinity;
@@ -574,8 +580,12 @@
     // exclusive possession: only whichever player is genuinely closest (and
     // within pickup range) interacts with the ball this frame — this is
     // what stops the ball being erratically tugged between both players
-    // at once, which is what the old "both players pull it" version did
-    const possessor = computePossessor([p1, p2], ball, PICKUP_RADIUS);
+    // at once, which is what the old "both players pull it" version did.
+    // A freshly-kicked ball is briefly immune (see applyKick) so it can't
+    // be instantly re-grabbed and frozen the moment it's kicked.
+    const ballImmune = (ball.immunity || 0) > 0;
+    const possessor = ballImmune ? null : computePossessor([p1, p2], ball, PICKUP_RADIUS);
+    if (ball.immunity > 0) ball.immunity -= dt;
     if (possessor === p1) {
       if (kick1) applyKick(ball, p1, KICK_POWER);
       else stickBallToPlayer(ball, p1, STICK_DIST);

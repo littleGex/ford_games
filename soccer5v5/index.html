@@ -274,6 +274,7 @@
   const GK_RETRIEVE_RADIUS = 130; // how far a keeper will come off its line for a dead ball
   const GK_MAX_ROAM = 150;        // never strays further than this from its goal line
   const GK_SLOW_BALL = 1.2;       // ball speed below which it counts as "dead"
+  const POSSESSION_IMMUNITY_FRAMES = 15; // ~250ms — long enough for any kick to clear pickup range before it can be re-grabbed and frozen
 
   // AI difficulty is entirely data — same decision code, different tuning.
   // "medium" reproduces the original fixed constants exactly, so 2-player
@@ -590,6 +591,11 @@
     const mag = Math.hypot(dirX, dirY) || 1;
     b.vx = (dirX / mag) * power;
     b.vy = (dirY / mag) * power;
+    // without this, the possession system (which checks distance only, not
+    // ball speed) can find the kicker still "closest" one frame later and
+    // instantly snap the ball back to their feet with zero velocity,
+    // cancelling the kick before it ever visibly leaves
+    b.immunity = POSSESSION_IMMUNITY_FRAMES;
   }
 
   function decideAI(ai, b, ownGoal, opponentGoal, skill) {
@@ -948,6 +954,10 @@
     clampToPitch(ball);
     ball.vx = nx * GK_CLEAR_POWER;
     ball.vy = ny * GK_CLEAR_POWER;
+    // without this, an outfield player standing near the box can instantly
+    // re-claim the clearance via the (speed-blind) possession system and
+    // freeze it dead — which looks exactly like the keeper never clearing
+    ball.immunity = POSSESSION_IMMUNITY_FRAMES;
   }
 
   // without this, a ball that comes to rest near a keeper (after a save, or
@@ -1076,9 +1086,13 @@
 
     // exclusive possession: only whichever active player (across both
     // teams) is genuinely closest to the ball, and within pickup range,
-    // interacts with it this frame — reuses the same logic as 1v1 soccer
+    // interacts with it this frame — reuses the same logic as 1v1 soccer.
+    // A freshly-kicked ball is briefly immune to this (see applyKick /
+    // goalkeeperClear) so it can't be instantly re-grabbed and frozen.
     const keeperHasBall = teamL.gk.holding || teamR.gk.holding;
-    const possessor = keeperHasBall ? null : computePossessor([resultL.active, resultR.active], ball, PICKUP_RADIUS);
+    const ballImmune = (ball.immunity || 0) > 0;
+    const possessor = (keeperHasBall || ballImmune) ? null : computePossessor([resultL.active, resultR.active], ball, PICKUP_RADIUS);
+    if (ball.immunity > 0) ball.immunity -= dt;
     if (possessor === resultL.active) {
       if (resultL.wantsKick) applyKick(ball, resultL.active, KICK_POWER);
       else stickBallToPlayer(ball, resultL.active, STICK_DIST);
