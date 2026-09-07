@@ -780,6 +780,17 @@
   // a two-finger touch (joystick + kick) can get hijacked as a zoom gesture
   document.addEventListener('gesturestart', e => e.preventDefault());
 
+  // on-device diagnostics: add ?debug=1 to the URL to show a live readout of
+  // touch handling. Off by default, costs nothing when disabled.
+  const DEBUG = new URLSearchParams(location.search).has('debug');
+  const debugState = { touches: 0, lastKick: 0, kicksApplied: 0 };
+  let debugEl = null;
+  if (DEBUG) {
+    debugEl = document.createElement('div');
+    debugEl.style.cssText = 'position:fixed;top:60px;left:8px;z-index:50;background:#000c;color:#4ade80;font:12px monospace;padding:8px;border-radius:6px;white-space:pre;pointer-events:none;';
+    document.body.appendChild(debugEl);
+  }
+
   function setupJoystick() {
     let joystickTouchId = null;
 
@@ -806,29 +817,30 @@
       return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
     }
 
-    // Touch Events rather than Pointer Events: iOS Safari's multi-touch
-    // pointer support is unreliable — capturing the first pointer and
-    // calling preventDefault on it can stop pointer events being generated
-    // for a second simultaneous touch, which meant the KICK button simply
-    // never fired while a finger was held on the joystick. Touch events
-    // handle multi-touch properly via per-touch identifiers.
+    // TouchList is not a real array — iterate by index rather than for...of,
+    // which has inconsistent support across Safari versions and would throw
+    // partway through the handler if unsupported
     document.addEventListener('touchstart', e => {
       let handled = false;
-      for (const t of e.changedTouches) {
-        if (joystickTouchId === null && hits(joystick, t.clientX, t.clientY)) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (hits(kickBtn, t.clientX, t.clientY)) {
+          kickHeld1 = true;
+          debugState.lastKick = Date.now();
+          handled = true;
+        } else if (joystickTouchId === null && hits(joystick, t.clientX, t.clientY)) {
           joystickTouchId = t.identifier;
           setFromPoint(t.clientX, t.clientY);
           handled = true;
-        } else if (hits(kickBtn, t.clientX, t.clientY)) {
-          kickHeld1 = true;
-          handled = true;
         }
       }
+      debugState.touches = e.touches.length;
       if (handled) e.preventDefault();
     }, { passive: false });
 
     document.addEventListener('touchmove', e => {
-      for (const t of e.changedTouches) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
         if (t.identifier === joystickTouchId) {
           setFromPoint(t.clientX, t.clientY);
           e.preventDefault();
@@ -837,9 +849,10 @@
     }, { passive: false });
 
     function endTouches(e) {
-      for (const t of e.changedTouches) {
-        if (t.identifier === joystickTouchId) resetJoystick();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joystickTouchId) resetJoystick();
       }
+      debugState.touches = e.touches.length;
     }
     document.addEventListener('touchend', endTouches);
     document.addEventListener('touchcancel', endTouches);
@@ -916,17 +929,25 @@
     clampToPitch(gk);
   }
 
-  // aims a clearance kick at the center circle — side-agnostic (always
-  // "away from immediate danger" regardless of which goal this keeper
-  // defends), and ignores the keeper's facing (which is mostly vertical
-  // from goal-line tracking, so blending it in like a normal kick would
-  // aim poorly)
+  // Clearance direction is derived from WHICH GOAL this keeper defends, not
+  // from a vector to the pitch centre — a centre-seeking vector can point
+  // backwards into the keeper's own net if it has roamed level with or past
+  // the halfway line, which is how an own goal could happen.
   function goalkeeperClear(gk) {
-    const target = { x: W / 2, y: H / 2 };
-    const dx = target.x - gk.x, dy = target.y - gk.y;
-    const d = Math.hypot(dx, dy) || 1;
-    ball.vx = (dx / d) * GK_CLEAR_POWER;
-    ball.vy = (dy / d) * GK_CLEAR_POWER;
+    const isLeftGoal = gk.homeSlot.x < W / 2;
+    const dirX = isLeftGoal ? 1 : -1; // always upfield, never toward own goal
+    // gentle pull back toward the middle vertically, capped so the kick
+    // always stays predominantly horizontal
+    const dirY = Math.max(-0.6, Math.min(0.6, (H / 2 - gk.y) / (H / 2)));
+    const mag = Math.hypot(dirX, dirY) || 1;
+    const nx = dirX / mag, ny = dirY / mag;
+    // put the ball just in front of the keeper before it leaves, so it can
+    // never be released behind the goal line
+    ball.x = gk.x + nx * 20;
+    ball.y = gk.y + ny * 20;
+    clampToPitch(ball);
+    ball.vx = nx * GK_CLEAR_POWER;
+    ball.vy = ny * GK_CLEAR_POWER;
   }
 
   // without this, a ball that comes to rest near a keeper (after a save, or
@@ -991,7 +1012,7 @@
       }
     }
     let kick = keys[keyMap.kick];
-    if (keyMap.useJoystick && kickHeld1) { kick = true; kickHeld1 = false; }
+    if (keyMap.useJoystick && kickHeld1) { kick = true; kickHeld1 = false; debugState.kicksApplied++; }
 
     // human agency: pressing kick clears your own keeper immediately if
     // it's holding, instead of waiting out the auto-clear timer
@@ -1197,6 +1218,15 @@
     }
 
     step(dt);
+    if (debugEl) {
+      const since = debugState.lastKick ? ((Date.now() - debugState.lastKick) / 1000).toFixed(1) + 's ago' : 'never';
+      debugEl.textContent =
+        `touches: ${debugState.touches}\n` +
+        `joyVec: ${joyVec.x.toFixed(2)},${joyVec.y.toFixed(2)}\n` +
+        `kick btn pressed: ${since}\n` +
+        `kicks reaching game: ${debugState.kicksApplied}\n` +
+        `gk holding: L=${teamL.gk.holding} R=${teamR.gk.holding}`;
+    }
     draw();
     requestAnimationFrame(loop);
   }
