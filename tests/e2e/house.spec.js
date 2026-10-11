@@ -9,21 +9,30 @@ async function openWithoutDrawing(page) {
   await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
 }
 
+// Each day's list is random, so tests that need a particular job set today's list themselves.
+async function planToday(page, ids) {
+  await page.evaluate(list => window.house.days.plan(list), ids);
+  await expect(page.locator('#taskCount')).toHaveText(`0/${ids.length}`);
+}
+
 test('house page loads', async ({ page }) => {
   await page.goto('/house/');
   await expect(page).toHaveTitle(/ford house/i);
 });
 
-test('the job list fills in with the household jobs', async ({ page }) => {
+test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/house/');
   await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
   const state = await page.evaluate(() => ({
     jobs: window.house.board.jobs.map(j => j.id),
     carrying: window.house.S.carrying,
   }));
-  expect(state.jobs).toEqual(expect.arrayContaining(['bins', 'mow', 'hoover', 'car', 'coffee', 'tv']));
+  expect(state.jobs.length).toBeGreaterThanOrEqual(10);
+  expect(state.jobs.length).toBeLessThanOrEqual(12);
+  expect(state.jobs).toContain('dishes');   // a daily job
   expect(state.carrying).toBeNull();
   expect(errors).toEqual([]);
 });
@@ -41,6 +50,7 @@ test('walking with the keyboard moves the player towards the house and hides the
 
 test('picking up an item next to it and putting it down completes a job', async ({ page }) => {
   await openWithoutDrawing(page);
+  await planToday(page, ['jacket', 'hands']);
   // stand next to the jacket on the sofa, pick it up, then stand at the coat rail and hang it up
   await page.evaluate(() => window.house.player.group.position.set(1.2, 0, 2.1));
   await expect(page.locator('#actBtn')).toHaveText('Pick up the jacket');
@@ -54,5 +64,44 @@ test('picking up an item next to it and putting it down completes a job', async 
     return { done: j.i >= j.steps.length, carrying: window.house.S.carrying };
   });
   expect(jacket).toEqual({ done: true, carrying: null });
-  await expect(page.locator('#taskCount')).toHaveText(/^1\/\d+$/);
+  await expect(page.locator('#taskCount')).toHaveText('1/2');
+});
+
+test('finishing the last job shows Day complete, and the next day is saved for next time', async ({ page }) => {
+  await openWithoutDrawing(page);
+  await planToday(page, ['hands']);
+  await page.evaluate(() => window.house.player.group.position.set(5.0, 0, 7.98));   // in the WC by the basin
+  await expect(page.locator('#actBtn')).toHaveText('Wash hands');
+  await page.locator('#actBtn').click();
+
+  await expect(page.locator('#dayDone')).toBeVisible();
+  await expect(page.locator('#dayDoneTitle')).toHaveText('Day 1 complete');
+  await page.locator('#dayNext').click();
+  await expect(page.locator('#dayDone')).toBeHidden();
+  await expect(page.locator('#dayLabel')).toHaveText('Day 2');
+  const today = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
+  expect(today.length).toBeGreaterThanOrEqual(10);
+
+  // closing and reopening the page carries on with the same day and the same list
+  await openWithoutDrawing(page);
+  await expect(page.locator('#dayLabel')).toHaveText('Day 2');
+  expect(await page.evaluate(() => window.house.board.jobs.map(j => j.id))).toEqual(today);
+});
+
+test('start over goes back to day 1 after confirming', async ({ page }) => {
+  await openWithoutDrawing(page);
+  await planToday(page, ['hands']);
+  await page.evaluate(() => window.house.player.group.position.set(5.0, 0, 7.98));
+  await page.locator('#actBtn').click();
+  await page.locator('#dayNext').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Day 2');
+
+  await planToday(page, ['hands']);
+  await page.evaluate(() => window.house.player.group.position.set(5.0, 0, 7.98));
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#dayDoneTitle')).toHaveText('Day 2 complete');
+  await page.locator('#dayRestart').click();
+  await page.locator('#dayRestartYes').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+  await expect(page.locator('#dayDone')).toBeHidden();
 });

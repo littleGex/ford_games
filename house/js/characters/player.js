@@ -9,8 +9,8 @@ import { FAMILY } from './family.js';
 
 export function createPlayer(scene, items) {
   const group = new THREE.Group();
-  group.position.set(3.92, 0, 10.6);   // on the front path
-  group.rotation.y = Math.PI;
+  const reset = () => { group.position.set(3.92, 0, 10.6); group.rotation.y = Math.PI; };   // on the front path, facing the door
+  reset();
   scene.add(group);
 
   const looks = Object.fromEntries(Object.entries(FAMILY).map(([k, spec]) => [k, makeCharacter(spec)]));
@@ -72,7 +72,7 @@ export function createPlayer(scene, items) {
   return {
     group,
     get character() { return cur; },
-    setCharacter, stepFromInput, animate, handPosition,
+    setCharacter, stepFromInput, animate, handPosition, reset,
     /** Point just in front of the player (e.g. where the mower deck or hoover head is). */
     ahead(dist) { const r = group.rotation.y; return { x: group.position.x + Math.sin(r) * dist, z: group.position.z + Math.cos(r) * dist }; },
   };

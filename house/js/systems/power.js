@@ -1,5 +1,5 @@
 // Power cuts: every so often the house goes dark, the player gets a torch, and a
-// "Reset the fuses" job appears until someone flips the fuses in the WC.
+// "Reset the fuses" job appears until someone flips the fuses in the WC. Some days have one, most don't.
 // Also owns the house lights (living-room lamp, WC mirror) since they depend on power.
 import * as THREE from 'three';
 import { COLORS, EVENTS } from '../config.js';
@@ -11,7 +11,7 @@ export function createPower({ stage, world, player, board, hud }) {
   torch.position.set(0, 1.0, 0.15); torch.target.position.set(0, 0, 3);
   player.group.add(torch, torch.target);
 
-  let outages = 0, nextOutage = rand(...cfg.firstAfter), now = 0, fuseJob = null;
+  let outages = 0, nextOutage = Infinity, now = 0, fuseJob = null;
 
   function applyLights() {
     const lampOn = S.powerOn && S.lampOn;
@@ -26,8 +26,8 @@ export function createPower({ stage, world, player, board, hud }) {
     stage.scene.background.set(COLORS.skyPowerCut); stage.scene.fog.color.set(COLORS.skyPowerCut);
     torch.intensity = 2.4;
     applyLights();
-    if (!fuseJob) {
-      fuseJob = board.add({ id: 'fuses', title: 'Reset the fuses', steps: [
+    if (!fuseJob || !board.jobs.includes(fuseJob)) {
+      fuseJob = board.add({ id: 'fuses', title: 'Reset the fuses', event: true, steps: [
         { kind: 'use', at: [4.85, 8.72], label: 'Flip the fuses back on', onDone: c => c.power.restore() }] });
     } else { fuseJob.i = 0; board.refresh(); }
     hud.toast('Power cut! Find the fuse box in the WC');
@@ -40,14 +40,21 @@ export function createPower({ stage, world, player, board, hud }) {
     torch.intensity = 0;
     world.fuseLed.material.emissive.set('#000000');
     applyLights();
-    nextOutage = now + rand(...cfg.gapAfter);
+    nextOutage = outages < cfg.maxPerDay ? now + rand(...cfg.gapAfter) : Infinity;
+  }
+
+  /** Start of a day: lights on, and maybe a power cut some time today. */
+  function reset(time) {
+    now = time; outages = 0; fuseJob = null;
+    if (!S.powerOn) restore();
+    nextOutage = Math.random() < cfg.chancePerDay ? time + rand(...cfg.firstAfter) : Infinity;
   }
 
   function update(dt, time) {
     now = time;
-    if (S.powerOn && S.started && outages < cfg.maxPerGame && time > nextOutage) { outages++; cut(); }
+    if (S.powerOn && S.started && !S.dayOver && outages < cfg.maxPerDay && time > nextOutage) { outages++; cut(); }
     if (!S.powerOn) world.fuseLed.material.emissive.setRGB(0.5 + 0.5 * Math.sin(time * 8), 0, 0);
   }
 
-  return { update, restore, applyLights };
+  return { update, restore, applyLights, reset, cut };
 }

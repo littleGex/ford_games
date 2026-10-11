@@ -5,7 +5,8 @@ export const S = {
   sitting: null,         // { job, step, seatY, back:[x,z] } while sitting / standing at a timed job
   powerOn: true,
   lampOn: false,         // the living-room lamp has been switched on (it still needs power to glow)
-  courierWaiting: false, // the driver is at the door; the parcel banner owns the alert line
+  courierWaiting: false,
+  dayOver: false,        // the day's jobs are all done and the "Day complete" screen is up // the driver is at the door; the parcel banner owns the alert line
   reduceMotion: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
 };
 

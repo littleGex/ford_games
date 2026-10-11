@@ -24,7 +24,7 @@
       <div class="area" id="roomArea">front garden</div>
     </div>
     <div class="chip tasks" id="taskPanel">
-      <h2><button id="taskToggle" aria-expanded="true">Jobs <b class="caret">▾</b></button><span id="taskCount">0/0</span></h2>
+      <h2><button id="taskToggle" aria-expanded="true"><span id="dayLabel">Day 1</span> <b class="caret">▾</b></button><span id="taskCount">0/0</span></h2>
       <div class="next"><div id="nextTitle"></div><div id="nextStep"></div></div>
       <ul id="taskList"></ul>
     </div>
@@ -33,6 +33,27 @@
   <div class="hint" id="hint">Drag the stick to walk · keyboard: WASD, E to act</div>
   <div class="toast" id="toast" role="status"></div>
   <div class="alert" id="alert" role="status" hidden></div>
+
+  <div class="daydone" id="dayDone" role="dialog" aria-modal="true" aria-labelledby="dayDoneTitle" hidden>
+    <div class="daydone-card">
+      <p class="daydone-eyebrow">Ford House</p>
+      <h1 id="dayDoneTitle">Day 1 complete</h1>
+      <p class="daydone-stats" id="dayDoneStats"></p>
+      <div class="daydone-tomorrow">
+        <h2>Tomorrow</h2>
+        <ul id="dayDoneTomorrow"></ul>
+      </div>
+      <button class="btn daydone-next" id="dayNext">Start day 2</button>
+      <p class="daydone-totals" id="dayDoneTotals"></p>
+      <div class="daydone-restart">
+        <button class="linkbtn" id="dayRestart">Start over from day 1</button>
+        <span id="dayRestartConfirm" hidden>Lose all progress?
+          <button class="linkbtn danger" id="dayRestartYes">Yes, start over</button>
+          <button class="linkbtn" id="dayRestartNo">No</button>
+        </span>
+      </div>
+    </div>
+  </div>
 
   <div class="hud bottom">
     <div class="stick" id="stick" aria-label="Movement stick"><div class="knob" id="knob"></div></div>

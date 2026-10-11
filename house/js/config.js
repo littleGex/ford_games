@@ -16,8 +16,11 @@ export const COLORS = {
   marker: '#ffb02e',
 };
 
+// Surprise events. Times are seconds after the day starts; chancePerDay is how likely the event is on a day.
 export const EVENTS = {
-  power:  { firstAfter: [50, 80], gapAfter: [150, 240], maxPerGame: 3 },
-  post:   { after: [25, 40] },
-  parcel: { after: [95, 125], waitAtDoor: 45 },
+  power:  { chancePerDay: 0.35, firstAfter: [50, 120], gapAfter: [150, 240], maxPerDay: 1 },
+  post:   { chancePerDay: 0.7, after: [25, 60] },
+  parcel: { chancePerDay: 0.5, after: [95, 160], waitAtDoor: 45 },
 };
+
+export const DAY_COMPLETE_DELAY = 1.5;   // seconds between the last job and the "Day complete" screen

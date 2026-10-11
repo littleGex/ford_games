@@ -8,7 +8,10 @@ export function createHud() {
     roomName: $('roomName'), roomArea: $('roomArea'),
     panel: $('taskPanel'), toggle: $('taskToggle'), list: $('taskList'), count: $('taskCount'),
     nextTitle: $('nextTitle'), nextStep: $('nextStep'),
-    act: $('actBtn'), toast: $('toast'), alert: $('alert'), hint: $('hint'),
+    act: $('actBtn'), toast: $('toast'), alert: $('alert'), hint: $('hint'), dayLabel: $('dayLabel'),
+    dayDone: $('dayDone'), dayDoneTitle: $('dayDoneTitle'), dayDoneStats: $('dayDoneStats'), dayDoneTomorrow: $('dayDoneTomorrow'),
+    dayDoneTotals: $('dayDoneTotals'), dayNext: $('dayNext'), dayRestart: $('dayRestart'), dayRestartConfirm: $('dayRestartConfirm'),
+    dayRestartYes: $('dayRestartYes'), dayRestartNo: $('dayRestartNo'),
   };
   let toastTimer = null, lastRoom = '', lastAction = null, lastBanner = null;
 
@@ -39,8 +42,29 @@ export function createHud() {
     el.nextStep.textContent = s ? (s.label || idleHint[s.kind] || '') : '';
   }
 
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
   return {
     renderJobs,
+    setDay(n) { el.dayLabel.textContent = `Day ${n}`; },
+    showDayComplete({ day, jobs, minutes, tomorrow, totals }) {
+      el.dayDoneTitle.textContent = `Day ${day} complete`;
+      el.dayDoneStats.textContent = minutes ? `${plural(jobs, 'job')} done in ${plural(minutes, 'minute')}` : `All ${plural(jobs, 'job')} done`;
+      const items = tomorrow.length ? tomorrow : ['Just the everyday jobs'];
+      el.dayDoneTomorrow.replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
+      el.dayNext.textContent = `Start day ${day + 1}`;
+      el.dayDoneTotals.textContent = `${plural(totals.daysDone, 'day')} and ${plural(totals.jobsDone, 'job')} done so far`;
+      el.dayRestart.hidden = false; el.dayRestartConfirm.hidden = true;
+      el.dayDone.hidden = false;
+      el.dayNext.focus();
+    },
+    hideDayComplete() { el.dayDone.hidden = true; },
+    onDayButtons({ next, restart }) {
+      el.dayNext.addEventListener('click', next);
+      el.dayRestart.addEventListener('click', () => { el.dayRestart.hidden = true; el.dayRestartConfirm.hidden = false; });
+      el.dayRestartNo.addEventListener('click', () => { el.dayRestart.hidden = false; el.dayRestartConfirm.hidden = true; });
+      el.dayRestartYes.addEventListener('click', restart);
+    },
     setRoom(room) {
       if (room.name === lastRoom) return;
       lastRoom = room.name; el.roomName.textContent = room.name; el.roomArea.textContent = room.area;
