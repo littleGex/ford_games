@@ -16,7 +16,7 @@
 //   4. other due jobs, the most overdue first,
 //   5. if still short, extra quick jobs (every <= 2 days) that aren't strictly due yet.
 
-export const DAY_JOBS = { min: 10, max: 12 };
+export const DAY_JOBS = { min: 12, max: 14 };
 
 /** How overdue a job is: 1 = due today, 2 = a whole cycle late, 0 = not due, Infinity = never done. */
 export function overdue(job, state) {

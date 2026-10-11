@@ -9,7 +9,8 @@ export class Vector3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y
   toArray() { return [this.x, this.y, this.z]; } fromArray(a) { return this.set(a[0], a[1], a[2]); } }
 class Euler { constructor() { this.x = 0; this.y = 0; this.z = 0; } set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }
 export class Color { constructor(c) { this.v = c; } set(c) { this.v = c; return this; } setRGB() { return this; } lerp() { return this; } copy(c) { this.v = c.v; return this; } }
-export class Object3D { constructor() { this.position = new Vector3(); this.rotation = new Euler(); this.scale = new Vector3(1, 1, 1); this.children = []; this.parent = null; this.visible = true; this.userData = {}; this.name = ''; }
+export class Object3D { constructor() { Object.defineProperties(this, { position: { value: new Vector3(), enumerable: true }, rotation: { value: new Euler(), enumerable: true }, scale: { value: new Vector3(1, 1, 1), enumerable: true } });   // read-only, as in three.js
+    this.children = []; this.parent = null; this.visible = true; this.userData = {}; this.name = ''; }
   add(...os) { for (const o of os) { if (o.parent) o.parent.remove(o); o.parent = this; this.children.push(o); } return this; }
   remove(o) { const i = this.children.indexOf(o); if (i >= 0) this.children.splice(i, 1); o.parent = null; return this; }
   attach(o) { return this.add(o); }

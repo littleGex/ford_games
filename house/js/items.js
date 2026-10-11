@@ -127,6 +127,18 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.ConeGeometry(0.07, 0.16, 8), mat('#f2c81c'), [-0.12, 0.08, 0.08]);
       add(g, new THREE.BoxGeometry(0.2, 0.06, 0.1), mat('#9a7be0'), [0.02, 0.03, -0.14]);
     }, [2.25, 0, 6.15], { level: 1 }),
+    // dinner, cooked on the hob and served at the dining table
+    dinner: item(g => {
+      add(g, new THREE.CylinderGeometry(0.13, 0.12, 0.14, 18), mat('#3a3d42'), [0, 0.07, 0]);
+      add(g, new THREE.CylinderGeometry(0.12, 0.12, 0.02, 18), mat('#d98a3a'), [0, 0.13, 0]);
+      [-1, 1].forEach(s => add(g, new THREE.BoxGeometry(0.06, 0.02, 0.03), mat('#1d1e22'), [s * 0.16, 0.11, 0]));
+    }, [5.34, 0.91, 1.65], { hidden: true }),
+    // P's crayons and drawing pad, left on the floor
+    crayons: item(g => {
+      add(g, new THREE.BoxGeometry(0.3, 0.01, 0.22), mat('#ffffff'), [0, 0.005, 0]);
+      ['#e04848', '#f2d22e', '#48a0e0', '#6cc070', '#e86a8a'].forEach((c, i) =>
+        add(g, new THREE.CylinderGeometry(0.008, 0.008, 0.1, 6), mat(c), [0.2 + (i % 2) * 0.03, 0.01, -0.06 + i * 0.03], null, [0, 0, Math.PI / 2]));
+    }, [1.3, 0, 7.45], { level: 1, rotY: 0.4 }),
     // bathroom: a basket of wet washing for the airer in the office
     washBasket: item(g => {
       add(g, new THREE.CylinderGeometry(0.22, 0.18, 0.26, 16, 1, true), mat('#e8e2d4'), [0, 0.13, 0]);

@@ -27,6 +27,7 @@ const errors = [];
 await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
 const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
+const { DAY_JOBS } = await import(new URL('../../house/js/days/planner.js', import.meta.url));
 const { HOOVER_SPOTS } = await import(new URL('../../house/js/systems/hoovering.js', import.meta.url));
 const { BOX_SPOTS } = await import(new URL('../../house/js/jobs/jobs.js', import.meta.url));
 const G = globalThis.house, S = G.S;
@@ -191,7 +192,7 @@ for (let n = 1; n <= 12; n++) {
   const plan = G.board.jobs.filter(j => !j.event).map(j => j.id);
   dayLog.push(plan);
   plan.forEach(id => played.add(id));
-  if (plan.length < 10 || plan.length > 12) errors.push(`${label}: ${plan.length} jobs, want 10-12`);
+  if (plan.length < DAY_JOBS.min || plan.length > DAY_JOBS.max) errors.push(`${label}: ${plan.length} jobs, want ${DAY_JOBS.min}-${DAY_JOBS.max}`);
 
   if (S.level !== 0 || G.world.upstairs.visible) errors.push(`${label}: didn't start downstairs`);
   // the house matches the list
@@ -238,8 +239,15 @@ if (missing.length) {
 // --- a day as Dude: his homework at his own desk, keyboard practice and tidying his room
 G.days.setCharacter('boy');
 G.days.plan(['homework', 'music', 'tidyDude']);
+// (P's toys and Dad's cooking come up in the 12 days or the extra day)
 if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
 playDay("Dude's day");
+G.days.next();
+
+// --- a day as Mum: work in the office, make up the sofa bed, cook dinner
+G.days.setCharacter('mum');
+G.days.plan(['work', 'sofabed', 'cook']);
+playDay("Mum's day");
 G.days.next();
 G.days.setCharacter('dad');
 

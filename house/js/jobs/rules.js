@@ -1,8 +1,8 @@
 // How often each job comes round. Tune the game here.
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
 //   week: N   on the first N days of every 7 (homework on the five school days)
-//   who: [...]   only for these characters ('dad', 'girl' = P, 'boy' = Dude); always on their list when due
-// Each day has 10-12 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
+//   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
+// Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
 // character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
 // appointments: they fill the day next, the most overdue first, and are never early (on a full day one can
 // be a day late). The every-other-day jobs fill whatever is left, the longest-waiting first, so with this
@@ -25,7 +25,6 @@ export const POOL_RULES = [
   { id: 'washing', every: 2 },
   { id: 'towel', every: 2 },
   { id: 'laundry', every: 2 },
-  { id: 'toys', every: 2 },
   { id: 'shower', every: 2 },
   { id: 'call', every: 2 },
   // only for some of the family
@@ -33,6 +32,10 @@ export const POOL_RULES = [
   { id: 'homework', week: 5, who: ['girl', 'boy'] },
   { id: 'music', every: 3, who: ['boy'] },
   { id: 'tidyDude', every: 3, who: ['boy'] },
+  { id: 'toys', every: 3, who: ['girl'] },
+  { id: 'cook', every: 1, who: ['dad', 'mum'] },
+  { id: 'work', week: 5, who: ['mum'] },
+  { id: 'sofabed', every: 3, who: ['mum'] },
   // appointments
   { id: 'hoover', every: 3 },
   { id: 'shopping', every: 3 },

@@ -35,7 +35,7 @@ test('house page loads', async ({ page }) => {
   await expect(page).toHaveTitle(/ford house/i);
 });
 
-test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
+test('day 1 starts with 12 to 14 household jobs', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   test.slow();   // this one draws the scene for real
@@ -45,8 +45,8 @@ test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
     jobs: window.house.board.jobs.map(j => j.id),
     carrying: window.house.S.carrying,
   }));
-  expect(state.jobs.length).toBeGreaterThanOrEqual(10);
-  expect(state.jobs.length).toBeLessThanOrEqual(12);
+  expect(state.jobs.length).toBeGreaterThanOrEqual(12);
+  expect(state.jobs.length).toBeLessThanOrEqual(14);
   // day 1 is random apart from the jobs that are always due on a first day: bin day and the appointments
   expect(state.jobs).toEqual(expect.arrayContaining(['binsOut', 'mow', 'hoover']));
   expect(state.carrying).toBeNull();
@@ -96,7 +96,7 @@ test('finishing the last job shows Day complete, and the next day is saved for n
   await expect(page.locator('#dayDone')).toBeHidden();
   await expect(page.locator('#dayLabel')).toHaveText('Day 2');
   const today = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
-  expect(today.length).toBeGreaterThanOrEqual(10);
+  expect(today.length).toBeGreaterThanOrEqual(12);
 
   // closing and reopening the page carries on with the same day and the same list
   await openHouse(page);
@@ -143,7 +143,7 @@ test('start over under the job list asks first, then goes back to day 1', async 
   expect(await page.evaluate(() => window.house.days.save.day)).toBe(1);
 });
 
-test('each character has their own jobs: Dad shaves, P and Dude do homework', async ({ page }) => {
+test('each character has their own jobs: Dad shaves, Mum works, P and Dude do homework', async ({ page }) => {
   await openHouse(page);
   const jobs = () => page.evaluate(() => window.house.board.jobs.map(j => j.id));
   // a new game starts as Dad on day 1, a school day
@@ -157,6 +157,11 @@ test('each character has their own jobs: Dad shaves, P and Dude do homework', as
   await page.locator('.who button[data-c="dad"]').click();
   await expect(page.locator('#taskList')).toContainText('Have a shave');
   expect(await jobs()).not.toContain('homework');
+
+  // Mum works in the office
+  await page.locator('.who button[data-c="mum"]').click();
+  await expect(page.locator('#taskList')).toContainText('Do some work');
+  expect(await jobs()).not.toContain('shave');
 
   // P does her homework at the desk in the Kinderzimmer, Dude at his own desk in the attic
   await page.locator('.who button[data-c="girl"]').click();

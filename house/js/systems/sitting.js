@@ -1,5 +1,5 @@
 // Timed jobs where you stay put: watching TV, gaming (seated), washing up, coffee, teeth, shower (standing).
-// A step can name an effect to show while it runs (fx: 'steam' for the coffee machine, 'shower' for the
+// A step can name an effect to show while it runs (fx: 'steam' for the coffee machine, 'pot' for cooking, 'shower' for the
 // shower water); effects are groups in the world whose children bob upwards.
 // Moving the stick gets you up; progress is kept so you can come back later.
 // Steps that use the TV or the coffee machine (screen / power) pause during a power cut.
@@ -8,7 +8,7 @@ import { S } from '../state.js';
 
 export function createSitting(ctx) {
   const { player, world, board } = ctx;
-  const FX = { steam: world.steam, shower: world.showerWater };
+  const FX = { steam: world.steam, pot: world.potSteam, shower: world.showerWater };
   const hideFx = () => Object.values(FX).forEach(g => { if (g) g.visible = false; });
   let lastDraw = 0;
 

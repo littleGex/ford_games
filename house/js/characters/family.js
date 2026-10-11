@@ -1,5 +1,6 @@
 // Character looks, based on family photos (no logos or brand names on clothes).
 // dad: teal beanie pulled down over the eyes, dark beard, red puffer vest over grey sleeves.
+// mum: like a grown-up P, shoulder-length blond hair, white long-sleeved top, blue jeans.
 // girl (P): long light-brown hair, lilac/white striped jumper. boy (Dude): navy hoodie with a lime stripe.
 import * as THREE from 'three';
 import { add } from '../core/build.js';
@@ -23,6 +24,19 @@ export const FAMILY = {
       const beard = M('#2a1f18');
       add(h, new THREE.SphereGeometry(0.218, 24, 12, Math.PI / 2 - 1.35, 2.7, Math.PI * 0.56, Math.PI * 0.4), beard, [0, 0, 0], [1, 1.05, 0.97]);
       add(h, new THREE.BoxGeometry(0.13, 0.025, 0.03), beard, [0, -0.048, 0.21]);
+    },
+  },
+  mum: {
+    label: 'Mum', scale: 0.94, skin: '#f1d1ba', pants: '#4a6a9c', shoes: '#f2f2f2', brow: '#a88550', blush: true, legR: 0.08,
+    topMat: M('#f7f6f2'),
+    extras: t => add(t, new THREE.TorusGeometry(0.17, 0.012, 6, 28), M('#e8e6e0'), [0, 0.41, 0], [1, 1, 0.9], [Math.PI / 2, 0, 0]),   // neckline
+    hair: h => {
+      const hm = M('#e2c27c');
+      add(h, new THREE.SphereGeometry(0.228, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.33), hm, [0, 0.01, -0.005], [1, 1.08, 1]);
+      add(h, new THREE.SphereGeometry(0.228, 28, 16, Math.PI * 1.5 - 1.9, 3.8, 0, Math.PI * 0.62), hm, [0, 0.01, -0.005], [1, 1.08, 1]);
+      add(h, new THREE.BoxGeometry(0.42, 0.34, 0.1), hm, [0, -0.12, -0.12]);          // to the shoulders
+      [-1, 1].forEach(s => add(h, new THREE.BoxGeometry(0.07, 0.3, 0.12), hm, [s * 0.205, -0.1, 0.02]));
+      add(h, new THREE.BoxGeometry(0.006, 0.02, 0.15), M('#c9a660'), [-0.04, 0.235, 0.07]);   // parting
     },
   },
   girl: {

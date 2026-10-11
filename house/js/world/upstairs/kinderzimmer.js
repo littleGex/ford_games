@@ -13,7 +13,7 @@ const patchwork = canvasTex(g => {
 });
 
 export function buildKinderzimmer() {
-  // daybed: quilted mauve frame, dark grey mattress, back against the gable wall
+  // P's bed (a daybed): quilted mauve frame, dark grey mattress, back against the gable wall
   const mauve = '#a88f97';
   fbox(0.05, 5.85, 0.98, 7.85, 0.38, mauve);
   box(0.05, 5.85, 0.2, 7.85, 0.85, 0, mat(mauve));

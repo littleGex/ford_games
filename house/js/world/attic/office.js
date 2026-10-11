@@ -2,7 +2,7 @@
 // cheese plant in the corner by the radiator, a low bookshelf under the Velux, a pine shelf against the teal
 // wall, a grey sofa along the hall wall and a clothes airer full of washing in the middle.
 import * as THREE from 'three';
-import { box, ball, cyl, fbox, group, mat, solid } from '../../core/build.js';
+import { add, box, ball, cyl, fbox, group, mat, solid } from '../../core/build.js';
 
 export function buildOffice() {
   // desk against the gable wall
@@ -49,6 +49,14 @@ export function buildOffice() {
   box(2.78, 5.35, 2.95, 7.2, 0.8, 0, mat(grey), false);
   box(2.25, 5.35, 2.95, 5.5, 0.6, 0, mat(grey), false);
   box(2.25, 7.05, 2.95, 7.2, 0.6, 0, mat(grey), false);
+  // it's a sofa bed: a rumpled duvet and pillow on it until it's made up, then a folded blanket on the arm
+  const rumpled = group(), folded = group(), quilt = mat('#dfe6ee');
+  [[2.5, 5.8, 0.28], [2.55, 6.3, 0.32], [2.45, 6.8, 0.26]].forEach(([x, z, r]) =>
+    add(rumpled, new THREE.SphereGeometry(r, 12, 8), quilt, [x, 0.47, z], [1, 0.3, 1.2]));
+  add(rumpled, new THREE.BoxGeometry(0.4, 0.1, 0.3), mat('#f4f4f2'), [2.55, 0.5, 5.65]);
+  add(folded, new THREE.BoxGeometry(0.4, 0.12, 0.3), quilt, [2.6, 0.48, 6.95]);
+  const sofaBed = { make() { rumpled.visible = false; folded.visible = true; }, mess() { rumpled.visible = true; folded.visible = false; } };
+  sofaBed.make();
 
   // clothes airer full of washing in the middle of the room
   const white = mat('#f2f2f2'), blue = mat('#2a3fa0');
@@ -62,5 +70,5 @@ export function buildOffice() {
     m.position.set(1.025 + i * 0.07, 0.88 - h / 2, 6.2); airerClothes.add(m);
   });
   solid(0.95, 5.7, 1.75, 6.7);
-  return { airerClothes };
+  return { airerClothes, sofaBed };
 }
