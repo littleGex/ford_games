@@ -12,5 +12,5 @@ export function createMowing({ board, world, player }) {
     if (pct !== shown) { shown = pct; job.status = pct + '%'; board.refresh(); }
     if (pct >= 90) { job.status = ''; board.advance(job, 'Lawn done! Put the mower back by the shed'); }
   }
-  return { update };
+  return { update, reset() { shown = -1; } };
 }

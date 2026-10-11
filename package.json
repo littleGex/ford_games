@@ -6,7 +6,7 @@
   "scripts": {
     "serve": "http-server -c-1 -p 8080 .",
     "test:e2e": "playwright test tests/e2e",
-    "test:house": "node --import ./tests/house/register.mjs tests/house/playthrough.mjs"
+    "test:house": "node tests/house/planner.mjs && node --import ./tests/house/register.mjs tests/house/playthrough.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.43.0",

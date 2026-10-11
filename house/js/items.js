@@ -105,6 +105,27 @@ export function createItems(scene) {
       add(g, new THREE.BoxGeometry(0.37, 0.005, 0.07), mat('#e8d9a8'), [0, 0.262, 0]);
     }, [0, 0, 0], { hidden: true }),
   };
-  Object.values(items).forEach(i => scene.add(i));
+  Object.values(items).forEach(i => {
+    // remember where each item starts, so every new day can put things back
+    i.userData.home = { pos: i.position.toArray(), rot: [i.rotation.x, i.rotation.y, i.rotation.z], visible: i.visible };
+    scene.add(i);
+  });
   return items;
+}
+
+/** Put one item back at its home spot (as it was when the game loaded). */
+export function sendHome(scene, item) {
+  const h = item.userData.home;
+  if (item.parent !== scene) scene.attach(item);
+  item.position.fromArray(h.pos);
+  item.rotation.set(...h.rot);
+}
+
+/** Start-of-day reset: every item back home, shown or hidden as at load, contents refilled. */
+export function resetItems(scene, items) {
+  Object.values(items).forEach(item => {
+    sendHome(scene, item);
+    item.visible = item.userData.home.visible;
+    item.traverse(o => { if (o !== item && o.isGroup) o.visible = true; });   // food in the bag, laundry in the basket
+  });
 }

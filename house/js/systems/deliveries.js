@@ -1,4 +1,4 @@
-// Post and parcels.
+// Post and parcels. Each day may bring the post, a parcel, both or neither (chances in config.js).
 // - The post arrives in the letterbox: take it to the dining table.
 // - A delivery driver walks up from the van and rings the bell. You have a short time to take the parcel;
 //   miss it and a missed-delivery card lands in the letterbox instead.
@@ -26,10 +26,23 @@ export function createDeliveries({ stage, items, board, hud }) {
   [[-1.5, 0.95], [1.5, 0.95], [-1.5, -0.95], [1.5, -0.95]].forEach(([x, z]) => add(van, new THREE.CylinderGeometry(0.33, 0.33, 0.22, 18), mat('#1a1a1c'), [x, 0.33, z], null, [Math.PI / 2, 0, 0]));
   castShadows(van);
 
-  const postAt = rand(...cfg.post.after);
-  let parcelAt = rand(...cfg.parcel.after);
+  let postAt = Infinity, parcelAt = Infinity;
   let postDone = false, parcelStarted = false;
   let state = 'gone', phase = 0, deadline = 0, parcelJob = null, timeLeft = 0;
+
+  function sendAway() {
+    state = 'gone'; S.courierWaiting = false;
+    driver.root.visible = false; van.visible = false;
+    if (items.parcel.parent === driver.root) driver.root.remove(items.parcel);
+  }
+
+  /** Start of a day: roll today's deliveries. */
+  function reset(time) {
+    sendAway();
+    postDone = parcelStarted = false; parcelJob = null;
+    postAt = Math.random() < cfg.post.chancePerDay ? time + rand(...cfg.post.after) : Infinity;
+    parcelAt = Math.random() < cfg.parcel.chancePerDay ? time + rand(...cfg.parcel.after) : Infinity;
+  }
 
   function walkTo(target, dt) {
     const p = driver.root.position, dx = target.x - p.x, dz = target.z - p.z, d = Math.hypot(dx, dz);
@@ -56,10 +69,11 @@ export function createDeliveries({ stage, items, board, hud }) {
   }
 
   function update(dt, time) {
+    if (S.dayOver) { if (state !== 'gone') sendAway(); return; }
     if (!S.started) return;
     if (!postDone && time > postAt) {
       postDone = true; items.post.visible = true;
-      board.add({ id: 'post', title: 'Empty the letterbox', steps: [
+      board.add({ id: 'post', title: 'Empty the letterbox', event: true, steps: [
         { kind: 'pick', item: 'post', at: LETTERBOX, label: 'Take out the post' },
         { kind: 'drop', item: 'post', at: [1.75, 7.6], place: [1.65, 0.76, 7.6], label: 'Put the post on the table' }] });
       hud.toast('The post has arrived');
@@ -76,7 +90,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       if (!walking) {
         state = 'wait'; S.courierWaiting = true; driver.root.rotation.y = Math.PI;
         deadline = time + cfg.parcel.waitAtDoor; dingDong();
-        parcelJob = board.add({ id: 'parcel', title: 'Get the parcel from the door', steps: [
+        parcelJob = board.add({ id: 'parcel', title: 'Get the parcel from the door', event: true, steps: [
           { kind: 'pick', item: 'parcel', at: [DOOR_SPOT.x, DOOR_SPOT.z], label: 'Take the parcel' },
           { kind: 'drop', item: 'parcel', at: [3.75, 5.9], place: [3.75, 0, 5.9], label: 'Put the parcel in the hall' }] });
       }
@@ -98,13 +112,13 @@ export function createDeliveries({ stage, items, board, hud }) {
       }
     } else if (state === 'leave') {
       walking = walkTo(VAN_SPOT, dt);
-      if (!walking) { state = 'gone'; driver.root.visible = false; van.visible = false; }
+      if (!walking) sendAway();
     }
     animate(walking, dt);
   }
 
   return {
-    update,
+    update, reset,
     banner: () => S.courierWaiting ? `Ding-dong! Parcel at the front door · ${timeLeft}s` : null,
   };
 }

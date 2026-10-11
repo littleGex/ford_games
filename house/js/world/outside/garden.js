@@ -27,6 +27,11 @@ function buildLawn() {
     cells,
     get cutCount() { return cells.filter(c => c.cut).length; },
     /** Cut every tuft within `reach` of (x, z). Returns how many were cut. */
+    /** Start of day: grown long (needs mowing) or already cut. */
+    reset(cut) {
+      cells.forEach((c, i) => { c.cut = cut; paint(i); });
+      mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    },
     cutAround(x, z, reach = 0.42) {
       let n = 0;
       cells.forEach((c, i) => { if (!c.cut && Math.abs(c.x - x) < reach && Math.abs(c.z - z) < reach) { c.cut = true; paint(i); n++; } });
@@ -62,6 +67,7 @@ function buildWashingLine() {
   return {
     open() { folded.visible = false; open.visible = true; },
     hang() { clothes.visible = true; },
+    reset() { folded.visible = true; open.visible = false; clothes.visible = false; },
   };
 }
 

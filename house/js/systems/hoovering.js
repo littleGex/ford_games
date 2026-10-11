@@ -27,5 +27,7 @@ export function createHoovering({ board, player }) {
       board.refresh();
     }
   }
-  return { update };
+  /** Start of day: dusty (needs hoovering) or clean. */
+  function reset(dirty) { spots.forEach(d => { d.visible = dirty; }); }
+  return { update, reset };
 }

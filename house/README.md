@@ -6,6 +6,20 @@ on phones and computers, no build step.
 
 Play: open `house/` on the site (e.g. `littlegex.github.io/ford_games/house/`).
 
+## Days
+
+The game runs in days. Each day draws 10-12 jobs from the pool following each job's rules (dishes
+daily, mowing every 4 days, bins out on bin day and back in the next day...), and the house is set up
+to match: the lawn is only long on mowing days, the jacket only lies on the sofa when it's on the list,
+the bins stand at the kerb the day after bin day. Surprise events (post, a parcel at the door, a power
+cut) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
+what's coming tomorrow, then the next day starts.
+
+Progress is saved in the browser (`localStorage`, key `fordHouse.save.v1`), so each phone has its own
+house: closing the page and coming back carries on with the same day and the same list. A job that
+was half done starts again from the beginning. "Start over from day 1" on the Day complete screen
+wipes the save (after a confirm).
+
 ## Run it locally
 
 ES modules need a web server, so opening the file directly won't work. From the repo root:
@@ -38,8 +52,13 @@ house/
     characters/         figure builder, family looks, the player
     items.js            everything you can pick up
     jobs/
-      jobs.js           the job list (data)
-      board.js          runs jobs: markers, the action button, pick / drop / use / sit
+      rules.js          how often each job comes round (tune the game here)
+      jobs.js           the jobs: steps, plus how the house looks when each one needs doing / is done
+      board.js          runs today's jobs: markers, the action button, pick / drop / use / sit
+    days/
+      planner.js        picks each day's jobs from the rules (pure logic, tested in Node)
+      days.js           starts days, sets the house up, saves progress, Day complete screen
+      save.js           reading and writing the save
     systems/            things that happen over time: power cuts, post & parcels, sitting jobs,
                         mowing, hoovering, car charging, plant growth
     ui/hud.js           room chip, job list, banner, toasts
@@ -53,18 +72,35 @@ terrace side (0) to the street side (8.88). The back garden is negative z, the s
 
 ## Adding a job
 
-Add an entry to `js/jobs/jobs.js`. A job is a list of steps:
+1. Add how often it comes round to `js/jobs/rules.js`:
 
-```js
-{ id: 'cushion', title: 'Plump the cushion', every: 1, steps: [
-  { kind: 'pick', item: 'cushion', label: 'Pick up the cushion' },            // at: defaults to the item
-  { kind: 'drop', item: 'cushion', at: [0.7, 2.4], place: [0.7, 0.42, 2.4], label: 'Put it on the sofa' },
-] }
-```
+   ```js
+   { id: 'cushion', every: 2 },
+   ```
 
-Step kinds: `pick`, `drop`, `use` (with `onDone(ctx)`), `sit` (timed, see the TV and coffee jobs),
-and `mow` / `hoover` / `charge`, which are driven by their system in `js/systems/`.
-New carryable things go in `js/items.js`. `every` (days) is for the day planner.
+   `every: N` days (1 = daily). `after: { job: 'x', days: 1 }` makes a follow-up job (like bins back
+   in). `must: true` always puts it on the list when due. Jobs every 3+ days are "appointments" and
+   are never early or late; every-other-day jobs can come up a day early to fill a day.
+
+2. Add the job itself to `js/jobs/jobs.js`. A job is a list of steps:
+
+   ```js
+   { id: 'cushion', title: 'Plump the cushion', steps: [
+     { kind: 'pick', item: 'cushion', label: 'Pick up the cushion' },            // at: defaults to the item
+     { kind: 'drop', item: 'cushion', at: [0.7, 2.4], place: [0.7, 0.42, 2.4], label: 'Put it on the sofa' },
+   ] }
+   ```
+
+   Step kinds: `pick`, `drop` (`place`, `at` + `y`, or `home: true`), `use` (with `onDone(ctx)`),
+   `sit` (timed, see the TV and coffee jobs), and `mow` / `hoover` / `charge`, which are driven by
+   their system in `js/systems/`.
+
+   Items start every day at their home spot from `js/items.js` (the "needs doing" position). On days
+   the job isn't on the list it's shown done: by default its items are moved to where its drop steps
+   leave them. For anything else, give the job `setup(ctx)` (make it need doing: grow the lawn, dirty
+   the windows) and `tidy(ctx)` (show it done).
+
+New carryable things go in `js/items.js`.
 
 ## Tests
 
@@ -72,9 +108,19 @@ New carryable things go in `js/items.js`. `every` (days) is for the day planner.
 npm run test:house
 ```
 
-Runs `tests/house/playthrough.mjs`, which builds the whole game in Node with a stand-in for three.js, checks that every job step can be
-reached on foot from the front path, and plays through every job including the post, the parcel
-and power cuts. Exits non-zero if anything is unreachable or can't be finished.
+Runs two Node tests (no browser needed):
 
-CI runs it on every push. `tests/e2e/house.spec.js` holds the Playwright browser tests (page loads,
-jobs appear, keyboard walking, picking up and putting down an item), run with `npm run test:e2e`.
+- `tests/house/planner.mjs` simulates 120 days with several random seeds and checks the day rules:
+  10-12 jobs a day, mowing exactly every 4 days, bins out every 4 and back in exactly the next day,
+  daily jobs nearly every day, appointments never early.
+- `tests/house/playthrough.mjs` builds the whole game in Node with a stand-in for three.js and plays
+  12 days in a row like a kid would: walks to every job step (checking it can be reached on foot from
+  the front path), finishes every job including the post, parcel and a power cut, waits for Day
+  complete and starts the next day. Each morning it checks the house matches the list (lawn, bins,
+  jacket, windows, shopping), that bin pairs alternate, and that progress is saved. Then it plays any
+  job that hadn't come up, and checks "start over".
+
+Both exit non-zero on a problem. CI runs them on every push. `tests/e2e/house.spec.js` holds the
+Playwright browser tests (page loads, day 1 has 10-12 jobs, keyboard walking, picking up and putting
+down an item, Day complete and the next day surviving a reload, start over), run with
+`npm run test:e2e`.

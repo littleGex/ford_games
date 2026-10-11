@@ -4,9 +4,10 @@ export class Vector3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y
   set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } setScalar(s) { return this.set(s, s, s); }
   copy(v) { return this.set(v.x, v.y, v.z); } clone() { return new Vector3(this.x, this.y, this.z); }
   add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
-  distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); } }
+  distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  toArray() { return [this.x, this.y, this.z]; } fromArray(a) { return this.set(a[0], a[1], a[2]); } }
 class Euler { constructor() { this.x = 0; this.y = 0; this.z = 0; } set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }
-export class Color { constructor(c) { this.v = c; } set(c) { this.v = c; return this; } setRGB() { return this; } lerp() { return this; } }
+export class Color { constructor(c) { this.v = c; } set(c) { this.v = c; return this; } setRGB() { return this; } lerp() { return this; } copy(c) { this.v = c.v; return this; } }
 export class Object3D { constructor() { this.position = new Vector3(); this.rotation = new Euler(); this.scale = new Vector3(1, 1, 1); this.children = []; this.parent = null; this.visible = true; this.userData = {}; this.name = ''; }
   add(...os) { for (const o of os) { if (o.parent) o.parent.remove(o); o.parent = this; this.children.push(o); } return this; }
   remove(o) { const i = this.children.indexOf(o); if (i >= 0) this.children.splice(i, 1); o.parent = null; return this; }
@@ -16,7 +17,7 @@ export class Object3D { constructor() { this.position = new Vector3(); this.rota
   getWorldPosition(v) { let o = this, x = 0, y = 0, z = 0; while (o) { x += o.position.x; y += o.position.y; z += o.position.z; o = o.parent; } return v.set(x, y, z); }
   localToWorld(v) { const w = this.getWorldPosition(new Vector3()); return v.add(w); }
   lookAt() {} updateProjectionMatrix() {} }
-export class Group extends Object3D {}
+export class Group extends Object3D { constructor() { super(); this.isGroup = true; } }
 export class Scene extends Object3D { constructor() { super(); this.background = null; this.fog = null; } }
 export class Mesh extends Object3D { constructor(geometry, material) { super(); this.geometry = geometry; this.material = material; } clone() { const m = new Mesh(this.geometry, this.material); m.position.copy(this.position); return m; } }
 export class InstancedMesh extends Mesh { constructor(g, m, n) { super(g, m); this.count = n; this.instanceMatrix = {}; this.instanceColor = {}; } setMatrixAt() {} setColorAt() {} }

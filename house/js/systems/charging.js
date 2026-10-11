@@ -46,6 +46,7 @@ export function createCharging({ stage, board, player }) {
 
   return {
     update,
+    reset() { pluggedIn = false; shown = -1; drawCable(); },
     plugIn() { pluggedIn = true; },
     unplug() { pluggedIn = false; },
   };

@@ -11,7 +11,6 @@ import { createItems } from './items.js';
 import { createPlayer } from './characters/player.js';
 import { createHud } from './ui/hud.js';
 import { createJobBoard } from './jobs/board.js';
-import { createJobs } from './jobs/jobs.js';
 import { createPower } from './systems/power.js';
 import { createSitting } from './systems/sitting.js';
 import { createMowing } from './systems/mowing.js';
@@ -19,6 +18,7 @@ import { createHoovering } from './systems/hoovering.js';
 import { createCharging } from './systems/charging.js';
 import { createDeliveries } from './systems/deliveries.js';
 import { createPlant } from './systems/plant.js';
+import { createDays } from './days/days.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
@@ -27,21 +27,26 @@ const player = createPlayer(stage.scene, items);
 const hud = createHud();
 const board = createJobBoard({ scene: stage.scene, items, hud });
 
+const clock = new THREE.Clock();
+
 // ctx is what job hooks and systems can reach
-const ctx = { S, stage, world, items, player, hud, board };
+let yaw = 0, yawTarget = 0, nearest = null;
+const ctx = { S, stage, world, items, player, hud, board, clock };
+ctx.view = { reset() { yaw = yawTarget = 0; } };
 ctx.power = createPower(ctx);
 ctx.sitting = createSitting(ctx);
 ctx.charging = createCharging(ctx);
 ctx.deliveries = createDeliveries(ctx);
 ctx.plant = createPlant(ctx);
-const systems = [ctx.power, ctx.deliveries, createMowing(ctx), createHoovering(ctx), ctx.sitting, ctx.charging, ctx.plant];
+ctx.mowing = createMowing(ctx);
+ctx.hoovering = createHoovering(ctx);
 board.setContext(ctx);
-createJobs().forEach(job => board.add(job));
+ctx.days = createDays(ctx);
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.plant, ctx.days];
 
 // controls
-let yaw = 0, yawTarget = 0, nearest = null;
 const turnView = () => { yawTarget += Math.PI / 2; };
-const doAction = () => board.act(nearest);
+const doAction = () => { if (!S.dayOver) board.act(nearest); };
 const input = createInput({
   stick: document.getElementById('stick'), knob: document.getElementById('knob'),
   onAction: doAction, onTurn: turnView,
@@ -49,17 +54,19 @@ const input = createInput({
 });
 hud.onAction(doAction);
 document.getElementById('rotBtn').addEventListener('click', turnView);
-hud.bindCharacterButtons(key => player.setCharacter(key));
-player.setCharacter('dad');
+const markCharacter = hud.bindCharacterButtons(key => { player.setCharacter(key); ctx.days.setCharacter(key); });
+player.setCharacter(ctx.days.character);
+markCharacter(ctx.days.character);
+ctx.days.start();
 
-const clock = new THREE.Clock();
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.05), time = clock.elapsedTime;
   const axis = input.axis();
   yaw += (yawTarget - yaw) * Math.min(1, dt * (S.reduceMotion ? 60 : 8));
 
   let walking = false;
-  if (S.sitting) { if (axis.len > 0.3) ctx.sitting.standUp(); }
+  if (S.dayOver) { /* the Day complete screen is up */ }
+  else if (S.sitting) { if (axis.len > 0.3) ctx.sitting.standUp(); }
   else if (axis.len > 0.08) walking = player.stepFromInput(axis, yaw, dt);
   player.animate(dt, walking);
 
@@ -67,9 +74,9 @@ function frame() {
 
   const pos = player.group.position;
   hud.setRoom(roomAt(pos.x, pos.z));
-  nearest = board.nearestAction(pos);
+  nearest = S.dayOver ? null : board.nearestAction(pos);
   hud.setAction(nearest ? nearest.step.label : null);
-  hud.banner(ctx.deliveries.banner() || ctx.sitting.banner());
+  hud.banner(S.dayOver ? null : ctx.deliveries.banner() || ctx.sitting.banner());
   board.updateMarkers(time);
 
   stage.camera.position.set(pos.x + Math.sin(yaw) * CAMERA.distance, CAMERA.height, pos.z + Math.cos(yaw) * CAMERA.distance);
@@ -79,5 +86,5 @@ function frame() {
 }
 requestAnimationFrame(frame);
 
-// handy for debugging in the browser console: window.house.board.jobs, window.house.S ...
+// handy for debugging in the browser console: window.house.board.jobs, window.house.days.plan(['mow'])...
 window.house = ctx;

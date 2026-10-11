@@ -3,13 +3,14 @@
 //
 // Step kinds
 //   pick   take an item (at: defaults to where the item is)
-//   drop   put the carried item down (place: [x,y,z] or at + y)
+//   drop   put the carried item down (place: [x,y,z], or at + y, or home: true for its home spot)
 //   use    do something on the spot (onDone runs)
 //   sit    sit or stand at a spot for `dur` seconds (handled by systems/sitting.js)
 //   mow / hoover / charge   progress handled by their own systems; no button, no marker
 import * as THREE from 'three';
 import { REACH, COLORS } from '../config.js';
 import { S } from '../state.js';
+import { sendHome } from '../items.js';
 
 const PASSIVE = new Set(['mow', 'hoover', 'charge']);
 
@@ -24,7 +25,7 @@ function makeMarker(scene) {
 }
 
 export function createJobBoard({ scene, items, hud }) {
-  const jobs = [], markers = [];
+  const jobs = [], markers = [], listeners = [];
   let ctx = null;   // the full game context, handed to onDone hooks
 
   const step = job => job.steps[job.i];
@@ -34,7 +35,23 @@ export function createJobBoard({ scene, items, hud }) {
   function at(s) {
     if (s.at) return s.at;
     if (s.kind === 'pick' && items[s.item]) { const p = new THREE.Vector3(); items[s.item].getWorldPosition(p); return [p.x, p.z]; }
+    if (s.kind === 'drop' && s.home) { const h = items[s.item].userData.home.pos; return [h[0], h[2]]; }
     return null;
+  }
+
+  /** Put an item where a drop step leaves it (used when acting, and to show a job as already done). */
+  function place(s) {
+    const it = items[s.item];
+    if (s.home) { sendHome(scene, it); return; }
+    scene.attach(it);
+    if (s.place) it.position.set(...s.place); else it.position.set(s.at[0], s.y || 0, s.at[1]);
+    it.rotation.set(0, s.rot || 0, 0);
+  }
+
+  /** Show a job as done in the world: its own tidy(), or its items where its drop steps leave them. */
+  function tidy(job) {
+    if (job.tidy) job.tidy(ctx);
+    else job.steps.filter(s => s.kind === 'drop').forEach(place);
   }
 
   function canDo(s) {
@@ -48,11 +65,19 @@ export function createJobBoard({ scene, items, hud }) {
 
   function refresh() { hud.renderJobs(jobs); }
 
-  function add(job) {
-    job.i = 0; job.status = '';
+  /** Put a job on today's list. done: already finished earlier today (restored from the save). */
+  function add(job, { done = false } = {}) {
+    job.i = done ? job.steps.length : 0; job.status = '';
     jobs.push(job); markers.push(makeMarker(scene));
     refresh();
     return job;
+  }
+
+  /** Empty the list at the end of a day. */
+  function clear() {
+    markers.forEach(m => scene.remove(m));
+    jobs.length = 0; markers.length = 0;
+    refresh();
   }
 
   /** Move a job on to its next step. message replaces the usual "Done" toast. */
@@ -60,7 +85,8 @@ export function createJobBoard({ scene, items, hud }) {
     job.i++;
     refresh();
     if (message) hud.toast(message);
-    else if (finished(job)) hud.toast(jobs.every(finished) ? 'All jobs done! The house is tidy.' : 'Done: ' + job.title);
+    else if (finished(job)) hud.toast('Done: ' + job.title);
+    if (finished(job)) listeners.forEach(fn => fn(job));
   }
 
   /** Nearest step the player could do right now, within reach. */
@@ -82,13 +108,7 @@ export function createJobBoard({ scene, items, hud }) {
     const { job, step: s } = choice;
     if (s.kind === 'sit') { ctx.sitting.sitDown(job, s); return; }
     if (s.kind === 'pick') S.carrying = s.item;
-    if (s.kind === 'drop') {
-      const it = items[s.item];
-      scene.attach(it);
-      if (s.place) it.position.set(...s.place); else it.position.set(s.at[0], s.y || 0, s.at[1]);
-      it.rotation.set(0, s.rot || 0, 0);
-      S.carrying = null;
-    }
+    if (s.kind === 'drop') { place(s); S.carrying = null; }
     if (s.onDone) s.onDone(ctx);
     advance(job);
   }
@@ -105,7 +125,10 @@ export function createJobBoard({ scene, items, hud }) {
   }
 
   return {
-    jobs, add, advance, act, nearestAction, updateMarkers, refresh, step, finished,
+    jobs, add, clear, advance, act, tidy, nearestAction, updateMarkers, refresh, step, finished,
+    allDone: () => jobs.length > 0 && jobs.every(finished),
+    /** fn(job) runs whenever a job is finished. */
+    onFinished(fn) { listeners.push(fn); },
     find: id => jobs.find(j => j.id === id),
     setContext(c) { ctx = c; },
   };

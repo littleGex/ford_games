@@ -64,5 +64,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: var(--night)
 .alert { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 168px); transform: translateX(-50%); background: var(--marigold); color: #2a1a00; font: 800 16px var(--f-display); padding: 9px 18px; border-radius: 999px; box-shadow: 0 8px 22px rgba(0, 0, 0, .35); pointer-events: none; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; animation: ring 1.2s ease-in-out infinite; }
 @keyframes ring { 0%, 60%, 100% { transform: translateX(-50%) rotate(0); } 10%, 30% { transform: translateX(-50%) rotate(-3deg); } 20%, 40% { transform: translateX(-50%) rotate(3deg); } }
 
+/* Day complete: a card over a dimmed house */
+.daydone { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(8, 12, 20, .62); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 10; }
+.daydone-card { width: min(380px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px 22px 16px; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, .45); animation: pop .35s ease-out; }
+.daydone-eyebrow { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.daydone h1 { margin: 2px 0 4px; font-family: var(--f-display); font-weight: 800; font-size: 34px; line-height: 1.05; color: var(--marigold); text-wrap: balance; }
+.daydone-stats { margin: 0 0 14px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.daydone-tomorrow { text-align: left; background: rgba(238, 243, 247, .06); border-radius: 14px; padding: 10px 14px; margin-bottom: 16px; }
+.daydone-tomorrow h2 { margin: 0 0 4px; font-family: var(--f-display); font-size: 15px; font-weight: 800; color: var(--mint); }
+.daydone-tomorrow ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; }
+.daydone-next { width: 100%; padding: 14px 18px; font-size: 20px; }
+.daydone-totals { margin: 12px 0 4px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.daydone-restart { font-size: 12px; color: var(--muted); min-height: 22px; }
+.linkbtn { border: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; padding: 2px 4px; }
+.linkbtn.danger { color: #ff8a8a; }
+.linkbtn:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; border-radius: 4px; }
+@keyframes pop { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
 @media (max-width: 420px) { .room .name { font-size: 19px; } .tasks { max-width: 200px; } .tasks li { font-size: 12px; } }
-@media (prefers-reduced-motion: reduce) { .toast, .hint { transition: none; } .alert { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .toast, .hint { transition: none; } .alert, .daydone-card { animation: none; } }
