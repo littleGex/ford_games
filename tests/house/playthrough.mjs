@@ -26,7 +26,7 @@ globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) 
 const errors = [];
 await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
-const { REACH } = await import(new URL('../../house/js/config.js', import.meta.url));
+const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
 const G = globalThis.house, S = G.S;
 const frame = () => { const f = raf.shift(); if (!f) throw new Error('no frame scheduled'); f(); };
 for (let i = 0; i < 5; i++) frame();
@@ -101,11 +101,14 @@ function doStep(job) {
   if (!n || n.step !== s) return `button shows "${n ? n.step.label : 'nothing'}" instead of "${s.label}"`;
   G.board.act(n);
   if (s.kind === 'sit') {
+    const onFloor = () => G.player.group.position.y === S.level * LEVEL_HEIGHT;
+    if (!onFloor()) return 'left the floor when starting';
     for (let k = 0; k < 2000 && job.steps[job.i] === s; k++) {
       if (!S.powerOn && (s.screen || s.power)) { G.sitting.standUp(); fixPower(); return doStep(job); }
       frame();
     }
     if (job.steps[job.i] === s) return 'sitting never finished';
+    if (!onFloor()) return 'left the floor after finishing';
   }
   frame();
   return true;

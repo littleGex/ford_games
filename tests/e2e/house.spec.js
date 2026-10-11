@@ -20,7 +20,8 @@ async function openHouse(page, { frames = 0 } = {}) {
     });
   }, frames);
   await page.goto('/house/');
-  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  // the frames that are drawn can take several seconds each on a busy machine
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/, { timeout: 20000 });
 }
 
 // Each day's list is random, so tests that need a particular job set today's list themselves.
