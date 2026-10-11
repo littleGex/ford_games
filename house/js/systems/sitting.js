@@ -3,6 +3,7 @@
 // shower water); effects are groups in the world whose children bob upwards.
 // Moving the stick gets you up; progress is kept so you can come back later.
 // Steps that use the TV or the coffee machine (screen / power) pause during a power cut.
+import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
 
 export function createSitting(ctx) {
@@ -14,13 +15,13 @@ export function createSitting(ctx) {
   function sitDown(job, step) {
     const g = player.group;
     S.sitting = { job, step, seatY: step.seat[1], back: [g.position.x, g.position.z] };
-    g.position.set(step.seat[0], 0, step.seat[2]);
+    g.position.set(step.seat[0], S.level * LEVEL_HEIGHT, step.seat[2]);
     g.rotation.y = step.seat[3];
   }
 
   function standUp() {
     if (!S.sitting) return;
-    player.group.position.set(S.sitting.back[0], 0, S.sitting.back[1]);
+    player.group.position.set(S.sitting.back[0], S.level * LEVEL_HEIGHT, S.sitting.back[1]);
     S.sitting = null;
     world.tv.draw('off');
     hideFx();
