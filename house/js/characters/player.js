@@ -9,7 +9,7 @@ import { FAMILY } from './family.js';
 
 export function createPlayer(scene, items) {
   const group = new THREE.Group();
-  const reset = () => { group.position.set(3.92, 0, 10.6); group.rotation.y = Math.PI; };   // on the front path, facing the door
+  const reset = () => { S.level = 0; group.position.set(3.92, 0, 10.6); group.rotation.y = Math.PI; };   // on the front path, facing the door
   reset();
   scene.add(group);
 

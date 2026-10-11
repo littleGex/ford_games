@@ -1,10 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
 // Headless Chromium draws WebGL in software, at a couple of frames a second. Each frame blocks the
-// page, so key presses, clicks and even reading state time out. Apart from 'house page loads', the
-// tests stop the game drawing after `frames` frames: none for the tests that play the game, a few
-// for the test that checks the scene draws without errors. The game sets window.house just before
-// its frame loop starts, which is where drawing gets limited.
+// page, so key presses, clicks and even reading state time out. The tests stop the game drawing
+// after `frames` frames: none for the tests that play the game, a few for the tests that check the
+// page loads and the scene draws without errors. The game sets window.house just before its frame
+// loop starts, which is where drawing gets limited.
 async function openHouse(page, { frames = 0 } = {}) {
   await page.addInitScript(limit => {
     let house;
@@ -30,7 +30,7 @@ async function planToday(page, ids) {
 }
 
 test('house page loads', async ({ page }) => {
-  await page.goto('/house/');
+  await openHouse(page, { frames: 3 });
   await expect(page).toHaveTitle(/ford house/i);
 });
 
@@ -118,4 +118,23 @@ test('start over goes back to day 1 after confirming', async ({ page }) => {
   await page.locator('#dayRestartYes').click();
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
   await expect(page.locator('#dayDone')).toBeHidden();
+});
+
+test('the stairs take you up to the first floor and back down', async ({ page }) => {
+  await openHouse(page);
+  await planToday(page, ['teeth', 'hands']);
+  await page.evaluate(() => window.house.player.group.position.set(4.4, 0, 6.05));   // foot of the stairs
+  await expect(page.locator('#actBtn')).toHaveText('Go upstairs');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  expect(await page.evaluate(() => window.house.S.level)).toBe(1);
+
+  // upstairs job: brush your teeth at the bathroom basin
+  await page.evaluate(() => window.house.player.group.position.set(4.6, 2.3, 7.22));
+  await expect(page.locator('#actBtn')).toHaveText('Brush your teeth at the basin');
+
+  await page.evaluate(() => window.house.player.group.position.set(4.15, 2.3, 4.45));   // top of the stairs
+  await expect(page.locator('#actBtn')).toHaveText('Go downstairs');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Erdgeschoss');
 });

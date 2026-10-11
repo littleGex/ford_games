@@ -1,10 +1,21 @@
 # Ford House
 
 A 3D version of our house to walk around in and do jobs: hoovering, bins, mowing, charging the car,
-watching TV and more. Built from the 1:100 floor plan and photos of each room. Runs in the browser
+watching TV, making the beds, putting a wash on and more. Both floors, the front and the back garden. Built from the 1:100 floor plan and photos of each room. Runs in the browser
 on phones and computers, no build step.
 
 Play: open `house/` on the site (e.g. `littlegex.github.io/ford_games/house/`).
+
+## Floors
+
+The first floor (Elternzimmer, Ankleide, Kinderzimmer, Bad and the landing) is built in its own group,
+raised by `LEVEL_HEIGHT` in `config.js`. Stand at the foot of the stairs in the hall, or at the top on
+the landing, and the action button offers "Go upstairs" / "Go downstairs". While you're downstairs the
+first floor is hidden so you can see in.
+
+Everything upstairs uses plan coordinates (the same x and z as the floor plan, y = 0 at the
+upstairs floor). Upstairs jobs say `level: 1` on their steps; upstairs items say `level: 1` in
+`items.js`. Colliders remember which floor they were built on.
 
 ## Days
 
@@ -49,6 +60,7 @@ house/
     state.js            shared state (what you carry, sitting, power on/off...)
     core/               renderer & lights, textures, building helpers, collision, input, sound
     world/              the house: structure.js (walls, floors, stairs), rooms/*, outside/*, tv.js, rooms.js
+      upstairs/         the first floor: structure.js (slab, walls, stairwell), one file per room
     characters/         figure builder, family looks, the player
     items.js            everything you can pick up
     jobs/
@@ -60,7 +72,8 @@ house/
       days.js           starts days, sets the house up, saves progress, Day complete screen
       save.js           reading and writing the save
     systems/            things that happen over time: power cuts, post & parcels, sitting jobs,
-                        mowing, hoovering, car charging, plant growth
+                        mowing, hoovering, car charging, the washing machine (waiting.js),
+                        plant growth, and levels.js for the stairs
     ui/hud.js           room chip, job list, banner, toasts
 ```
 
@@ -68,7 +81,8 @@ The tests live with the rest of the repo's tests, in `tests/house/` (Node play-t
 `tests/e2e/house.spec.js` (browser).
 
 Coordinates are plan metres: x runs from the gable wall (0) to the party wall (5.64), z from the
-terrace side (0) to the street side (8.88). The back garden is negative z, the street is beyond 13.
+terrace side (0) to the street side (8.88), on both floors. The back garden is negative z, the street
+is beyond 13.
 
 ## Adding a job
 
@@ -92,8 +106,9 @@ terrace side (0) to the street side (8.88). The back garden is negative z, the s
    ```
 
    Step kinds: `pick`, `drop` (`place`, `at` + `y`, or `home: true`), `use` (with `onDone(ctx)`),
-   `sit` (timed, see the TV and coffee jobs), and `mow` / `hoover` / `charge`, which are driven by
-   their system in `js/systems/`.
+   `sit` (timed, see the TV, coffee, teeth and shower jobs; `stand: true` to stand, `fx` for steam or
+   shower water), `wait` (runs by itself, like the washing machine), and `mow` / `hoover` / `charge`,
+   which are driven by their system in `js/systems/`. Add `level: 1` to steps that happen upstairs.
 
    Items start every day at their home spot from `js/items.js` (the "needs doing" position). On days
    the job isn't on the list it's shown done: by default its items are moved to where its drop steps
@@ -115,12 +130,12 @@ Runs two Node tests (no browser needed):
   daily jobs nearly every day, appointments never early.
 - `tests/house/playthrough.mjs` builds the whole game in Node with a stand-in for three.js and plays
   12 days in a row like a kid would: walks to every job step (checking it can be reached on foot from
-  the front path), finishes every job including the post, parcel and a power cut, waits for Day
+  the front path, or from the top of the stairs upstairs, and taking the stairs with the button), finishes every job including the post, parcel and a power cut, waits for Day
   complete and starts the next day. Each morning it checks the house matches the list (lawn, bins,
   jacket, windows, shopping), that bin pairs alternate, and that progress is saved. Then it plays any
   job that hadn't come up, and checks "start over".
 
 Both exit non-zero on a problem. CI runs them on every push. `tests/e2e/house.spec.js` holds the
 Playwright browser tests (page loads, day 1 has 10-12 jobs, keyboard walking, picking up and putting
-down an item, Day complete and the next day surviving a reload, start over), run with
+down an item, Day complete and the next day surviving a reload, start over, the stairs), run with
 `npm run test:e2e`.

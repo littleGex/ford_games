@@ -5,9 +5,11 @@ import * as THREE from 'three';
 import { WALL_HEIGHT as WH } from '../config.js';
 import { TEX } from './textures.js';
 
-let scene = null;
+// Builders add to the current target: the scene for the ground floor and gardens, or the upstairs
+// group (raised by LEVEL_HEIGHT) for the first floor. Colliders remember which floor they're on.
+let scene = null, level = 0;
 export const colliders = [];
-export function setBuildTarget(s) { scene = s; }
+export function setBuildTarget(target, onLevel = 0) { scene = target; level = onLevel; }
 export function put(obj) { scene.add(obj); return obj; }
 
 export const M = {
@@ -35,7 +37,7 @@ export function add(parent, geo, material, pos, scl, rot) {
   return o;
 }
 
-export function solid(x1, z1, x2, z2) { colliders.push({ x1, z1, x2, z2 }); }
+export function solid(x1, z1, x2, z2) { colliders.push({ x1, z1, x2, z2, level }); }
 
 export function box(x1, z1, x2, z2, h, y0, material, castShadow = true) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1, h, z2 - z1), material);

@@ -1,10 +1,14 @@
-// Timed jobs where you stay put: watching TV, gaming (seated), washing up, making coffee (standing).
+// Timed jobs where you stay put: watching TV, gaming (seated), washing up, coffee, teeth, shower (standing).
+// A step can name an effect to show while it runs (fx: 'steam' for the coffee machine, 'shower' for the
+// shower water); effects are groups in the world whose children bob upwards.
 // Moving the stick gets you up; progress is kept so you can come back later.
 // Steps that use the TV or the coffee machine (screen / power) pause during a power cut.
 import { S } from '../state.js';
 
 export function createSitting(ctx) {
   const { player, world, board } = ctx;
+  const FX = { steam: world.steam, shower: world.showerWater };
+  const hideFx = () => Object.values(FX).forEach(g => { if (g) g.visible = false; });
   let lastDraw = 0;
 
   function sitDown(job, step) {
@@ -19,7 +23,7 @@ export function createSitting(ctx) {
     player.group.position.set(S.sitting.back[0], 0, S.sitting.back[1]);
     S.sitting = null;
     world.tv.draw('off');
-    world.steam.visible = false;
+    hideFx();
   }
 
   const hasPower = s => !(s.screen || s.power) || S.powerOn;
@@ -33,8 +37,12 @@ export function createSitting(ctx) {
   function update(dt, time) {
     if (!S.sitting) return;
     const { job, step: s } = S.sitting, ok = hasPower(s);
-    world.steam.visible = !!s.coffee && ok;
-    if (world.steam.visible) world.steam.children.forEach((p, i) => { p.position.y = ((time * 0.6 + i / 3) % 1) * 0.3; });
+    const fx = s.fx && FX[s.fx];
+    if (fx) {
+      fx.visible = ok;
+      const fall = s.fx === 'shower';
+      fx.children.forEach((p, i) => { const t = (time * (fall ? 2.2 : 0.6) + i / fx.children.length) % 1; p.position.y = fall ? 1.3 - t * 1.1 : t * 0.3; });
+    }
     if (ok) {
       s.prog = (s.prog || 0) + dt;
       if (s.screen && time - lastDraw > 0.1) { world.tv.draw(s.screen, time); lastDraw = time; }

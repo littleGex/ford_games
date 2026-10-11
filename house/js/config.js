@@ -6,7 +6,14 @@ export const WALL_HEIGHT = 1.4;          // walls are cut at this height (dollho
 export const PLAYER_RADIUS = 0.22;
 export const WALK_SPEED = 2.3;
 export const REACH = 1.0;                // how close you must be to use something
-export const BOUNDS = { x1: -2.25, x2: 5.5, z1: -17.3, z2: 13.4 };
+export const BOUNDS = [
+  { x1: -2.25, x2: 5.5, z1: -17.3, z2: 13.4 },   // Erdgeschoss and the gardens
+  { x1: 0, x2: 5.64, z1: 0, z2: 8.88 },          // Obergeschoss (inside the house)
+];
+// The first floor is drawn this far above the ground floor. Not to scale: walls are cut at
+// WALL_HEIGHT anyway, this just keeps the upstairs clear of the downstairs furniture.
+export const LEVEL_HEIGHT = 2.3;
+export const FLOOR_NAMES = ['Erdgeschoss', 'Obergeschoss'];
 
 export const CAMERA = { distance: 5.2, height: 7.2, lookY: 0.4, fovLandscape: 45, fovPortrait: 60 };
 

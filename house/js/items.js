@@ -1,5 +1,7 @@
 // Everything the player can pick up and carry. Each item is a THREE.Group placed in the world.
 // userData.carry / carryRot: custom hold position (mower, hoover); userData.wheel: wheeled along (bins).
+// userData.level: which floor the item is on. Upstairs items live in the upstairs group, so their
+// positions are upstairs plan coordinates with y = 0 at the upstairs floor.
 import * as THREE from 'three';
 import { add, mat, castShadows } from './core/build.js';
 
@@ -11,6 +13,7 @@ function item(build, pos, opts = {}) {
   if (opts.rotX) g.rotation.x = opts.rotX;
   if (opts.hidden) g.visible = false;
   Object.assign(g.userData, opts.userData || {});
+  g.userData.level = opts.level || 0;
   return castShadows(g);
 }
 
@@ -23,7 +26,7 @@ function bin(lid) {
   };
 }
 
-export function createItems(scene) {
+export function createItems(scene, upstairs) {
   const items = {
     cup: item(g => {
       add(g, new THREE.CylinderGeometry(.06, .05, .11, 16), mat('#ffffff'), [0, .055, 0]);
@@ -104,27 +107,49 @@ export function createItems(scene) {
       add(g, new THREE.BoxGeometry(0.36, 0.26, 0.3), mat('#c49a62'), [0, 0.13, 0]);
       add(g, new THREE.BoxGeometry(0.37, 0.005, 0.07), mat('#e8d9a8'), [0, 0.262, 0]);
     }, [0, 0, 0], { hidden: true }),
+
+    // upstairs
+    dirtyClothes: item(g => {
+      [['#6f8fb3', 0, 0], ['#d9d4cc', 0.12, 0.08], ['#3e5a84', -0.1, 0.1], ['#b9c6d6', 0.05, -0.12]].forEach(([c, x, z], i) =>
+        add(g, new THREE.SphereGeometry(0.14, 10, 8), mat(c), [x, 0.05 + i * 0.02, z], [1.3, 0.4, 1]));
+    }, [1.75, 0.5, 2.0], { level: 1 }),
+    laundryBag: item(g => {
+      add(g, new THREE.SphereGeometry(0.17, 12, 10), mat('#eef1f3'), [0, 0.12, 0], [1, 0.8, 1]);
+      [['#e86a8a', 0.06], ['#5d7fa6', -0.06]].forEach(([c, x]) => add(g, new THREE.SphereGeometry(0.06, 8, 6), mat(c), [x, 0.24, 0.02]));
+    }, [4.55, 0.6, 3.58], { level: 1 }),
+    towel: item(g => {
+      add(g, new THREE.BoxGeometry(0.5, 0.03, 0.3), mat('#7a5a48'), [0, 0.015, 0]);
+      add(g, new THREE.BoxGeometry(0.3, 0.05, 0.25), mat('#7a5a48'), [0.1, 0.04, 0.02], null, [0, 0.4, 0]);
+    }, [3.95, 0, 7.6], { level: 1, rotY: 0.3 }),
+    toys: item(g => {
+      add(g, new THREE.BoxGeometry(0.14, 0.14, 0.14), mat('#e74c3c'), [0, 0.07, 0]);
+      add(g, new THREE.SphereGeometry(0.08, 10, 8), mat('#2f6fd6'), [0.15, 0.08, 0.05]);
+      add(g, new THREE.ConeGeometry(0.07, 0.16, 8), mat('#f2c81c'), [-0.12, 0.08, 0.08]);
+      add(g, new THREE.BoxGeometry(0.2, 0.06, 0.1), mat('#9a7be0'), [0.02, 0.03, -0.14]);
+    }, [2.25, 0, 6.15], { level: 1 }),
   };
   Object.values(items).forEach(i => {
     // remember where each item starts, so every new day can put things back
-    i.userData.home = { pos: i.position.toArray(), rot: [i.rotation.x, i.rotation.y, i.rotation.z], visible: i.visible };
-    scene.add(i);
+    const parent = i.userData.level === 1 ? upstairs : scene;
+    i.userData.home = { pos: i.position.toArray(), rot: [i.rotation.x, i.rotation.y, i.rotation.z], visible: i.visible, parent, level: i.userData.level };
+    parent.add(i);
   });
   return items;
 }
 
 /** Put one item back at its home spot (as it was when the game loaded). */
-export function sendHome(scene, item) {
+export function sendHome(item) {
   const h = item.userData.home;
-  if (item.parent !== scene) scene.attach(item);
+  if (item.parent !== h.parent) h.parent.attach(item);
   item.position.fromArray(h.pos);
   item.rotation.set(...h.rot);
+  item.userData.level = h.level;
 }
 
 /** Start-of-day reset: every item back home, shown or hidden as at load, contents refilled. */
-export function resetItems(scene, items) {
+export function resetItems(items) {
   Object.values(items).forEach(item => {
-    sendHome(scene, item);
+    sendHome(item);
     item.visible = item.userData.home.visible;
     item.traverse(o => { if (o !== item && o.isGroup) o.visible = true; });   // food in the bag, laundry in the basket
   });

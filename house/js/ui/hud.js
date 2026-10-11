@@ -1,11 +1,12 @@
 // Everything on screen that isn't 3D: room chip, job list, action button, banner, toasts, hint.
 import { S } from '../state.js';
+import { FLOOR_NAMES } from '../config.js';
 
 const $ = id => document.getElementById(id);
 
 export function createHud() {
   const el = {
-    roomName: $('roomName'), roomArea: $('roomArea'),
+    roomName: $('roomName'), roomArea: $('roomArea'), floorName: $('floorName'),
     panel: $('taskPanel'), toggle: $('taskToggle'), list: $('taskList'), count: $('taskCount'),
     nextTitle: $('nextTitle'), nextStep: $('nextStep'),
     act: $('actBtn'), toast: $('toast'), alert: $('alert'), hint: $('hint'), dayLabel: $('dayLabel'),
@@ -23,7 +24,7 @@ export function createHud() {
   });
 
   const titleOf = job => job.status ? `${job.title} · ${job.status}` : job.title;
-  const idleHint = { mow: 'Push the mower over the grass', hoover: 'Hoover up the dusty spots', charge: 'Charging, do other jobs meanwhile' };
+  const idleHint = { mow: 'Push the mower over the grass', hoover: 'Hoover up the dusty spots', charge: 'Charging, do other jobs meanwhile', wait: 'Running, do other jobs meanwhile' };
 
   function renderJobs(jobs) {
     const open = jobs.filter(j => j.i < j.steps.length), done = jobs.filter(j => j.i >= j.steps.length);
@@ -66,8 +67,10 @@ export function createHud() {
       el.dayRestartYes.addEventListener('click', restart);
     },
     setRoom(room) {
-      if (room.name === lastRoom) return;
-      lastRoom = room.name; el.roomName.textContent = room.name; el.roomArea.textContent = room.area;
+      const key = `${room.level || 0}:${room.name}`;
+      if (key === lastRoom) return;
+      lastRoom = key; el.roomName.textContent = room.name; el.roomArea.textContent = room.area;
+      el.floorName.textContent = FLOOR_NAMES[room.level || 0];
     },
     setAction(label) {
       if (label === lastAction) return;
