@@ -1,7 +1,7 @@
 {
-  "name": "mydice",
-  "version": "1.0.0",
-  "description": "Minimal E2E testable project",
+  "name": "ford-games",
+  "version": "4.5.3",
+  "description": "Game Zone: the Ford family's browser games (dice, snake, word games, Uno, soccer, Ford House)",
   "main": "index.html",
   "scripts": {
     "serve": "http-server -c-1 -p 8080 .",

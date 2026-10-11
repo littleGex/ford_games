@@ -131,3 +131,21 @@ No build step — just open `index.html` in a browser, or serve the folder with 
 ## Hosting
 
 Served via GitHub Pages from the `main` branch, root folder.
+
+## Versions and releases
+
+The current version is the `version` in `package.json`; the Game Zone page shows it at the bottom.
+`CHANGELOG.md` lists what changed in each version, newest first.
+
+- **While working:** add a line under `## [Unreleased]` in `CHANGELOG.md` in the same pull request.
+- **To release:** pick the new number (a new game or big feature bumps the middle number, fixes and
+  small additions the last one), then on `develop`:
+  1. In `CHANGELOG.md`, rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD`, add a fresh empty
+     `## [Unreleased]` above it, and update the compare links at the bottom.
+  2. Set `"version"` in `package.json` (and the two matching lines at the top of `package-lock.json`).
+  3. Open a pull request from `develop` into `main` titled with the version; merge it once CI passes.
+  4. On GitHub, draft a new release: tag `vx.y.z` on `main`, title `vx.y.z`, and paste that version's
+     section from `CHANGELOG.md` as the notes.
+
+A test (`tests/e2e/version.spec.js`) checks that `package.json`, the changelog and the Game Zone page
+agree on the version.
