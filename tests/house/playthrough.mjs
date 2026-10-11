@@ -221,6 +221,24 @@ if (missing.length) {
 G.days.restart();
 if (G.days.day !== 1 || G.board.jobs.length < 10) errors.push(`start over: day ${G.days.day} with ${G.board.jobs.length} jobs`);
 
+// --- changing who you play swaps the jobs that are only for them (day 1 is a school day, Dad hasn't shaved yet)
+const ids = () => G.board.jobs.map(j => j.id);
+if (!ids().includes('shave') || ids().includes('homework')) errors.push(`Dad's day 1: shave ${ids().includes('shave')}, homework ${ids().includes('homework')}`);
+G.days.setCharacter('girl');
+if (ids().includes('shave') || !ids().includes('homework')) errors.push(`after switching to P: shave ${ids().includes('shave')}, homework ${ids().includes('homework')}`);
+// P and Dude each do homework at their own spot, so switching between them starts it afresh
+const homeworkP = G.board.find('homework');
+G.days.setCharacter('boy');
+if (G.board.find('homework') === homeworkP || ids().filter(id => id === 'homework').length !== 1) errors.push("switching from P to Dude should swap P's homework for Dude's");
+G.days.setCharacter('girl');
+{ const r = doStep(G.board.find('homework')); if (r !== true) errors.push('homework as P: ' + r); }
+G.days.setCharacter('dad');
+if (!ids().includes('shave') || !ids().includes('homework') || G.board.find('homework').i === 0) errors.push('back to Dad: the shave should return and the finished homework should stay, ticked');
+G.days.setCharacter('boy');
+if (ids().includes('shave') || ids().filter(id => id === 'homework').length !== 1) errors.push('switching to Dude: no shave, and homework is not asked for twice in a day');
+G.days.setCharacter('dad');
+if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push('who is playing was not saved');
+
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);
 console.log('trips up or down the stairs:', stairTrips);
 if (!stairTrips) errors.push('never used the stairs');

@@ -14,11 +14,17 @@ import { rulesFor } from './rules.js';
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
 
+// Where each of the kids does their homework: the floor, where to stand, the seat [x, seat height, z, facing].
+// Dude's own room on the second floor isn't built yet, so for now he uses the Kinderzimmer desk as well.
+const KINDERZIMMER_DESK = { level: 1, at: [2.3, 8.05], seat: [2.3, 0.48, 8.05, Math.PI / 2], label: 'Sit at the desk and do your homework' };
+const HOMEWORK_SPOT = { girl: KINDERZIMMER_DESK, boy: KINDERZIMMER_DESK };
+
 /**
  * @param binPair  which pair goes out on bin day (0 blue + yellow, 1 black + brown)
  * @param binsBack which pair is waiting at the kerb to come back in (null if none)
+ * @param character who is playing ('dad', 'girl', 'boy'); some jobs happen somewhere different for each of them
  */
-export function createJobs({ binPair = 0, binsBack = null } = {}) {
+export function createJobs({ binPair = 0, binsBack = null, character = 'dad' } = {}) {
   const [[outA, colA], [outB, colB]] = BIN_PAIRS[binPair];
   const back = binsBack === null ? BIN_PAIRS[binPair] : BIN_PAIRS[binsBack];
   const [[inA, colInA], [inB, colInB]] = back;
@@ -28,11 +34,13 @@ export function createJobs({ binPair = 0, binsBack = null } = {}) {
       { kind: 'use', at: [0.4, 0.35], label: 'Switch on the lamp', onDone: c => { c.S.lampOn = true; c.power.applyLights(); } }],
       tidy: () => {} },
     { id: 'tv', title: 'Watch some TV', steps: [
-      { kind: 'sit', at: [2.3, 2.2], seat: [2.3, 0.38, 2.2, Math.PI / 2], dur: 30, screen: 'tv', what: 'Watching TV', label: 'Sit in the chair and watch TV' }] },
+      { kind: 'sit', at: [0.6, 2.75], seat: [0.55, 0.42, 2.75, Math.PI / 2], dur: 30, screen: 'tv', what: 'Watching TV', label: 'Sit on the sofa and watch TV' }] },
     { id: 'game', title: 'Play a video game', steps: [
       { kind: 'pick', item: 'pad', label: 'Grab the controller' },
-      { kind: 'sit', at: [0.6, 2.75], seat: [0.55, 0.42, 2.75, Math.PI / 2], dur: 40, screen: 'game', what: 'Gaming', label: 'Sit on the sofa and play' },
+      { kind: 'sit', at: [2.3, 2.2], seat: [2.3, 0.38, 2.2, Math.PI / 2], dur: 40, screen: 'game', what: 'Gaming', label: 'Sit in the chair and play' },
       { kind: 'drop', item: 'pad', at: [3.0, 3.4], place: [3.0, 0.5, 3.4], label: 'Put the controller back' }] },
+    { id: 'call', title: 'Call the relatives', steps: [
+      { kind: 'sit', at: [0.6, 1.8], seat: [0.55, 0.42, 1.8, Math.PI / 2], dur: 20, what: 'Talking to the relatives', label: 'Sit on the sofa and call the relatives' }] },
     { id: 'jacket', title: 'Hang up the jacket', steps: [
       { kind: 'pick', item: 'jacket', label: 'Pick up the jacket' },
       { kind: 'drop', item: 'jacket', at: [3.47, 7.95], y: 0.95, rot: Math.PI / 2, label: 'Hang it on the hook' }] },
@@ -123,6 +131,10 @@ export function createJobs({ binPair = 0, binsBack = null } = {}) {
       setup: c => { c.world.bigBed.mess(); c.world.daybed.mess(); }, tidy: c => { c.world.bigBed.make(); c.world.daybed.make(); } },
     { id: 'teeth', title: 'Brush your teeth', steps: [
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 10, what: 'Brushing teeth', label: 'Brush your teeth at the basin' }] },
+    { id: 'shave', title: 'Have a shave', steps: [   // Dad only (see rules.js)
+      { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 12, what: 'Shaving', label: 'Have a shave at the basin' }] },
+    { id: 'homework', title: 'Do your homework', steps: [   // P and Dude only, each at their own spot
+      { kind: 'sit', dur: 30, what: 'Doing homework', ...(HOMEWORK_SPOT[character] || KINDERZIMMER_DESK) }] },
     { id: 'shower', title: 'Have a shower', steps: [
       { kind: 'sit', stand: true, level: 1, fx: 'shower', at: [4.7, 7.85], seat: [5.2, 0, 8.5, 0], dur: 15, what: 'Showering', label: 'Have a shower' }] },
     { id: 'towel', title: 'Hang up the towel', steps: [

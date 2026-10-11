@@ -85,6 +85,24 @@ export function createJobBoard({ scene, items, hud, levels }) {
     return job;
   }
 
+  /** Take one job off today's list (a job that was only for the character who was playing). */
+  function remove(id) {
+    const k = jobs.findIndex(j => j.id === id);
+    if (k < 0) return;
+    scene.remove(markers[k]);
+    jobs.splice(k, 1); markers.splice(k, 1);
+    refresh();
+  }
+
+  /** Swap a job on today's list for a fresh copy of it, from its first step (it keeps its place on the list). */
+  function replace(job) {
+    const k = jobs.findIndex(j => j.id === job.id);
+    if (k < 0) return;
+    job.i = 0; job.status = '';
+    jobs[k] = job;
+    refresh();
+  }
+
   /** Empty the list at the end of a day. */
   function clear() {
     markers.forEach(m => scene.remove(m));
@@ -145,7 +163,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
   }
 
   return {
-    jobs, add, clear, advance, act, tidy, nearestAction, updateMarkers, refresh, step, finished, levelOf,
+    jobs, add, remove, replace, clear, advance, act, tidy, nearestAction, updateMarkers, refresh, step, finished, levelOf,
     /** An action that's always there, like going up or down the stairs: { at, level, label, act }. */
     addFixed(f) { fixed.push(f); },
     allDone: () => jobs.length > 0 && jobs.every(finished),

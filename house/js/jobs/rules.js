@@ -1,5 +1,7 @@
 // How often each job comes round. Tune the game here.
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
+//   week: N   on the first N days of every 7 (homework on the five school days)
+//   who: [...]   only for these characters ('dad', 'girl' = P, 'boy' = Dude); always on their list when due
 // Each day has 10-12 jobs (see days/planner.js). Jobs that come round every 3+ days are appointments: when
 // due they go on the list first, so mowing really is every 4 days. Daily jobs come next, then the
 // every-other-day jobs fill the rest of the day, the longest-waiting first, so with this many of them
@@ -24,6 +26,10 @@ export const POOL_RULES = [
   { id: 'laundry', every: 2 },
   { id: 'toys', every: 2 },
   { id: 'shower', every: 2 },
+  { id: 'call', every: 2 },
+  // only for some of the family
+  { id: 'shave', every: 2, who: ['dad'] },
+  { id: 'homework', week: 5, who: ['girl', 'boy'] },
   // appointments
   { id: 'hoover', every: 3 },
   { id: 'shopping', every: 3 },
