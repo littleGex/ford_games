@@ -6,9 +6,10 @@ import { POOL_RULES } from '../../house/js/jobs/rules.js';
 const fail = [];
 const check = (ok, msg) => { if (!ok) fail.push(msg); };
 
-for (const seed of [1, 7, 42, 2026]) {
+for (const character of ['dad', 'girl', 'boy']) for (const seed of [1, 7, 42, 2026]) {
   const rng = seededRandom(seed);
-  const state = { day: 1, lastDone: {} };
+  const state = { day: 1, lastDone: {}, character };
+  const mine = POOL_RULES.filter(j => !j.who || j.who.includes(character));
   const history = {};   // jobId -> [days]
   const sizes = [];
   for (let day = 1; day <= 120; day++) {
@@ -18,12 +19,12 @@ for (const seed of [1, 7, 42, 2026]) {
     for (const id of ids) (history[id] ||= []).push(day);
     for (const id of ids) state.lastDone[id] = day;
   }
-  const label = `seed ${seed}`;
+  const label = `${character}, seed ${seed}`;
 
   check(sizes.every(n => n >= DAY_JOBS.min && n <= DAY_JOBS.max), `${label}: day sizes ${Math.min(...sizes)}-${Math.max(...sizes)}, want ${DAY_JOBS.min}-${DAY_JOBS.max}`);
 
   // appointments (every 3+ days) never come round early; every-other-day jobs may, to fill a day
-  for (const job of POOL_RULES.filter(j => j.every)) {
+  for (const job of mine.filter(j => j.every)) {
     const days = history[job.id] || [];
     const gaps = days.slice(1).map((d, i) => d - days[i]);
     if (job.every >= 3) check(gaps.every(g => g >= job.every), `${label}: ${job.id} came round after ${Math.min(...gaps)} days, rule says every ${job.every}`);
@@ -38,6 +39,16 @@ for (const seed of [1, 7, 42, 2026]) {
     check((history[id] || []).length >= 100, `${label}: daily job ${id} only on ${(history[id] || []).length}/120 days`);
   check((history.dishes || []).length >= 100, `${label}: dishes on ${(history.dishes || []).length}/120 days`);
 
+  // jobs for one of the family: Dad shaves every 2 days, P and Dude do homework on the 5 school days of every 7
+  const schoolDays = Array.from({ length: 120 }, (_, i) => i + 1).filter(d => (d - 1) % 7 < 5);
+  if (character === 'dad') {
+    check(gapsOf('shave').every(g => g === 2), `${label}: shaving gaps ${[...new Set(gapsOf('shave'))]}, want 2`);
+    check(!history.homework, `${label}: Dad got homework`);
+  } else {
+    check(String(history.homework) === String(schoolDays), `${label}: homework on ${(history.homework || []).length} days, want the ${schoolDays.length} school days`);
+    check(!history.shave, `${label}: ${character} had to shave`);
+  }
+
   // bins come back in exactly the day after they went out
   const out = history.binsOut || [], back = history.binsIn || [];
   check(back.length >= out.length - 1, `${label}: bins out ${out.length}x but in only ${back.length}x`);
@@ -45,5 +56,5 @@ for (const seed of [1, 7, 42, 2026]) {
   check(!out.some(d => back.includes(d)), `${label}: bins in and out on the same day`);
 }
 
-console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 seeds');
+console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 3 characters x 4 seeds');
 process.exitCode = fail.length ? 1 : 0;

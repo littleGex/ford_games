@@ -4,7 +4,7 @@ import { DAY_COMPLETE_DELAY } from '../config.js';
 import { S } from '../state.js';
 import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
-import { planDay, seededRandom } from './planner.js';
+import { planDay, personalDue, seededRandom } from './planner.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
@@ -15,8 +15,8 @@ function binParams(save) {
 
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
-  const pool = createJobs(params);
-  return planDay(pool, { day: save.day, lastDone: save.lastDone }, seededRandom(save.day * 7919 + 13));
+  const pool = createJobs({ ...params, character: save.character });
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
@@ -24,16 +24,18 @@ export function createDays(ctx) {
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
+  /** Today's jobs as they are for whoever is playing (homework is somewhere different for each of the kids). */
+  const jobsToday = () => createJobs({ ...today.params, character: save.character });
 
   function setupDay() {
-    const { plan, done, params } = today;
+    const { plan, done } = today;
     if (S.sitting) ctx.sitting.standUp();
     S.carrying = null; S.dayOver = false; S.lampOn = false;
     board.clear();
     resetItems(items);
 
     // every job in the house either needs doing today, or is shown done
-    for (const job of createJobs(params)) {
+    for (const job of jobsToday()) {
       const planned = plan.includes(job.id), finished = done.includes(job.id);
       if (planned && !finished) { if (job.setup) job.setup(ctx); }
       else board.tidy(job);
@@ -79,7 +81,7 @@ export function createDays(ctx) {
     const next = { ...save, day: save.day + 1 };
     const params = binParams(next);
     const pool = createJobs(params);
-    const tomorrow = planFor(next, params).map(id => pool.find(j => j.id === id)).filter(j => j.must || j.every >= 3).map(j => j.title);
+    const tomorrow = planFor(next, params).map(id => pool.find(j => j.id === id)).filter(j => j.must || j.who || j.every >= 3).map(j => j.title);
     hud.showDayComplete({
       day: save.day,
       jobs: today.plan.length,
@@ -104,6 +106,24 @@ export function createDays(ctx) {
     } else completeAt = null;
   }
 
+  /** Someone else is playing now: their own jobs come on the list, the last player's unfinished ones go. */
+  function swapPersonalJobs() {
+    const pool = jobsToday(), who = save.character;
+    for (const job of pool.filter(j => j.who)) {
+      if (!today.plan.includes(job.id) || today.done.includes(job.id)) continue;
+      if (S.sitting && S.sitting.job.id === job.id) ctx.sitting.standUp();
+      if (job.who.includes(who)) { board.replace(job); continue; }   // still theirs, but maybe somewhere else: start it afresh
+      today.plan = today.plan.filter(id => id !== job.id);
+      board.remove(job.id);
+    }
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who })) {
+      if (today.plan.includes(job.id)) continue;
+      today.plan.push(job.id);
+      board.add(job);
+      hud.toast('New job: ' + job.title);
+    }
+  }
+
   /** "Start day N+1" */
   function next() { save.day++; save.today = null; writeSave(save); start(); }
   /** "Start over from day 1" (keeps who you're playing as) */
@@ -115,7 +135,11 @@ export function createDays(ctx) {
     get day() { return save.day; },
     get save() { return save; },
     get character() { return save.character; },
-    setCharacter(key) { save.character = key; writeSave(save); },
+    setCharacter(key) {
+      save.character = key;
+      if (today && !today.completed) swapPersonalJobs();
+      writeSave(save);
+    },
     /** For tests and trying things out: replace today's list with these job ids. */
     plan(ids) {
       today = save.today = { day: save.day, params: binParams(save), plan: ids, done: [], completed: false };
