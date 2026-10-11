@@ -68,6 +68,10 @@ function buildWashingLine() {
     open() { folded.visible = false; open.visible = true; },
     hang() { clothes.visible = true; },
     reset() { folded.visible = true; open.visible = false; clothes.visible = false; },
+    /** Is there washing hanging on the line? */
+    hasWashing: () => open.visible && clothes.visible,
+    /** Take the washing down (it goes back in the basket) and fold the line up. */
+    takeIn() { clothes.visible = false; open.visible = false; folded.visible = true; },
   };
 }
 

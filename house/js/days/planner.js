@@ -7,6 +7,7 @@
 //   must: true            always on the list when due (bin days, bringing bins back in).
 //   week: N               due on the first N days of every 7 (homework: 5 school days, then the weekend off).
 //   who: [...]            only for these characters, and always on their list when due (Dad's shave, homework).
+//   season: [...]         only in these seasons (raking leaves in autumn, clearing snow in winter).
 //
 // A day gets between DAY_JOBS.min and DAY_JOBS.max jobs:
 //   1. jobs that must happen today, and the jobs just for whoever is playing,
@@ -34,15 +35,17 @@ export function overdue(job, state) {
 
 /** Is this job for whoever is playing? Jobs without `who` are for everyone. */
 export const isFor = (job, character) => !job.who || job.who.includes(character);
+/** Is this job in season? Jobs without `season` (or a state without one) are all year round. */
+export const inSeason = (job, season) => !job.season || !season || job.season.includes(season);
 
 /** The jobs that are only for this character and are due today. */
 export function personalDue(pool, state) {
-  return pool.filter(job => job.who && isFor(job, state.character) && overdue(job, state) > 0);
+  return pool.filter(job => job.who && isFor(job, state.character) && inSeason(job, state.season) && overdue(job, state) > 0);
 }
 
 /**
- * @param pool   job definitions (only `id`, `every`, `week`, `after`, `must`, `who` are used)
- * @param state  { day, lastDone: { [jobId]: dayNumber }, character }
+ * @param pool   job definitions (only `id`, `every`, `week`, `after`, `must`, `who`, `season` are used)
+ * @param state  { day, lastDone: { [jobId]: dayNumber }, character, season }
  * @param rng    () => number in [0, 1)
  * @returns job ids for the day, in pool order
  */
@@ -53,7 +56,7 @@ export function planDay(pool, state, rng = Math.random, limits = DAY_JOBS) {
 
   const appointment = job => job.every >= 3;
   const fixed = job => !!(job.must || job.who);
-  const scored = pool.filter(job => isFor(job, state.character)).map(job => ({ job, score: overdue(job, state) }));
+  const scored = pool.filter(job => isFor(job, state.character) && inSeason(job, state.season)).map(job => ({ job, score: overdue(job, state) }));
   const must = scored.filter(s => s.score > 0 && fixed(s.job)).map(s => s.job);
   const appointments = scored.filter(s => s.score > 0 && !fixed(s.job) && appointment(s.job)).sort(byUrgency).map(s => s.job);
   const daily = scored.filter(s => s.score > 0 && !fixed(s.job) && s.job.every === 1).sort(byUrgency).map(s => s.job);

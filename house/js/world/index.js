@@ -17,8 +17,8 @@ import { buildAttic } from './attic/index.js';
 
 export function buildWorld(scene) {
   setBuildTarget(scene, 0);
-  buildStructure();
-  return Object.assign({},
+  const structure = buildStructure();
+  return Object.assign({}, structure,
     buildWohnzimmer(), buildEsszimmer(), buildKueche(), buildFlur(), buildWindfang(), buildWc(),
     buildFront(), buildTerrace(), buildGarden(),
     buildUpstairs(scene), buildAttic(scene));

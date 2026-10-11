@@ -57,5 +57,16 @@ for (const character of ['dad', 'mum', 'girl', 'boy']) for (const seed of [1, 7,
   check(!out.some(d => back.includes(d)), `${label}: bins in and out on the same day`);
 }
 
+// seasonal jobs come up in their season and never outside it (raking in autumn, snow in winter, no mowing in winter)
+for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+  const rng = seededRandom(3), state = { day: 1, lastDone: {}, character: 'dad', season }, seen = new Set();
+  for (let day = 1; day <= 60; day++) {
+    state.day = day;
+    for (const id of planDay(POOL_RULES, state, rng)) { seen.add(id); state.lastDone[id] = day; }
+  }
+  for (const rule of POOL_RULES.filter(r => r.season && (!r.who || r.who.includes('dad'))))
+    check(seen.has(rule.id) === rule.season.includes(season), `${season}: ${rule.id} ${seen.has(rule.id) ? 'came up' : "didn't come up"}`);
+}
+
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');
 process.exitCode = fail.length ? 1 : 0;

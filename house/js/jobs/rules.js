@@ -1,6 +1,7 @@
 // How often each job comes round. Tune the game here.
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
 //   week: N   on the first N days of every 7 (homework on the five school days)
+//   season: [...]   only in these seasons ('spring', 'summer', 'autumn', 'winter'; see seasons.js)
 //   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
 // Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
 // character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
@@ -41,14 +42,17 @@ export const POOL_RULES = [
   { id: 'shopping', every: 3 },
   { id: 'car', every: 3 },
   { id: 'washer', every: 3 },
-  { id: 'mow', every: 4, must: true },
+  { id: 'fold', after: { job: 'washer', days: 1 }, must: true },
+  { id: 'mow', every: 4, must: true, season: ['spring', 'summer', 'autumn'] },   // no mowing in the snow
   { id: 'binsOut', every: 4, must: true },
   { id: 'binsIn', after: { job: 'binsOut', days: 1 }, must: true },
   { id: 'windows', every: 7 },
+  // seasons
+  { id: 'rake', every: 3, season: ['autumn'] },
+  { id: 'snow', every: 2, season: ['winter'] },
   { id: 'hooverUp', every: 4 },
   { id: 'hooverAttic', every: 5 },
   { id: 'plants', every: 3 },
-  { id: 'airer', every: 4 },
   // the loft, once a week: a box goes up, a week later one comes down
   { id: 'loftUp', every: 14 },
   { id: 'loftDown', after: { job: 'loftUp', days: 7 }, must: true },

@@ -17,6 +17,11 @@ function item(build, pos, opts = {}) {
   return castShadows(g);
 }
 
+// a little stack of folded clothes in three colours (attic, hidden until the washing is folded)
+function pile(colours, pos) {
+  return item(g => colours.forEach((c, i) => add(g, new THREE.BoxGeometry(0.3, 0.05, 0.22), mat(c), [0, 0.025 + i * 0.05, 0], null, [0, i * 0.15, 0])), pos, { level: 2, hidden: true });
+}
+
 function bin(lid) {
   return g => {
     add(g, new THREE.BoxGeometry(0.5, 0.85, 0.55), mat('#1f2125'), [0, 0.47, 0]);
@@ -75,6 +80,22 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.14, 0.11, 0.24, 16), mat('#2f6fd6'), [0, 0.12, 0]);
       add(g, new THREE.BoxGeometry(0.14, 0.06, 0.09), mat('#f2d14a'), [0.02, 0.26, 0]);
     }, [5.05, 0, -2.2]),
+    // garden tools for the seasons: the rake by the shed, the snow shovel by the front door
+    rake: item(g => {
+      add(g, new THREE.CylinderGeometry(0.015, 0.015, 1.2, 8), mat('#b08850'), [0, 0.6, 0]);
+      add(g, new THREE.BoxGeometry(0.4, 0.03, 0.04), mat('#3fa36b'), [0, 0.02, 0.02]);
+      for (let k = 0; k < 7; k++) add(g, new THREE.BoxGeometry(0.012, 0.012, 0.09), mat('#3fa36b'), [-0.18 + k * 0.06, 0.01, 0.07]);
+    }, [2.05, 0, -14.95], { userData: { carry: [0.12, 0, 0.6], carryRot: [-0.5, 0, 0] } }),
+    shovel: item(g => {
+      add(g, new THREE.CylinderGeometry(0.016, 0.016, 1.05, 8), mat('#2a2d33'), [0, 0.6, 0]);
+      add(g, new THREE.BoxGeometry(0.42, 0.02, 0.32), mat('#e04848'), [0, 0.02, 0.12]);
+      add(g, new THREE.BoxGeometry(0.16, 0.03, 0.03), mat('#2a2d33'), [0, 1.12, 0]);
+    }, [4.45, 0, 9.5], { userData: { carry: [0.12, 0, 0.6], carryRot: [-0.5, 0, 0] } }),
+    // a garden bag of raked leaves (shows up once the lawn is raked)
+    leafBag: item(g => {
+      add(g, new THREE.CylinderGeometry(0.2, 0.18, 0.4, 14), mat('#3f7a3a'), [0, 0.2, 0]);
+      ['#d9822b', '#c4472b', '#e0a030'].forEach((c, i) => add(g, new THREE.SphereGeometry(0.08, 8, 6), mat(c), [-0.07 + i * 0.07, 0.41, (i % 2) * 0.05], [1, 0.5, 1]));
+    }, [2.4, 0, -13.6], { hidden: true }),
     hoover: item(g => {
       add(g, new THREE.BoxGeometry(0.26, 0.05, 0.12), mat('#3a3d44'), [0, 0.03, 0]);
       add(g, new THREE.CylinderGeometry(0.02, 0.02, 0.75, 10), mat('#9aa1a8'), [0, 0.42, 0]);
@@ -148,6 +169,11 @@ export function createItems(scene, upstairs, attic) {
         add(wet, new THREE.SphereGeometry(0.1, 10, 8), mat(c), [x, 0.24, z], [1.2, 0.5, 1]));
       g.add(wet);
     }, [4.25, 0, 8.55], { level: 1 }),
+
+    // folded washing, one pile for each wardrobe (on the office sofa once it's folded)
+    pileDude: pile(['#1f2645', '#7cf04a', '#2d3037'], [2.55, 0.45, 5.75]),
+    pileP: pile(['#c8b1e8', '#f7f5fa', '#e86a8a'], [2.55, 0.45, 6.3]),
+    pileGrown: pile(['#f7f6f2', '#4a6a9c', '#ea4521'], [2.55, 0.45, 6.85]),
 
     // attic
     lego: item(g => {

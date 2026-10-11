@@ -15,6 +15,7 @@ globalThis.window = globalThis;
 globalThis.innerWidth = 390; globalThis.innerHeight = 844; globalThis.devicePixelRatio = 3;
 globalThis.addEventListener = (t, f) => { (listeners[t] ||= []).push(f); };
 globalThis.matchMedia = () => ({ matches: false });
+globalThis.location = { search: '?season=autumn' };   // the same season whatever month the test runs in (snow is played on the extra day)
 globalThis.document = {
   getElementById: () => el(), querySelectorAll: () => [ { ...el(), dataset: { c: 'dad' } }, { ...el(), dataset: { c: 'girl' } } ],
   createElement: tag => tag === 'canvas' ? { width: 0, height: 0, getContext: () => ctx2d } : el(),
@@ -28,6 +29,7 @@ await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
 const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
 const { DAY_JOBS } = await import(new URL('../../house/js/days/planner.js', import.meta.url));
+const { SWEEPS } = await import(new URL('../../house/js/systems/sweeping.js', import.meta.url));
 const { HOOVER_SPOTS } = await import(new URL('../../house/js/systems/hoovering.js', import.meta.url));
 const { BOX_SPOTS } = await import(new URL('../../house/js/jobs/jobs.js', import.meta.url));
 const G = globalThis.house, S = G.S;
@@ -134,6 +136,14 @@ function doStep(job) {
     }
     return job.steps[job.i] !== s || 'dust left behind';
   }
+  if (s.kind === 'rake' || s.kind === 'shovel') {   // walk the piles of leaves / snow with the rake or shovel
+    travel(0);
+    for (const [x, z] of SWEEPS[s.kind].spots) {
+      const { cell } = standNear([x, z - 0.55]); goTo(cell);
+      G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
+    }
+    return job.steps[job.i] !== s || `${s.kind === 'rake' ? 'leaves' : 'snow'} left behind`;
+  }
   if (s.kind === 'charge' || s.kind === 'wait') { for (let n = 0; n < 2500 && job.steps[job.i] === s; n++) { if (!S.powerOn) fixPower(); frame(); } return job.steps[job.i] !== s || 'never finished running'; }
 
   travel(G.board.levelOf(s));
@@ -143,6 +153,19 @@ function doStep(job) {
   const n = G.board.nearestAction(G.player.group.position);
   if (!n || n.step !== s) return `button shows "${n ? n.step.label : 'nothing'}" instead of "${s.label}"`;
   G.board.act(n);
+  if (s.kind === 'sort') {   // the sorting card: pick the right pile every time (and try a wrong one first)
+    const wrong = { white: 'dark', colour: 'white', dark: 'colour' }[G.sorting.answer()];
+    G.sorting.choose(wrong);
+    for (let k = 0; k < 30 && S.sorting; k++) G.sorting.choose(G.sorting.answer());
+    frame();
+    return job.steps[job.i] !== s || 'sorting never finished';
+  }
+  if (s.kind === 'wipe') {   // circles with the stick
+    for (let k = 0; k < 400 && S.wiping; k++) G.wiping.feed({ x: Math.cos(k * 0.4), y: Math.sin(k * 0.4), len: 1 });
+    frame();
+    if (G.world.dirt[s.dirt].visible) return 'window still dirty';
+    return job.steps[job.i] !== s || 'wiping never finished';
+  }
   if (s.kind === 'sit') {
     const onFloor = () => G.player.group.position.y === S.level * LEVEL_HEIGHT;
     if (!onFloor()) return 'left the floor when starting';
@@ -258,6 +281,25 @@ frame();
 if (!G.world.loftLadder.visible) errors.push('loft: ladder not down for a loft job');
 playDay('loft day');
 if (G.world.loftLadder.visible) errors.push('loft: ladder still down after the job');
+G.days.next();
+
+// --- rain while the washing is out: get it off the line, bring the basket in
+G.days.plan(['washing']);
+playDay('washing day');
+if (!G.world.washingLine.hasWashing()) errors.push("rain: the washing isn't on the line after hanging it out");
+G.days.next();
+G.days.plan(['washing', 'hands']);
+{
+  const washing = G.board.find('washing');
+  while (washing.i < washing.steps.length) { const r = doStep(washing); if (r !== true) { errors.push('rain setup: ' + r); break; } }
+  G.weather.rainNow(G.clock.elapsedTime);
+  const rain = G.board.find('rain');
+  if (!rain) errors.push("rain: no 'bring the washing in' job when it rained");
+  else if (!/Rain! Get the washing in/.test(G.weather.banner() || '')) errors.push('rain: no countdown banner');
+  playDay('rainy day');
+  if (rain && rain.i < rain.steps.length) errors.push("rain: the washing didn't get brought in");
+  if (G.world.washingLine.hasWashing()) errors.push('rain: washing still on the line');
+}
 G.days.next();
 
 // --- up to the attic and back down by the stairs

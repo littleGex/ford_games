@@ -5,6 +5,7 @@ import { S } from '../state.js';
 import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
 import { planDay, personalDue, seededRandom } from './planner.js';
+import { currentSeason } from '../seasons.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
@@ -16,7 +17,7 @@ function binParams(save) {
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
   const pool = createJobs({ ...params, character: save.character });
-  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character }, seededRandom(save.day * 7919 + 13));
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, season: currentSeason() }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
@@ -42,7 +43,7 @@ export function createDays(ctx) {
       if (planned) board.add(job, { done: finished });
     }
     const t = now();
-    ctx.power.reset(t); ctx.deliveries.reset(t); ctx.charging.reset(); ctx.mowing.reset();
+    S.wiping = null; ctx.sorting.close(); ctx.power.reset(t); ctx.deliveries.reset(t); ctx.weather.reset(); ctx.charging.reset(); ctx.mowing.reset();
     ctx.power.applyLights();
     ctx.player.reset(); ctx.levels.show(0); ctx.view.reset();
     dayStart = t; completeAt = null;
@@ -116,7 +117,7 @@ export function createDays(ctx) {
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }
-    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who })) {
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, season: currentSeason() })) {
       if (today.plan.includes(job.id)) continue;
       today.plan.push(job.id);
       board.add(job);

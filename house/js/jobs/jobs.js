@@ -120,6 +120,19 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'can', label: 'Take the watering can' },
       { kind: 'drop', item: 'can', at: [2.4, -3.85], place: [1.95, 0, -3.95], label: 'Water the plant', onDone: c => c.plant.water() }],
       setup: c => c.plant.reset(false), tidy: c => { c.items.can.position.set(1.95, 0, -3.95); c.plant.reset(true); } },
+    // the seasons (only planned in theirs, see rules.js)
+    { id: 'rake', title: 'Rake up the leaves', steps: [
+      { kind: 'pick', item: 'rake', label: 'Take the rake from by the shed' },
+      { kind: 'rake' },
+      { kind: 'drop', item: 'rake', home: true, label: 'Put the rake back' },
+      { kind: 'pick', item: 'leafBag', label: 'Pick up the bag of leaves' },
+      { kind: 'drop', item: 'leafBag', at: [4.3, 9.65], place: [4.85, 0.95, 9.65], label: 'Tip the leaves into the brown bin', onDone: c => { c.items.leafBag.visible = false; } }],
+      setup: c => c.sweeping.reset('rake', true), tidy: c => c.sweeping.reset('rake', false) },
+    { id: 'snow', title: 'Clear the snow off the path', steps: [
+      { kind: 'pick', item: 'shovel', label: 'Grab the snow shovel' },
+      { kind: 'shovel' },
+      { kind: 'drop', item: 'shovel', home: true, label: 'Put the shovel back by the door' }],
+      setup: c => c.sweeping.reset('shovel', true), tidy: c => c.sweeping.reset('shovel', false) },
     { id: 'binsOut', title: `Bin day: ${colA} + ${colB}`, steps: [
       { kind: 'pick', item: outA, label: `Grab the ${colA} bin` },
       { kind: 'drop', item: outA, at: KERB[0], place: [KERB[0][0], 0, KERB[0][1]], rot: Math.PI, label: 'Leave it at the kerb' },
@@ -152,11 +165,11 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       tidy: c => { c.world.washingLine.reset(); c.items.basket.getObjectByName('laundry').visible = false; } },
     { id: 'windows', title: 'Wash the terrace windows', steps: [
       { kind: 'pick', item: 'bucket', label: 'Grab the bucket and sponge' },
-      { kind: 'use', at: [5.05, -3.0], label: 'Wash this window', onDone: c => { c.world.dirt[2].visible = false; } },
-      { kind: 'use', at: [2.5, -3.0], label: 'Wash this window', onDone: c => { c.world.dirt[1].visible = false; } },
-      { kind: 'use', at: [0.9, -3.0], label: 'Wash this window', onDone: c => { c.world.dirt[0].visible = false; } },
+      { kind: 'wipe', at: [5.05, -3.0], dirt: 2, label: 'Wipe this window' },
+      { kind: 'wipe', at: [2.5, -3.0], dirt: 1, label: 'Wipe this window' },
+      { kind: 'wipe', at: [0.9, -3.0], dirt: 0, label: 'Wipe this window' },
       { kind: 'drop', item: 'bucket', home: true, label: 'Put the bucket away' }],
-      setup: c => c.world.dirt.forEach(d => { d.visible = true; }), tidy: c => c.world.dirt.forEach(d => { d.visible = false; }) },
+      setup: c => c.world.dirt.forEach(d => { d.visible = true; d.material.opacity = 1; }), tidy: c => c.world.dirt.forEach(d => { d.visible = false; }) },
 
     // Obergeschoss (level: 1 on everything that happens upstairs; pick steps follow the item)
     { id: 'beds', title: 'Make the beds', steps: [
@@ -200,13 +213,6 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'use', level: 2, at: [1.0, 6.6], label: 'Water the cheese plant' },
       { kind: 'use', level: 2, at: [4.35, 6.4], label: 'Water the plant on the stool' },
       { kind: 'drop', item: 'jug', home: true, label: 'Put the watering can back' }] },
-    { id: 'airer', title: 'Hang the washing on the airer', steps: [
-      { kind: 'pick', item: 'washBasket', label: 'Pick up the basket of wet washing' },
-      { kind: 'drop', item: 'washBasket', level: 2, at: [1.35, 6.95], place: [1.9, 0, 7.15], label: 'Put the basket by the airer' },
-      { kind: 'use', level: 2, at: [1.35, 6.95], label: 'Hang the washing on the airer',
-        onDone: c => { c.world.airerClothes.visible = true; c.items.washBasket.getObjectByName('laundry').visible = false; } }],
-      setup: c => { c.world.airerClothes.visible = false; },
-      tidy: c => { c.world.airerClothes.visible = true; c.items.washBasket.getObjectByName('laundry').visible = false; } },
     { id: 'loftUp', title: `Put a box in the loft (from ${boxSpot.name})`, steps: [
       { kind: 'pick', item: 'box', label: 'Pick up the box' },
       { kind: 'drop', item: 'box', level: 2, at: LOFT_AT, place: [LOFT_AT[0], 1.3, LOFT_AT[1]], label: 'Climb the ladder and push the box into the loft',
@@ -222,13 +228,33 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     { id: 'sofabed', title: 'Make up the sofa bed', steps: [   // Mum only
       { kind: 'use', level: 2, at: [2.0, 6.3], label: 'Fold the sofa bed away', onDone: c => c.world.sofaBed.make() }],
       setup: c => c.world.sofaBed.mess(), tidy: c => c.world.sofaBed.make() },
-    { id: 'washer', title: 'Put a wash on', steps: [
-      { kind: 'pick', item: 'laundryBag', label: 'Take the laundry from the hamper' },
+    { id: 'washer', title: 'Do the washing', steps: [
+      { kind: 'sort', level: 1, at: [4.25, 3.55], label: 'Sort the washing by colour' },
+      { kind: 'pick', item: 'laundryBag', label: 'Take the darks from the hamper' },
       { kind: 'drop', item: 'laundryBag', level: 1, at: [3.65, 7.95], place: [3.65, 0.3, 8.6], label: 'Load the washing machine',
         onDone: c => { c.items.laundryBag.visible = false; } },
       { kind: 'wait', dur: 45, power: true, spin: 'washerDrum', doneMessage: 'The wash is done! Empty the machine' },
-      { kind: 'use', level: 1, at: [3.65, 7.95], label: 'Take the clean washing out' }],
-      tidy: c => { c.items.laundryBag.visible = false; } },
+      { kind: 'use', level: 1, at: [3.65, 7.95], label: 'Take the clean washing out',
+        onDone: c => { c.items.washBasket.getObjectByName('laundry').visible = true; } },
+      { kind: 'pick', item: 'washBasket', label: 'Pick up the basket of wet washing' },
+      { kind: 'drop', item: 'washBasket', level: 2, at: [2.0, 6.2], place: [2.05, 0, 7.15], label: 'Take it up to the airer in the office' },
+      { kind: 'use', level: 2, at: [2.0, 6.2], label: 'Hang the washing on the airer',
+        onDone: c => { c.world.airerClothes.visible = true; c.items.washBasket.getObjectByName('laundry').visible = false; } }],
+      setup: c => { c.world.airerClothes.visible = false; c.items.washBasket.getObjectByName('laundry').visible = false; },
+      tidy: c => { c.items.laundryBag.visible = false; c.world.airerClothes.visible = false; c.items.washBasket.getObjectByName('laundry').visible = false; } },
+    // the day after a wash: fold what dried on the airer and put each pile in the right wardrobe
+    { id: 'fold', title: 'Fold the washing and put it away', steps: [
+      { kind: 'use', level: 2, at: [2.0, 6.2], label: 'Fold the dry washing', onDone: c => {
+        c.world.airerClothes.visible = false;
+        ['pileDude', 'pileP', 'pileGrown'].forEach(id => { c.items[id].visible = true; });
+      } },
+      { kind: 'pick', item: 'pileDude', label: "Pick up Dude's clothes" },
+      { kind: 'drop', item: 'pileDude', level: 2, at: [0.35, 2.9], place: [0.35, 0.9, 3.5], label: "Put them in Dude's wardrobe", onDone: c => { c.items.pileDude.visible = false; } },
+      { kind: 'pick', item: 'pileP', label: "Pick up P's clothes" },
+      { kind: 'drop', item: 'pileP', level: 1, at: [2.3, 6.95], place: [2.9, 0.9, 6.95], label: "Put them in P's wardrobe", onDone: c => { c.items.pileP.visible = false; } },
+      { kind: 'pick', item: 'pileGrown', label: "Pick up Mum and Dad's clothes" },
+      { kind: 'drop', item: 'pileGrown', level: 1, at: [4.0, 2.0], place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
+      setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
   ];
   return jobs.map(job => ({ ...rulesFor(job.id), ...job }));
 }
