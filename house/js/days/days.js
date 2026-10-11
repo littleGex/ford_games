@@ -1,0 +1,127 @@
+// Runs the days: plans each day's jobs, sets the house up to match, saves progress as jobs get done,
+// and shows the "Day N complete" screen when the last job is finished.
+import { DAY_COMPLETE_DELAY } from '../config.js';
+import { S } from '../state.js';
+import { resetItems } from '../items.js';
+import { createJobs } from '../jobs/jobs.js';
+import { planDay, seededRandom } from './planner.js';
+import { loadSave, writeSave, clearSave, freshSave } from './save.js';
+
+/** Which bins go out next, and which are waiting at the kerb to come back in. */
+function binParams(save) {
+  const last = save.lastBinPair;
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last };
+}
+
+/** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
+function planFor(save, params) {
+  const pool = createJobs(params);
+  return planDay(pool, { day: save.day, lastDone: save.lastDone }, seededRandom(save.day * 7919 + 13));
+}
+
+export function createDays(ctx) {
+  const { board, hud, items, clock } = ctx;
+  let save = loadSave();
+  let today = null, dayStart = 0, completeAt = null, restored = false;
+  const now = () => clock.elapsedTime;
+
+  function setupDay() {
+    const { plan, done, params } = today;
+    if (S.sitting) ctx.sitting.standUp();
+    S.carrying = null; S.dayOver = false; S.lampOn = false;
+    board.clear();
+    resetItems(items);
+
+    // every job in the house either needs doing today, or is shown done
+    for (const job of createJobs(params)) {
+      const planned = plan.includes(job.id), finished = done.includes(job.id);
+      if (planned && !finished) { if (job.setup) job.setup(ctx); }
+      else board.tidy(job);
+      if (planned) board.add(job, { done: finished });
+    }
+    const t = now();
+    ctx.power.reset(t); ctx.deliveries.reset(t); ctx.charging.reset(); ctx.mowing.reset();
+    ctx.power.applyLights();
+    ctx.player.reset(); ctx.levels.show(0); ctx.view.reset();
+    dayStart = t; completeAt = null;
+    hud.setDay(save.day);
+    hud.hideDayComplete();
+
+    if (today.completed) { showComplete(); return; }
+    const binDay = plan.includes('binsOut') ? ' · bin day!' : '';
+    hud.toast(`Day ${save.day} · ${plan.length - done.length} jobs${binDay}`);
+  }
+
+  function start() {
+    if (save.today && save.today.day === save.day) {
+      today = save.today;   // carry on with today after closing the page
+      restored = today.done.length > 0;
+    } else {
+      const params = binParams(save);
+      today = save.today = { day: save.day, params, plan: planFor(save, params), done: [], completed: false };
+      restored = false;
+      writeSave(save);
+    }
+    setupDay();
+  }
+
+  board.onFinished(job => {
+    if (job.event || !today || !today.plan.includes(job.id) || today.done.includes(job.id)) return;
+    today.done.push(job.id);
+    save.lastDone[job.id] = save.day;
+    save.stats.jobsDone++;
+    if (job.id === 'binsOut') save.lastBinPair = today.params.binPair;
+    writeSave(save);
+  });
+
+  function showComplete() {
+    S.dayOver = true;
+    const next = { ...save, day: save.day + 1 };
+    const params = binParams(next);
+    const pool = createJobs(params);
+    const tomorrow = planFor(next, params).map(id => pool.find(j => j.id === id)).filter(j => j.must || j.every >= 3).map(j => j.title);
+    hud.showDayComplete({
+      day: save.day,
+      jobs: today.plan.length,
+      minutes: restored ? null : Math.max(1, Math.round((now() - dayStart) / 60)),
+      tomorrow,
+      totals: save.stats,
+    });
+  }
+
+  function complete() {
+    today.completed = true;
+    save.stats.daysDone++;
+    writeSave(save);
+    showComplete();
+  }
+
+  function update(dt, time) {
+    if (S.dayOver) return;
+    if (board.allDone() && !S.carrying && !S.sitting) {
+      if (completeAt === null) completeAt = time + DAY_COMPLETE_DELAY;
+      if (time >= completeAt) complete();
+    } else completeAt = null;
+  }
+
+  /** "Start day N+1" */
+  function next() { save.day++; save.today = null; writeSave(save); start(); }
+  /** "Start over from day 1" (keeps who you're playing as) */
+  function restart() { const character = save.character; clearSave(); save = freshSave(); save.character = character; writeSave(save); start(); }
+  hud.onDayButtons({ next, restart });
+
+  return {
+    start, update, next, restart,
+    get day() { return save.day; },
+    get save() { return save; },
+    get character() { return save.character; },
+    setCharacter(key) { save.character = key; writeSave(save); },
+    /** For tests and trying things out: replace today's list with these job ids. */
+    plan(ids) {
+      today = save.today = { day: save.day, params: binParams(save), plan: ids, done: [], completed: false };
+      restored = false;
+      writeSave(save);
+      setupDay();
+    },
+  };
+}
