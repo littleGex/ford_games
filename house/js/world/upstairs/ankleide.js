@@ -6,6 +6,18 @@ import { WALL_HEIGHT as WH } from '../../config.js';
 import { box, cyl, fbox, group, mat, solid } from '../../core/build.js';
 import { canvasTex } from '../../core/textures.js';
 
+/** Three little music notes that float up from a radio while it plays (hidden until then). */
+export function musicNotes(x, y, z) {
+  const notes = group(x, y, z); notes.visible = false;
+  ['#7a4ab0', '#2f6fd6', '#e04848'].forEach((c, i) => {
+    const n = new THREE.Group(); n.position.set((i - 1) * 0.06, 0, (i % 2) * 0.05);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), mat(c)); head.scale.set(1.3, 0.9, 0.6); n.add(head);
+    const stem = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.07, 0.006), mat(c)); stem.position.set(0.024, 0.035, 0); n.add(stem);
+    notes.add(n);
+  });
+  return notes;
+}
+
 // what's on Dad's monitor for each work task (shown while he's sitting at the desk)
 const PAGES = {
   mail: g => {   // an inbox: unread dots and lines
@@ -57,6 +69,8 @@ export function buildAnkleide() {
     const page = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.27), new THREE.MeshBasicMaterial({ map: tex }));
     page.name = name; page.rotation.y = Math.PI / 2; dadScreen.add(page);
   });
+  // music notes over the radio while it plays (see systems/sitting.js)
+  const dadNotes = musicNotes(3.28, 0.9, 0.2);
   // black office chair, facing the desk
   box(3.6, 0.3, 3.95, 0.7, 0.07, 0.45, mat('#1d1e22'));
   box(3.88, 0.3, 3.95, 0.7, 0.55, 0.5, mat('#1d1e22'), false);
@@ -68,5 +82,5 @@ export function buildAnkleide() {
   // laundry hampers by the door (grey bin and a wooden-framed bag)
   fbox(4.4, 3.35, 4.7, 3.82, 0.6, '#9aa0a6');
   fbox(4.72, 3.35, 4.98, 3.82, 0.55, '#c9c2b4');
-  return { dadScreen };
+  return { dadScreen, dadNotes };
 }

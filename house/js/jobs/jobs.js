@@ -183,7 +183,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     { id: 'dadWork', title: 'Work at your desk', steps: [   // Dad only, on weekdays (see rules.js): four tasks at his desk in the dressing room
       ...[['mail', 'Read your emails', 'Reading emails'], ['call', 'Join the team video call', 'On a video call'],
           ['doc', 'Write the weekly report', 'Writing the report'], ['code', 'Fix a bug in the code', 'Fixing a bug']].map(([page, task, what]) =>
-        ({ kind: 'sit', level: 1, power: true, glow: 'dadScreen', page, at: [3.75, 0.5], seat: [3.74, 0.45, 0.5, -Math.PI / 2], dur: 20, what, label: `Sit at your desk: ${task.toLowerCase()}` }))] },
+        ({ kind: 'sit', level: 1, power: true, glow: 'dadScreen', page, fx: 'dadNotes', at: [3.75, 0.5], seat: [3.74, 0.45, 0.5, -Math.PI / 2], dur: 20, what, label: `Sit at your desk: ${task.toLowerCase()}` }))] },
     { id: 'shave', title: 'Have a shave', steps: [   // Dad only (see rules.js)
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 12, what: 'Shaving', label: 'Have a shave at the basin' }] },
     { id: 'homework', title: 'Do your homework', steps: [   // P and Dude only, each at their own spot
@@ -228,7 +228,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'box', level: boxSpot.level, at: boxSpot.at, place: [boxSpot.at[0], 0, boxSpot.at[1]], label: `Put the box down in ${boxSpot.name}` }],
       tidy: () => {} },
     { id: 'work', title: 'Do some work', steps: [   // Mum only
-      { kind: 'sit', level: 2, power: true, at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], dur: 40, what: 'Working', label: 'Sit at the office desk and work' }] },
+      { kind: 'sit', level: 2, power: true, glow: 'mumScreen', page: 'sheet', fx: 'mumNotes', at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], dur: 40, what: 'Working', label: 'Sit at the office desk and work' }] },
     { id: 'sofabed', title: 'Make up the sofa bed', steps: [   // Mum only
       { kind: 'use', level: 2, at: [2.0, 6.3], label: 'Fold the sofa bed away', onDone: c => c.world.sofaBed.make() }],
       setup: c => c.world.sofaBed.mess(), tidy: c => c.world.sofaBed.make() },
