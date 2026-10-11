@@ -1,4 +1,4 @@
-// Play-through test, no browser needed:  node --import ./house/tests/register.mjs house/tests/playthrough.mjs
+// Play-through test, no browser needed:  node --import ./tests/house/register.mjs tests/house/playthrough.mjs
 // Boots the game against a stand-in three.js, checks every job step can be reached on foot from the
 // front path, then plays through every job (including the post, parcel and power-cut events).
 // Exits with code 1 if anything is unreachable or a job cannot be finished.
@@ -20,9 +20,9 @@ globalThis.document = {
 const raf = []; globalThis.requestAnimationFrame = f => raf.push(f);
 
 const errors = [];
-await import(new URL('../js/main.js', import.meta.url));
-const { blocked } = await import(new URL('../js/core/collision.js', import.meta.url));
-const { REACH } = await import(new URL('../js/config.js', import.meta.url));
+await import(new URL('../../house/js/main.js', import.meta.url));
+const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
+const { REACH } = await import(new URL('../../house/js/config.js', import.meta.url));
 const G = globalThis.house, S = G.S;
 const frame = () => { const f = raf.shift(); if (!f) throw new Error('no frame scheduled'); f(); };
 for (let i = 0; i < 5; i++) frame();
