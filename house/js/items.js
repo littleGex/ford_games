@@ -17,6 +17,11 @@ function item(build, pos, opts = {}) {
   return castShadows(g);
 }
 
+// a little stack of folded clothes in three colours (attic, hidden until the washing is folded)
+function pile(colours, pos) {
+  return item(g => colours.forEach((c, i) => add(g, new THREE.BoxGeometry(0.3, 0.05, 0.22), mat(c), [0, 0.025 + i * 0.05, 0], null, [0, i * 0.15, 0])), pos, { level: 2, hidden: true });
+}
+
 function bin(lid) {
   return g => {
     add(g, new THREE.BoxGeometry(0.5, 0.85, 0.55), mat('#1f2125'), [0, 0.47, 0]);
@@ -148,6 +153,11 @@ export function createItems(scene, upstairs, attic) {
         add(wet, new THREE.SphereGeometry(0.1, 10, 8), mat(c), [x, 0.24, z], [1.2, 0.5, 1]));
       g.add(wet);
     }, [4.25, 0, 8.55], { level: 1 }),
+
+    // folded washing, one pile for each wardrobe (on the office sofa once it's folded)
+    pileDude: pile(['#1f2645', '#7cf04a', '#2d3037'], [2.55, 0.45, 5.75]),
+    pileP: pile(['#c8b1e8', '#f7f5fa', '#e86a8a'], [2.55, 0.45, 6.3]),
+    pileGrown: pile(['#f7f6f2', '#4a6a9c', '#ea4521'], [2.55, 0.45, 6.85]),
 
     // attic
     lego: item(g => {

@@ -41,6 +41,7 @@ export const POOL_RULES = [
   { id: 'shopping', every: 3 },
   { id: 'car', every: 3 },
   { id: 'washer', every: 3 },
+  { id: 'fold', after: { job: 'washer', days: 1 }, must: true },
   { id: 'mow', every: 4, must: true },
   { id: 'binsOut', every: 4, must: true },
   { id: 'binsIn', after: { job: 'binsOut', days: 1 }, must: true },
@@ -48,7 +49,6 @@ export const POOL_RULES = [
   { id: 'hooverUp', every: 4 },
   { id: 'hooverAttic', every: 5 },
   { id: 'plants', every: 3 },
-  { id: 'airer', every: 4 },
   // the loft, once a week: a box goes up, a week later one comes down
   { id: 'loftUp', every: 14 },
   { id: 'loftDown', after: { job: 'loftUp', days: 7 }, must: true },

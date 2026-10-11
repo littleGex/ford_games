@@ -172,6 +172,21 @@ test('each character has their own jobs: Dad shaves, Mum works, P and Dude do ho
   await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
 });
 
+test('doing the washing starts with sorting it by colour', async ({ page }) => {
+  await openHouse(page);
+  await planToday(page, ['washer']);
+  await page.evaluate(() => { window.house.levels.go(1, { arrive: [4.25, 3.3], facing: 0 }); });   // by the hamper in the dressing room
+  await expect(page.locator('#actBtn')).toHaveText('Sort the washing by colour');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#sort')).toBeVisible();
+  for (let k = 0; k < 8; k++) {
+    const bin = await page.evaluate(() => window.house.sorting.answer());
+    await page.locator(`#sort [data-bin="${bin}"]`).click();
+  }
+  await expect(page.locator('#sort')).toBeHidden();
+  expect(await page.evaluate(() => window.house.board.find('washer').i)).toBe(1);
+});
+
 test('the stairs take you up to the first floor and back down', async ({ page }) => {
   await openHouse(page);
   await planToday(page, ['teeth', 'hands']);
