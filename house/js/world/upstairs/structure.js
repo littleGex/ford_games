@@ -76,6 +76,9 @@ export function buildUpstairsStructure() {
   // the top three steps, so the stairs read as arriving up here
   for (let i = 0; i < 3; i++) box(4.65, 4.06 + i * 0.22, 5.64, 4.28 + i * 0.22, 0.05, -0.05 - i * 0.18, mat(i % 2 ? '#b88a5c' : '#c99a6b'), false);
 
+  // the first steps of the attic stairs, going up over the stairwell from its front end
+  for (let i = 0; i < 3; i++) box(4.65, S.z2 - 0.22 * (i + 1), 5.64, S.z2 - 0.22 * i, 0.05, 0.12 + i * 0.17, mat(i % 2 ? '#b88a5c' : '#c99a6b'), false);
+
   // a soft light over the landing
   const lamp = new THREE.PointLight('#fff3dc', 0.35, 6, 1.5); lamp.position.set(4.0, 1.3, 5.3); put(lamp);
   return {};

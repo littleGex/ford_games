@@ -1,7 +1,7 @@
 # Ford House
 
 A 3D version of our house to walk around in and do jobs: hoovering, bins, mowing, charging the car,
-watching TV, making the beds, putting a wash on and more. Both floors, the front and the back garden. Built from the 1:100 floor plan and photos of each room. Runs in the browser
+watching TV, making the beds, putting a wash on and more. All three floors, the front and the back garden. Built from the 1:100 floor plan and photos of each room. Runs in the browser
 on phones and computers, no build step.
 
 Play: open `house/` on the site (e.g. `littlegex.github.io/ford_games/house/`).
@@ -12,6 +12,12 @@ The first floor (Elternzimmer, Ankleide, Kinderzimmer, Bad and the landing) is b
 raised by `LEVEL_HEIGHT` in `config.js`. Stand at the foot of the stairs in the hall, or at the top on
 the landing, and the action button offers "Go upstairs" / "Go downstairs". While you're downstairs the
 first floor is hidden so you can see in.
+
+The attic (Dachgeschoss: Dude's room, the office and the hall) is a third group, two floors up, from
+page 3 of the plan with its handwritten changes. Its stairs go up over the first-floor stairwell: stand
+on the first-floor landing by the bathroom for "Go up to the attic". The roof slopes down to the front and
+back; the half between the camera and the player turns see-through so you can see into the rooms.
+Attic jobs and items say `level: 2`.
 
 Everything upstairs uses plan coordinates (the same x and z as the floor plan, y = 0 at the
 upstairs floor). Upstairs jobs say `level: 1` on their steps; upstairs items say `level: 1` in
@@ -65,6 +71,7 @@ house/
     core/               renderer & lights, textures, building helpers, collision, input, sound
     world/              the house: structure.js (walls, floors, stairs), rooms/*, outside/*, tv.js, rooms.js
       upstairs/         the first floor: structure.js (slab, walls, stairwell), one file per room
+      attic/            the attic: structure.js (roof, knee walls, stairwell), one file per room
     characters/         figure builder, family looks, the player
     items.js            everything you can pick up
     jobs/

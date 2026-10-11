@@ -27,7 +27,7 @@ const world = buildWorld(stage.scene);
 const items = createItems(stage.scene, world.upstairs);
 const player = createPlayer(stage.scene, items);
 const hud = createHud();
-const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs] });
+const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs, world.attic] });
 
 const clock = new THREE.Clock();
 
@@ -46,7 +46,7 @@ ctx.levels = createLevels(ctx);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days];
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels];
 
 // controls
 const turnView = () => { yawTarget += Math.PI / 2; };

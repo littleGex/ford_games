@@ -52,14 +52,24 @@ function walkable(level, sx, sz) {
   }
   return out;
 }
-const cellsOn = [walkable(0, 3.92, 10.6), walkable(1, 4.1, 4.55)];
-console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length);
+const cellsOn = [walkable(0, 3.92, 10.6), walkable(1, 4.1, 4.55), walkable(2, 4.25, 4.6)];
+console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length, 'attic', cellsOn[2].length);
 // every upstairs doorway can be walked straight through, 0.5 m either side (furniture mustn't block it)
 for (const [room, x, z, axis] of [['dressing room', 3.85, 3.95, 'z'], ['bathroom', 3.875, 6.9, 'z'], ['main bedroom', 3.26, 4.5, 'x'], ["kids' room", 3.26, 6.225, 'x']]) {
   for (let d = -0.5; d <= 0.5; d += 0.1) {
     const px = axis === 'x' ? x + d : x, pz = axis === 'z' ? z + d : z;
     if (blocked(px, pz, 1)) { errors.push(`upstairs: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
   }
+}
+// the attic: every doorway can be walked through and every room reached from the top of the stairs
+for (const [room, x, z, axis] of [["Dude's room", 4.15, 3.94, 'z'], ['office', 3.025, 4.7, 'x']]) {
+  for (let d = -0.5; d <= 0.5; d += 0.1) {
+    const px = axis === 'x' ? x + d : x, pz = axis === 'z' ? z + d : z;
+    if (blocked(px, pz, 2)) { errors.push(`attic: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
+  }
+}
+for (const [room, x, z] of [["Dude's room", 2.0, 2.4], ['office', 2.0, 4.8], ['hall by the cupboards', 3.6, 6.9]]) {
+  if (!cellsOn[2].some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`attic: can't walk to the ${room} (${x}, ${z})`);
 }
 // the charging cable lies on top of the ground all the way, not sunk into it (only the ends rise up)
 {
@@ -86,18 +96,22 @@ function standNear(p, level = S.level) {
 
 // --- getting about: walk to the stairs and use the button, like a player would
 const goTo = cell => { G.player.group.position.x = cell[0]; G.player.group.position.z = cell[1]; };
-const STAIRS = { 0: { at: [4.4, 6.05], label: 'Go upstairs' }, 1: { at: [4.15, 4.45], label: 'Go downstairs' } };
+const STAIRS = {
+  '0>1': { at: [4.4, 6.05], label: 'Go upstairs' }, '1>0': { at: [4.15, 4.45], label: 'Go downstairs' },
+  '1>2': { at: [4.3, 6.3], label: 'Go up to the attic' }, '2>1': { at: [4.3, 4.55], label: 'Go downstairs' },
+};
 let stairTrips = 0;
 function travel(level) {
-  if (S.level === level) return;
-  const here = STAIRS[S.level];
-  goTo(standNear(here.at).cell); frame();
-  const n = G.board.nearestAction(G.player.group.position);
-  if (!n || !n.fixed || n.step.label !== here.label) { errors.push(`stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${here.label}"`); G.levels.go(level); }
-  else G.board.act(n);
-  stairTrips++;
-  frame();
-  if (S.level !== level) errors.push(`stairs didn't take me to floor ${level}`);
+  while (S.level !== level) {
+    const from = S.level, next = from + Math.sign(level - from), here = STAIRS[`${from}>${next}`];
+    goTo(standNear(here.at).cell); frame();
+    const n = G.board.nearestAction(G.player.group.position);
+    if (!n || !n.fixed || n.step.label !== here.label) { errors.push(`stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${here.label}"`); G.levels.show(next); }
+    else G.board.act(n);
+    stairTrips++;
+    frame();
+    if (S.level !== next) { errors.push(`stairs didn't take me from floor ${from} to ${next}`); return; }
+  }
 }
 
 // --- playing one job, step by step
@@ -216,6 +230,12 @@ if (missing.length) {
   G.days.plan(missing);
   playDay('extra day (' + missing.join(', ') + ')');
 }
+
+// --- up to the attic and back down by the stairs (no jobs up there yet)
+travel(2);
+if (G.world.attic.visible !== true || G.world.upstairs.visible !== true) errors.push('attic: not shown when up there');
+travel(0);
+if (G.world.attic.visible || G.world.upstairs.visible) errors.push('attic: still shown when back downstairs');
 
 // --- starting over goes back to day 1
 G.days.restart();

@@ -182,3 +182,21 @@ test('the stairs take you up to the first floor and back down', async ({ page })
   await page.locator('#actBtn').click();
   await expect(page.locator('#floorName')).toHaveText('Erdgeschoss');
 });
+
+test('the next flight takes you from the first floor up to the attic and back', async ({ page }) => {
+  await openHouse(page);
+  await planToday(page, ['teeth', 'hands']);
+  await page.evaluate(() => { window.house.levels.go(1, { arrive: [4.25, 6.3], facing: 0 }); });
+  await expect(page.locator('#actBtn')).toHaveText('Go up to the attic');   // even with the basin close by
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Dachgeschoss');
+  expect(await page.evaluate(() => ({ level: window.house.S.level, attic: window.house.world.attic.visible }))).toEqual({ level: 2, attic: true });
+
+  await page.evaluate(() => window.house.player.group.position.set(1.5, 4.6, 2.5));
+  await expect(page.locator('#roomName')).toHaveText('Dudes Zimmer');
+  await page.evaluate(() => window.house.player.group.position.set(4.3, 4.6, 4.55));   // top of the attic stairs
+  await expect(page.locator('#actBtn')).toHaveText('Go downstairs');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  expect(await page.evaluate(() => window.house.world.attic.visible)).toBe(false);
+});

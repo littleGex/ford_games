@@ -1,6 +1,6 @@
 // Builds the whole world and returns the handles that jobs and events need to change things
 // (lamp, TV, fuse light, lawn, dirty windows, washing line, beds, washing machine...).
-// world.upstairs is the first-floor group.
+// world.upstairs is the first-floor group, world.attic the attic.
 import { setBuildTarget } from '../core/build.js';
 import { buildStructure } from './structure.js';
 import { buildWohnzimmer } from './rooms/wohnzimmer.js';
@@ -13,6 +13,7 @@ import { buildFront } from './outside/front.js';
 import { buildTerrace } from './outside/terrace.js';
 import { buildGarden } from './outside/garden.js';
 import { buildUpstairs } from './upstairs/index.js';
+import { buildAttic } from './attic/index.js';
 
 export function buildWorld(scene) {
   setBuildTarget(scene, 0);
@@ -20,5 +21,5 @@ export function buildWorld(scene) {
   return Object.assign({},
     buildWohnzimmer(), buildEsszimmer(), buildKueche(), buildFlur(), buildWindfang(), buildWc(),
     buildFront(), buildTerrace(), buildGarden(),
-    buildUpstairs(scene));
+    buildUpstairs(scene), buildAttic(scene));
 }
