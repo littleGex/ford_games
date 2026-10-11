@@ -64,23 +64,24 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
-├── house/              # multi-file: js/ (world, characters, jobs, systems), css/, tests/
+├── house/              # multi-file: js/ (world, characters, jobs, systems), css/
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
 └── tests/
-    └── e2e/
-        ├── dice.spec.js
-        ├── snake.spec.js
-        ├── tictactoe.spec.js
-        ├── hangman.spec.js
-        ├── wordle.spec.js
-        ├── wordsearch.spec.js
-        ├── connect4.spec.js
-        ├── uno.spec.js
-        ├── soccer.spec.js
-        ├── soccer5v5.spec.js
-        └── house.spec.js
+    ├── e2e/
+    │   ├── dice.spec.js
+    │   ├── snake.spec.js
+    │   ├── tictactoe.spec.js
+    │   ├── hangman.spec.js
+    │   ├── wordle.spec.js
+    │   ├── wordsearch.spec.js
+    │   ├── connect4.spec.js
+    │   ├── uno.spec.js
+    │   ├── soccer.spec.js
+    │   ├── soccer5v5.spec.js
+    │   └── house.spec.js
+    └── house/          # Node play-through test for Ford House (no browser)
 ```
 
 Each game lives in its own folder and is fully self-contained — no shared dependencies between games (Ford House loads three.js from a CDN, cached for offline play by its service worker). Every game has a `manifest.json` + `sw.js` for offline support (installable, and playable after the first visit with no connection).
@@ -120,6 +121,8 @@ npm run test:e2e
 ```
 
 `playwright.config.js` starts a local static server automatically before running. Snake's tests mock the Firebase REST calls, so they never depend on network access or write to the live database. CI runs these on every push/PR via `.github/workflows/ci.yml`.
+
+Ford House also has a play-through test in `tests/house/` that runs in plain Node against a stand-in for three.js (`npm run test:house`) — see `house/README.md`.
 
 ## Local development
 

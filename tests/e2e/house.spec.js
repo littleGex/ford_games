@@ -1,5 +1,14 @@
 const { test, expect } = require('@playwright/test');
 
+// Headless Chromium draws WebGL in software, at a couple of frames a second. Each frame blocks the
+// page, so key presses and clicks time out. The tests that play the game switch drawing off once
+// the game has loaded; the first two tests still render for real.
+async function openWithoutDrawing(page) {
+  await page.goto('/house/');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+}
+
 test('house page loads', async ({ page }) => {
   await page.goto('/house/');
   await expect(page).toHaveTitle(/ford house/i);
@@ -20,8 +29,7 @@ test('the job list fills in with the household jobs', async ({ page }) => {
 });
 
 test('walking with the keyboard moves the player towards the house and hides the hint', async ({ page }) => {
-  await page.goto('/house/');
-  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await openWithoutDrawing(page);
   const startZ = await page.evaluate(() => window.house.player.group.position.z);
   await page.keyboard.down('w');
   await page.waitForTimeout(500);
@@ -32,8 +40,7 @@ test('walking with the keyboard moves the player towards the house and hides the
 });
 
 test('picking up an item next to it and putting it down completes a job', async ({ page }) => {
-  await page.goto('/house/');
-  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await openWithoutDrawing(page);
   // stand next to the jacket on the sofa, pick it up, then stand at the coat rail and hang it up
   await page.evaluate(() => window.house.player.group.position.set(1.2, 0, 2.1));
   await expect(page.locator('#actBtn')).toHaveText('Pick up the jacket');

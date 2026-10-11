@@ -43,8 +43,10 @@ house/
     systems/            things that happen over time: power cuts, post & parcels, sitting jobs,
                         mowing, hoovering, car charging, plant growth
     ui/hud.js           room chip, job list, banner, toasts
-  tests/                play-through test that runs in Node (no browser)
 ```
+
+The tests live with the rest of the repo's tests, in `tests/house/` (Node play-through) and
+`tests/e2e/house.spec.js` (browser).
 
 Coordinates are plan metres: x runs from the gable wall (0) to the party wall (5.64), z from the
 terrace side (0) to the street side (8.88). The back garden is negative z, the street is beyond 13.
@@ -70,7 +72,7 @@ New carryable things go in `js/items.js`. `every` (days) is for the day planner.
 npm run test:house
 ```
 
-Builds the whole game in Node with a stand-in for three.js, checks that every job step can be
+Runs `tests/house/playthrough.mjs`, which builds the whole game in Node with a stand-in for three.js, checks that every job step can be
 reached on foot from the front path, and plays through every job including the post, the parcel
 and power cuts. Exits non-zero if anything is unreachable or can't be finished.
 
