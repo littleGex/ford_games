@@ -54,6 +54,13 @@ function walkable(level, sx, sz) {
 }
 const cellsOn = [walkable(0, 3.92, 10.6), walkable(1, 4.1, 4.55)];
 console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length);
+// every upstairs doorway can be walked straight through, 0.5 m either side (furniture mustn't block it)
+for (const [room, x, z, axis] of [['dressing room', 3.85, 3.95, 'z'], ['bathroom', 3.875, 6.9, 'z'], ['main bedroom', 3.26, 4.5, 'x'], ["kids' room", 3.26, 6.225, 'x']]) {
+  for (let d = -0.5; d <= 0.5; d += 0.1) {
+    const px = axis === 'x' ? x + d : x, pz = axis === 'z' ? z + d : z;
+    if (blocked(px, pz, 1)) { errors.push(`upstairs: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
+  }
+}
 function standNear(p, level = S.level) {
   let best = null, bd = 1e9;
   for (const c of cellsOn[level]) { const d = Math.hypot(c[0] - p[0], c[1] - p[1]); if (d < bd) { bd = d; best = c; } }
