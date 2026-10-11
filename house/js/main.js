@@ -20,11 +20,12 @@ import { createDeliveries } from './systems/deliveries.js';
 import { createPlant } from './systems/plant.js';
 import { createDays } from './days/days.js';
 import { createLevels } from './systems/levels.js';
+import { createLoft } from './systems/loft.js';
 import { createWaiting } from './systems/waiting.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
-const items = createItems(stage.scene, world.upstairs);
+const items = createItems(stage.scene, world.upstairs, world.attic);
 const player = createPlayer(stage.scene, items);
 const hud = createHud();
 const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs, world.attic] });
@@ -43,10 +44,11 @@ ctx.plant = createPlant(ctx);
 ctx.mowing = createMowing(ctx);
 ctx.hoovering = createHoovering(ctx);
 ctx.levels = createLevels(ctx);
+ctx.loft = createLoft(ctx);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels];
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft];
 
 // controls
 const turnView = () => { yawTarget += Math.PI / 2; };

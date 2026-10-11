@@ -1,8 +1,18 @@
 // Dude's room (the big back room under the roof): grey day bed against the blue wall with a white wardrobe
 // in the corner, a keyboard on an X-stand in front of the radiator on the gable wall, a standing desk full of
 // figures against the party wall, storage boxes and toy crates by the knee-wall cupboards.
+import * as THREE from 'three';
 import { WALL_HEIGHT as WH } from '../../config.js';
 import { box, cyl, fbox, mat, solid } from '../../core/build.js';
+import { makeBed } from '../upstairs/elternzimmer.js';
+import { canvasTex } from '../../core/textures.js';
+
+// white duvet with navy brush swirls
+const swirls = canvasTex(g => {
+  g.fillStyle = '#eef1f5'; g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = '#2c3b5c'; g.lineWidth = 7; g.lineCap = 'round';
+  for (let i = 0; i < 9; i++) { const x = (i * 47) % 128, y = (i * 29) % 128; g.beginPath(); g.arc(x, y, 12 + (i % 3) * 4, 0.3, 2.6); g.stroke(); }
+}, 128);
 
 export function buildDudesZimmer() {
   // white wardrobe in the corner, and the day bed along the blue wall
@@ -13,8 +23,7 @@ export function buildDudesZimmer() {
   box(0.7, 3.72, 2.75, 3.87, 0.8, 0, mat(grey));               // back against the wall
   box(0.7, 2.95, 0.86, 3.87, 0.66, 0, mat(grey));               // arm at the wardrobe end
   box(0.86, 2.98, 2.72, 3.72, 0.1, 0.38, mat('#f2f2f2'), false); // mattress
-  box(1.5, 3.0, 2.7, 3.7, 0.07, 0.48, mat('#eceff4'), false);   // duvet, white with navy swirls
-  [[1.6, 3.1], [1.95, 3.35], [2.3, 3.05], [2.45, 3.45]].forEach(([x, z]) => box(x, z, x + 0.22, z + 0.12, 0.005, 0.55, mat('#2c3b5c'), false));
+  const dudeBed = makeBed(0.86, 2.98, 2.72, 3.72, 0.48, new THREE.MeshStandardMaterial({ map: swirls, roughness: 0.9 }));   // duvet, white with navy swirls
   box(0.9, 3.25, 1.35, 3.68, 0.12, 0.48, mat('#e4e8ef'), false);  // pillows
   box(0.95, 3.5, 1.45, 3.7, 0.16, 0.5, mat('#3a4766'), false);
 
@@ -51,5 +60,5 @@ export function buildDudesZimmer() {
   box(3.0, 1.35, 3.3, 1.6, 0.14, 0.55, mat('#7fe0c4'), false);
   fbox(1.75, 1.22, 2.45, 1.72, 0.28, '#8a5a36');
   ['#f2d22e', '#e04848', '#48a0e0', '#6cc070'].forEach((c, i) => box(1.82 + i * 0.15, 1.3, 1.92 + i * 0.15, 1.42, 0.06, 0.28, mat(c), false));
-  return {};
+  return { dudeBed };
 }

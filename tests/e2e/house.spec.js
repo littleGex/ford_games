@@ -158,10 +158,13 @@ test('each character has their own jobs: Dad shaves, P and Dude do homework', as
   await expect(page.locator('#taskList')).toContainText('Have a shave');
   expect(await jobs()).not.toContain('homework');
 
-  // homework is done at the desk in the Kinderzimmer, upstairs
-  await page.locator('.who button[data-c="boy"]').click();
+  // P does her homework at the desk in the Kinderzimmer, Dude at his own desk in the attic
+  await page.locator('.who button[data-c="girl"]').click();
   await page.evaluate(() => { window.house.levels.go(1); window.house.player.group.position.set(1.9, 2.3, 8.05); });
   await expect(page.locator('#actBtn')).toHaveText('Sit at the desk and do your homework');
+  await page.locator('.who button[data-c="boy"]').click();
+  await page.evaluate(() => { window.house.levels.go(2); window.house.player.group.position.set(4.1, 4.6, 2.27); });
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
 });
 
 test('the stairs take you up to the first floor and back down', async ({ page }) => {

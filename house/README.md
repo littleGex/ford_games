@@ -29,10 +29,14 @@ The game runs in days. Each day draws 10-12 jobs from the pool following each jo
 daily, mowing every 4 days, bins out on bin day and back in the next day...), and the house is set up
 to match: the lawn is only long on mowing days, the jacket only lies on the sofa when it's on the list,
 the bins stand at the kerb the day after bin day. Some jobs are only for one of the family: Dad has a
-shave every other day, P and Dude do homework on five days out of seven (two days off, like a weekend).
+shave every other day, P and Dude do homework on five days out of seven (two days off, like a weekend),
+and Dude practises the keyboard and tidies his room every few days.
 Changing who you play swaps those jobs on the list straight away. Each of the kids has their own
-homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`); until Dude's room on the second floor is built,
-both use the Kinderzimmer desk. Surprise events (post, a parcel at the door, a power
+homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the Kinderzimmer desk, Dude at his desk in
+the attic. Once a week there's a loft job: a box somewhere in the house goes up into the loft (stand
+under the hatch in the attic hall, where the ladder comes down), and a week later one comes back down
+to a room (`BOX_SPOTS`). Each floor has its own hoovering job; the hoover lives under the stairs, so it
+has to be carried up and back. Surprise events (post, a parcel at the door, a power
 cut) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
@@ -106,8 +110,10 @@ is beyond 13.
    `every: N` days (1 = daily). `after: { job: 'x', days: 1 }` makes a follow-up job (like bins back
    in). `must: true` always puts it on the list when due. `week: 5` means the first 5 days of every 7.
    `who: ['dad']` (or `'girl'` for P, `'boy'` for Dude) makes it a job only for them, always on their
-   list when due. Jobs every 3+ days are "appointments" and
-   are never early or late; every-other-day jobs can come up a day early to fill a day.
+   list when due. The day is filled in this order: must jobs and the player's own jobs, the daily
+   routine, then "appointments" (jobs every 3+ days), most overdue first and never early (on a full day
+   one can be a day late), then the every-other-day jobs. With this many jobs those come round every few
+   days rather than every two; raise `DAY_JOBS` in `js/days/planner.js` for longer days.
 
 2. Add the job itself to `js/jobs/jobs.js`. A job is a list of steps:
 

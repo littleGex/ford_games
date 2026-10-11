@@ -1,7 +1,11 @@
 // Attic hall: past the stairwell it runs on to the front of the house, with the white knee-wall cupboards
 // under a Velux. A cheese plant on a wooden stool by the banister, storage boxes, a knitted pouf, an old TV
 // leaning on the cupboards, a yellow-and-blue bag, and the ironing board against the office wall.
-import { box, ball, cyl, fbox, mat, solid } from '../../core/build.js';
+import * as THREE from 'three';
+import { add, box, ball, cyl, fbox, group, mat, solid } from '../../core/build.js';
+
+// the hatch to the loft (the little storage space above the attic) is in the ceiling over here
+export const LOFT_HATCH = { x: 3.6, z: 6.55 };
 
 export function buildAtticFlur() {
   // plant on a stool by the front corner of the banister
@@ -20,5 +24,15 @@ export function buildAtticFlur() {
   box(3.09, 5.3, 3.13, 5.75, 1.25, 0.02, mat('#f4f0f6'), false);
   [5.4, 5.6].forEach(z => box(3.13, z - 0.04, 3.135, z + 0.04, 0.09, 0.4 + (z - 5.4) * 2, mat('#7a4ab0'), false));
   solid(3.08, 5.3, 3.2, 5.75);
-  return {};
+
+  // folding loft ladder, pulled down from the hatch while a loft job is on (see systems/loft.js)
+  const loftLadder = group(LOFT_HATCH.x, 0, LOFT_HATCH.z);
+  const alu = mat('#c9ccd1'), slope = 0.45;
+  [-0.2, 0.2].forEach(x => add(loftLadder, new THREE.BoxGeometry(0.04, 1.75, 0.05), alu, [x, 0.85, 0.2], null, [-slope, 0, 0]));
+  for (let k = 0; k < 6; k++) add(loftLadder, new THREE.BoxGeometry(0.4, 0.025, 0.08), alu, [0, 0.12 + k * 0.25, 0.55 - k * 0.25 * Math.tan(slope)]);
+  // the frame of the open hatch overhead
+  [[0, -0.55, 0.6, 0.04], [0, 0.25, 0.6, 0.04], [-0.3, -0.15, 0.04, 0.8], [0.3, -0.15, 0.04, 0.8]].forEach(([x, z, w, d]) =>
+    add(loftLadder, new THREE.BoxGeometry(w, 0.03, d), mat('#8a8f96'), [x, 1.38, z]));
+  loftLadder.visible = false;
+  return { loftLadder };
 }

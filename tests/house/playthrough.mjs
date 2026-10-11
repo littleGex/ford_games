@@ -27,6 +27,8 @@ const errors = [];
 await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
 const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
+const { HOOVER_SPOTS } = await import(new URL('../../house/js/systems/hoovering.js', import.meta.url));
+const { BOX_SPOTS } = await import(new URL('../../house/js/jobs/jobs.js', import.meta.url));
 const G = globalThis.house, S = G.S;
 const frame = () => { const f = raf.shift(); if (!f) throw new Error('no frame scheduled'); f(); };
 for (let i = 0; i < 5; i++) frame();
@@ -117,13 +119,15 @@ function travel(level) {
 // --- playing one job, step by step
 function doStep(job) {
   const s = job.steps[job.i];
-  if (s.kind === 'mow' || s.kind === 'hoover') travel(0);
+  if (s.kind === 'mow') travel(0);
+  if (s.kind === 'hoover') travel(s.level || 0);
   if (s.kind === 'mow') {
     for (const c of G.world.lawn.cells) { if (job.steps[job.i] !== s) break; G.player.group.position.set(c.x, 0, c.z - 0.95); G.player.group.rotation.y = 0; frame(); }
     return job.steps[job.i] !== s || 'lawn never finished';
   }
   if (s.kind === 'hoover') {
-    for (const [x, z] of [[2.3, 0.75], [1.5, 3.6], [2.4, 4.7], [0.4, 6.4], [2.5, 6.1], [2.4, 8.4], [4.0, 4.6], [3.95, 5.9]]) {
+    for (const [x, z] of HOOVER_SPOTS[s.level || 0]) {
+      // stand about a hoover's length away and point the hoover at the dust
       const { cell } = standNear([x, z - 0.55]); goTo(cell);
       G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
     }
@@ -231,7 +235,24 @@ if (missing.length) {
   playDay('extra day (' + missing.join(', ') + ')');
 }
 
-// --- up to the attic and back down by the stairs (no jobs up there yet)
+// --- a day as Dude: his homework at his own desk, keyboard practice and tidying his room
+G.days.setCharacter('boy');
+G.days.plan(['homework', 'music', 'tidyDude']);
+if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
+playDay("Dude's day");
+G.days.next();
+G.days.setCharacter('dad');
+
+// --- the loft box: every spot it can be at is on open floor, and the ladder is down while a loft job is on
+for (const b of BOX_SPOTS) if (blocked(b.at[0], b.at[1], b.level)) errors.push(`loft box spot in ${b.name} is inside something`);
+G.days.plan(['loftDown']);
+frame();
+if (!G.world.loftLadder.visible) errors.push('loft: ladder not down for a loft job');
+playDay('loft day');
+if (G.world.loftLadder.visible) errors.push('loft: ladder still down after the job');
+G.days.next();
+
+// --- up to the attic and back down by the stairs
 travel(2);
 if (G.world.attic.visible !== true || G.world.upstairs.visible !== true) errors.push('attic: not shown when up there');
 travel(0);

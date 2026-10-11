@@ -1,7 +1,8 @@
 // Office (Büro, left under the roof): desk with a laptop and two monitors against the gable wall, a huge
 // cheese plant in the corner by the radiator, a low bookshelf under the Velux, a pine shelf against the teal
 // wall, a grey sofa along the hall wall and a clothes airer full of washing in the middle.
-import { box, ball, cyl, fbox, mat, solid } from '../../core/build.js';
+import * as THREE from 'three';
+import { box, ball, cyl, fbox, group, mat, solid } from '../../core/build.js';
 
 export function buildOffice() {
   // desk against the gable wall
@@ -54,8 +55,12 @@ export function buildOffice() {
   [5.7, 6.7].forEach(z => box(0.95, z - 0.02, 1.75, z + 0.02, 0.04, 0.85, blue, false));
   for (let x = 0.98; x < 1.75; x += 0.07) box(x, 5.7, x + 0.008, 6.7, 0.008, 0.88, white, false);
   [[0.95, 5.7], [1.75, 5.7], [0.95, 6.7], [1.75, 6.7]].forEach(([x, z]) => box(x - 0.01, z - 0.01, x + 0.01, z + 0.01, 0.85, 0, white, false));
-  ['#1d1e22', '#c03a2a', '#8a9aa8', '#f08a3a', '#1d1e22', '#7fb0c4', '#2a2b30', '#c03a2a', '#5a5f66', '#1d1e22'].forEach((c, i) =>
-    box(1.0 + i * 0.07, 5.75, 1.05 + i * 0.07, 6.65, 0.35 + (i % 3) * 0.1, 0.88 - 0.35 - (i % 3) * 0.1, mat(c), false));
+  // the washing on it (hung up by the airer job)
+  const airerClothes = group();
+  ['#1d1e22', '#c03a2a', '#8a9aa8', '#f08a3a', '#1d1e22', '#7fb0c4', '#2a2b30', '#c03a2a', '#5a5f66', '#1d1e22'].forEach((c, i) => {
+    const h = 0.35 + (i % 3) * 0.1, m = new THREE.Mesh(new THREE.BoxGeometry(0.05, h, 0.9), mat(c));
+    m.position.set(1.025 + i * 0.07, 0.88 - h / 2, 6.2); airerClothes.add(m);
+  });
   solid(0.95, 5.7, 1.75, 6.7);
-  return {};
+  return { airerClothes };
 }

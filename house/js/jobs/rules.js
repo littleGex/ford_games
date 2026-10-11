@@ -2,10 +2,11 @@
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
 //   week: N   on the first N days of every 7 (homework on the five school days)
 //   who: [...]   only for these characters ('dad', 'girl' = P, 'boy' = Dude); always on their list when due
-// Each day has 10-12 jobs (see days/planner.js). Jobs that come round every 3+ days are appointments: when
-// due they go on the list first, so mowing really is every 4 days. Daily jobs come next, then the
-// every-other-day jobs fill the rest of the day, the longest-waiting first, so with this many of them
-// they come round every two or three days.
+// Each day has 10-12 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
+// character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
+// appointments: they fill the day next, the most overdue first, and are never early (on a full day one can
+// be a day late). The every-other-day jobs fill whatever is left, the longest-waiting first, so with this
+// many of them they come round every few days.
 export const POOL_RULES = [
   // every day: the routine, always on the list
   { id: 'dishes', every: 1 },
@@ -30,15 +31,24 @@ export const POOL_RULES = [
   // only for some of the family
   { id: 'shave', every: 2, who: ['dad'] },
   { id: 'homework', week: 5, who: ['girl', 'boy'] },
+  { id: 'music', every: 3, who: ['boy'] },
+  { id: 'tidyDude', every: 3, who: ['boy'] },
   // appointments
   { id: 'hoover', every: 3 },
   { id: 'shopping', every: 3 },
   { id: 'car', every: 3 },
   { id: 'washer', every: 3 },
-  { id: 'mow', every: 4 },
+  { id: 'mow', every: 4, must: true },
   { id: 'binsOut', every: 4, must: true },
   { id: 'binsIn', after: { job: 'binsOut', days: 1 }, must: true },
   { id: 'windows', every: 7 },
+  { id: 'hooverUp', every: 4 },
+  { id: 'hooverAttic', every: 5 },
+  { id: 'plants', every: 3 },
+  { id: 'airer', every: 4 },
+  // the loft, once a week: a box goes up, a week later one comes down
+  { id: 'loftUp', every: 14 },
+  { id: 'loftDown', after: { job: 'loftUp', days: 7 }, must: true },
 ];
 
 export const rulesFor = id => POOL_RULES.find(r => r.id === id);

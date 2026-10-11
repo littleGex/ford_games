@@ -20,7 +20,8 @@ export function createLevels({ world, player, board, hud, stage }) {
     player.group.position.y = level * LEVEL_HEIGHT;
   }
 
-  function go(level, to) {
+  /** Take the stairs to a floor; `to` is where you arrive (by default the usual top or foot of the stairs). */
+  function go(level, to = [FOOT, TOP, ATTIC_TOP][level]) {
     show(level);
     player.group.position.x = to.arrive[0];
     player.group.position.z = to.arrive[1];
