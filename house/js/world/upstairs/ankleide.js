@@ -38,12 +38,29 @@ const PAGES = {
     for (let r = 0; r < 5; r++) { g.fillStyle = '#8a929e'; g.fillRect(60, 32 + r * 9, 120 - (r % 2) * 30, 3); }
     ['#2f6fd6', '#3fd394', '#ffb02e', '#e04848'].forEach((c, i) => { g.fillStyle = c; g.fillRect(70 + i * 26, 140 - (20 + i * 12), 16, 20 + i * 12); });
   },
-  code: g => {   // code in a dark editor
-    g.fillStyle = '#1b1f27'; g.fillRect(0, 0, 256, 160);
-    const cols = ['#c792ea', '#82aaff', '#c3e88d', '#f78c6c', '#89ddff', '#eeffff'];
-    for (let r = 0; r < 12; r++) { let x = 10 + (r % 4) * 10; for (let k = 0; k < 3; k++) { const w = 14 + ((r * 7 + k * 11) % 40); g.fillStyle = cols[(r + k) % cols.length]; g.fillRect(x, 8 + r * 12, w, 5); x += w + 6; } }
-  },
+  code: g => drawCode(g, 0, 0),
 };
+
+// The code page types itself out while Dad works: line after line appears, with a blinking cursor.
+const CODE_LINES = 12, CODE_COLS = ['#c792ea', '#82aaff', '#c3e88d', '#f78c6c', '#89ddff', '#eeffff'];
+function drawCode(g, progress, time) {
+  g.fillStyle = '#1b1f27'; g.fillRect(0, 0, 256, 160);
+  g.fillStyle = '#2a303c'; g.fillRect(0, 0, 22, 160);                       // line-number gutter
+  const typed = progress * CODE_LINES;
+  for (let r = 0; r < CODE_LINES && r <= typed; r++) {
+    g.fillStyle = '#5c6370'; g.fillRect(6, 8 + r * 12, 8, 5);
+    let x = 28 + (r % 4) * 10;
+    const share = Math.min(1, typed - r);                                     // how much of this line is typed
+    const words = [0, 1, 2].map(k => 14 + ((r * 7 + k * 11) % 40));
+    let left = share * words.reduce((a, b) => a + b + 6, 0);
+    for (let k = 0; k < 3 && left > 0; k++) {
+      const w = Math.min(words[k], left);
+      g.fillStyle = CODE_COLS[(r + k) % CODE_COLS.length]; g.fillRect(x, 8 + r * 12, w, 5);
+      x += words[k] + 6; left -= words[k] + 6;
+    }
+    if (r === Math.floor(typed) && Math.floor(time * 2) % 2 === 0) { g.fillStyle = '#ffffff'; g.fillRect(Math.min(x, 250), 6 + r * 12, 2, 9); }
+  }
+}
 
 export function buildAnkleide() {
   // oak sliding doors with the thin aluminium strips
@@ -68,6 +85,13 @@ export function buildAnkleide() {
     const tex = canvasTex(draw); tex.repeat.set(1, 160 / 256); tex.offset.set(0, 1 - 160 / 256);   // pages are 256 x 160
     const page = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.27), new THREE.MeshBasicMaterial({ map: tex }));
     page.name = name; page.rotation.y = Math.PI / 2; dadScreen.add(page);
+    if (name === 'code' && tex.image) {   // redrawn as the work goes on (systems/sitting.js calls animate)
+      let last = -1;
+      page.userData.animate = (progress, time) => {
+        if (time - last < 0.08) return;
+        last = time; drawCode(tex.image.getContext('2d'), progress, time); tex.needsUpdate = true;
+      };
+    }
   });
   // music notes over the radio while it plays (see systems/sitting.js)
   const dadNotes = musicNotes(3.28, 0.9, 0.2);

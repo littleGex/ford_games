@@ -51,7 +51,13 @@ export function createSitting(ctx) {
       fx.children.forEach((p, i) => { const t = (time * (fall ? 2.2 : 0.6) + i / fx.children.length) % 1; p.position.y = fall ? 1.3 - t * 1.1 : t * 0.3; });
     }
     const glow = s.glow && world[s.glow];
-    if (glow) { glow.visible = ok; glow.children.forEach(c => { c.visible = c.name === s.page; }); }
+    if (glow) {
+      glow.visible = ok;
+      glow.children.forEach(c => {
+        c.visible = c.name === s.page;
+        if (c.visible && ok && c.userData.animate) c.userData.animate(Math.min(1, (s.prog || 0) / s.dur), time);   // e.g. code typing itself out
+      });
+    }
     if (ok) {
       s.prog = (s.prog || 0) + dt;
       if (s.screen && time - lastDraw > 0.1) { world.tv.draw(s.screen, time); lastDraw = time; }

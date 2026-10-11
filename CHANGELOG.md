@@ -12,8 +12,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ### Added
 - Ford House: Dad's desk in the dressing room has a monitor, a laptop and a chair. On weekdays Dad has
-  "Work at your desk": four 20-second tasks (emails, a video call, a report, a bug to fix), each with its
-  own screen lighting up.
+  "Work at your desk": four 20-second tasks (emails, a video call, a report, writing code), each with its
+  own screen lighting up; the code types itself out on the monitor as he works.
 - Ford House: Mum's office monitors light up while she works, and the radio on each desk plays a little
   tune (with music notes floating up) during desk work.
 
