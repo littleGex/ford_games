@@ -180,6 +180,10 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       tidy: c => { c.world.bigBed.make(); c.world.daybed.make(); c.world.dudeBed.make(); } },
     { id: 'teeth', title: 'Brush your teeth', steps: [
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 10, what: 'Brushing teeth', label: 'Brush your teeth at the basin' }] },
+    { id: 'dadWork', title: 'Work at your desk', steps: [   // Dad only, on weekdays (see rules.js): four tasks at his desk in the dressing room
+      ...[['mail', 'Read your emails', 'Reading emails'], ['call', 'Join the team video call', 'On a video call'],
+          ['doc', 'Write the weekly report', 'Writing the report'], ['code', 'Fix a bug in the code', 'Fixing a bug']].map(([page, task, what]) =>
+        ({ kind: 'sit', level: 1, power: true, glow: 'dadScreen', page, at: [3.75, 0.5], seat: [3.74, 0.45, 0.5, -Math.PI / 2], dur: 20, what, label: `Sit at your desk: ${task.toLowerCase()}` }))] },
     { id: 'shave', title: 'Have a shave', steps: [   // Dad only (see rules.js)
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 12, what: 'Shaving', label: 'Have a shave at the basin' }] },
     { id: 'homework', title: 'Do your homework', steps: [   // P and Dude only, each at their own spot
