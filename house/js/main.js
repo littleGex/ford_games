@@ -24,6 +24,9 @@ import { createLoft } from './systems/loft.js';
 import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
+import { createSweeping } from './systems/sweeping.js';
+import { createSeasonal } from './systems/seasonal.js';
+import { currentSeason } from './seasons.js';
 import { createWaiting } from './systems/waiting.js';
 
 const stage = createStage(document.getElementById('scene'));
@@ -38,6 +41,7 @@ const clock = new THREE.Clock();
 // ctx is what job hooks and systems can reach
 let yaw = 0, yawTarget = 0, nearest = null;
 const ctx = { S, stage, world, items, player, hud, board, clock };
+ctx.season = currentSeason();   // spring, summer, autumn or winter, from the date (or ?season=)
 ctx.view = { reset() { yaw = yawTarget = 0; } };
 ctx.power = createPower(ctx);
 ctx.sitting = createSitting(ctx);
@@ -51,10 +55,12 @@ ctx.loft = createLoft(ctx);
 ctx.weather = createWeather(ctx);
 ctx.wiping = createWiping(ctx);
 ctx.sorting = createSorting(ctx);
+ctx.sweeping = createSweeping(ctx);
+ctx.seasonal = createSeasonal(ctx, ctx.season);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather];
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.seasonal];
 
 // controls
 const turnView = () => { yawTarget += Math.PI / 2; };

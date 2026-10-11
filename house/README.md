@@ -42,7 +42,14 @@ card: whites, colours, darks), load the machine, wait for it, then carry the wet
 in the office; the next day it's folded and each pile goes to the right wardrobe (Dude's, P's, and Mum
 and Dad's in the dressing room). Washing the terrace windows means wiping each one in circles with the
 stick. Surprise events (post, a parcel at the door, a power cut, and rain while the washing is out on
-the line: get it in before the countdown runs out) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
+the line: get it in before the countdown runs out) turn up on some days.
+
+The garden follows the real seasons (`js/seasons.js`). In autumn (September to November) the trees and
+bushes turn orange, red and yellow, leaves lie about and drift down, and every few days the leaves on the
+back lawn need raking up and tipping into the brown bin. In winter (December and January) there's snow
+on the ground and the bushes, snowflakes fall, the path and pavement out front need clearing with the
+snow shovel, and there's no mowing. Add `?season=autumn` (or `winter`, `spring`, `summer`) to the
+address to try a season out. Jobs say which seasons they belong to with `season: [...]` in `rules.js`. When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
 Progress is saved in the browser (`localStorage`, key `fordHouse.save.v1`), so each phone has its own

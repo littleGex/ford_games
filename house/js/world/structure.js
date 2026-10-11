@@ -7,7 +7,7 @@ import { M, box, brickMat, facade, floor, mat, run, solid, wall, put } from '../
 
 export function buildStructure() {
   // ground and street
-  floor(-14, -20, 20, 24, TEX.grass, 2, 0);
+  const ground = floor(-14, -20, 20, 24, TEX.grass, 2, 0);   // turns snowy in winter (systems/seasonal.js)
   floor(-14, 12.6, 20, 13.6, TEX.paving, 0.8, 0.02);       // Gehweg
   box(-14, 13.55, 20, 13.68, 0.09, 0, mat('#9a968f'), false); // kerb
   floor(-14, 13.68, 20, 24, TEX.asphalt, 2, 0.01);          // street
@@ -61,4 +61,5 @@ export function buildStructure() {
   const led = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 6), new THREE.MeshStandardMaterial({ color: '#3fd394', emissive: '#3fd394' }));
   led.position.set(5.3, 0.6, 4.77); put(led);
   solid(5.2, 4.05, 5.64, 5.0);
+  return { ground };
 }

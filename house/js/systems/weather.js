@@ -11,7 +11,7 @@ const DROPS = 260, SPREAD = 8;
 // the row of houses (ours and the neighbours'): no rain drawn inside these
 const ROW = { x1: -6.3, x2: 11.7, z1: -0.45, z2: 9.35 };
 
-export function createWeather({ stage, world, items, board, hud, player }) {
+export function createWeather({ stage, world, items, board, hud, player, season }) {
   const cfg = EVENTS.rain;
   const rain = new THREE.Group(); rain.visible = false; stage.scene.add(rain);
   const dropMat = new THREE.MeshBasicMaterial({ color: '#b9d4ee', transparent: true, opacity: 0.55, depthWrite: false });
@@ -49,7 +49,8 @@ export function createWeather({ stage, world, items, board, hud, player }) {
     if (!S.started || S.dayOver) { if (rain.visible) rain.visible = false; return; }
     // once the washing is out, roll whether it'll rain today
     if (state === 'dry' && world.washingLine.hasWashing()) {
-      if (Math.random() < cfg.chancePerDay) { state = 'coming'; rainAt = time + rand(...cfg.after); }
+      // (in winter it snows instead, see systems/seasonal.js)
+      if (season !== 'winter' && Math.random() < cfg.chancePerDay) { state = 'coming'; rainAt = time + rand(...cfg.after); }
       else state = 'over';
     }
     if (state === 'coming' && time > rainAt) start(time);
