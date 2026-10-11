@@ -143,6 +143,27 @@ test('start over under the job list asks first, then goes back to day 1', async 
   expect(await page.evaluate(() => window.house.days.save.day)).toBe(1);
 });
 
+test('each character has their own jobs: Dad shaves, P and Dude do homework', async ({ page }) => {
+  await openHouse(page);
+  const jobs = () => page.evaluate(() => window.house.board.jobs.map(j => j.id));
+  // a new game starts as Dad on day 1, a school day
+  expect(await jobs()).toContain('shave');
+  expect(await jobs()).not.toContain('homework');
+
+  await page.locator('.who button[data-c="girl"]').click();
+  await expect(page.locator('#taskList')).toContainText('Do your homework');
+  expect(await jobs()).not.toContain('shave');
+
+  await page.locator('.who button[data-c="dad"]').click();
+  await expect(page.locator('#taskList')).toContainText('Have a shave');
+  expect(await jobs()).not.toContain('homework');
+
+  // homework is done at the desk in the Kinderzimmer, upstairs
+  await page.locator('.who button[data-c="boy"]').click();
+  await page.evaluate(() => { window.house.levels.go(1); window.house.player.group.position.set(1.9, 2.3, 8.05); });
+  await expect(page.locator('#actBtn')).toHaveText('Sit at the desk and do your homework');
+});
+
 test('the stairs take you up to the first floor and back down', async ({ page }) => {
   await openHouse(page);
   await planToday(page, ['teeth', 'hands']);

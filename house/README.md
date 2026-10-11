@@ -22,7 +22,11 @@ upstairs floor). Upstairs jobs say `level: 1` on their steps; upstairs items say
 The game runs in days. Each day draws 10-12 jobs from the pool following each job's rules (dishes
 daily, mowing every 4 days, bins out on bin day and back in the next day...), and the house is set up
 to match: the lawn is only long on mowing days, the jacket only lies on the sofa when it's on the list,
-the bins stand at the kerb the day after bin day. Surprise events (post, a parcel at the door, a power
+the bins stand at the kerb the day after bin day. Some jobs are only for one of the family: Dad has a
+shave every other day, P and Dude do homework on five days out of seven (two days off, like a weekend).
+Changing who you play swaps those jobs on the list straight away. Each of the kids has their own
+homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`); until Dude's room on the second floor is built,
+both use the Kinderzimmer desk. Surprise events (post, a parcel at the door, a power
 cut) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
@@ -93,7 +97,9 @@ is beyond 13.
    ```
 
    `every: N` days (1 = daily). `after: { job: 'x', days: 1 }` makes a follow-up job (like bins back
-   in). `must: true` always puts it on the list when due. Jobs every 3+ days are "appointments" and
+   in). `must: true` always puts it on the list when due. `week: 5` means the first 5 days of every 7.
+   `who: ['dad']` (or `'girl'` for P, `'boy'` for Dude) makes it a job only for them, always on their
+   list when due. Jobs every 3+ days are "appointments" and
    are never early or late; every-other-day jobs can come up a day early to fill a day.
 
 2. Add the job itself to `js/jobs/jobs.js`. A job is a list of steps:
@@ -137,5 +143,5 @@ Runs two Node tests (no browser needed):
 
 Both exit non-zero on a problem. CI runs them on every push. `tests/e2e/house.spec.js` holds the
 Playwright browser tests (page loads, day 1 has 10-12 jobs, keyboard walking, picking up and putting
-down an item, Day complete and the next day surviving a reload, start over from both places, the stairs), run with
-`npm run test:e2e`.
+down an item, Day complete and the next day surviving a reload, start over from both places, each
+character's own jobs, the stairs), run with `npm run test:e2e`.

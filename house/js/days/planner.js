@@ -5,9 +5,11 @@
 //   after: { job, days }  appears `days` days after `job` was done (bins back in the day after they went out),
 //                         and then stays on the list until it is done.
 //   must: true            always on the list when due (bin days, bringing bins back in).
+//   week: N               due on the first N days of every 7 (homework: 5 school days, then the weekend off).
+//   who: [...]            only for these characters, and always on their list when due (Dad's shave, homework).
 //
 // A day gets between DAY_JOBS.min and DAY_JOBS.max jobs:
-//   1. jobs that must happen today,
+//   1. jobs that must happen today, and the jobs just for whoever is playing,
 //   2. due appointments (jobs that come round every 3+ days), so they stay on schedule,
 //   3. daily jobs,
 //   4. other due jobs, the most overdue first,
@@ -18,6 +20,7 @@ export const DAY_JOBS = { min: 10, max: 12 };
 /** How overdue a job is: 1 = due today, 2 = a whole cycle late, 0 = not due, Infinity = never done. */
 export function overdue(job, state) {
   const last = state.lastDone[job.id];
+  if (job.week) return (state.day - 1) % 7 < job.week && last !== state.day ? 1 : 0;
   if (job.after) {
     const trigger = state.lastDone[job.after.job];
     if (trigger === undefined || (last !== undefined && last >= trigger)) return 0;   // nothing to follow up
@@ -28,9 +31,17 @@ export function overdue(job, state) {
   return since >= job.every ? since / job.every : 0;
 }
 
+/** Is this job for whoever is playing? Jobs without `who` are for everyone. */
+export const isFor = (job, character) => !job.who || job.who.includes(character);
+
+/** The jobs that are only for this character and are due today. */
+export function personalDue(pool, state) {
+  return pool.filter(job => job.who && isFor(job, state.character) && overdue(job, state) > 0);
+}
+
 /**
- * @param pool   job definitions (only `id`, `every`, `after`, `must` are used)
- * @param state  { day, lastDone: { [jobId]: dayNumber } }
+ * @param pool   job definitions (only `id`, `every`, `week`, `after`, `must`, `who` are used)
+ * @param state  { day, lastDone: { [jobId]: dayNumber }, character }
  * @param rng    () => number in [0, 1)
  * @returns job ids for the day, in pool order
  */
@@ -40,12 +51,13 @@ export function planDay(pool, state, rng = Math.random, limits = DAY_JOBS) {
   const byUrgency = (a, b) => (b.score - a.score) || (jitter.get(a.job.id) - jitter.get(b.job.id));
 
   const appointment = job => job.every >= 3;
-  const scored = pool.map(job => ({ job, score: overdue(job, state) }));
-  const must = scored.filter(s => s.score > 0 && s.job.must).map(s => s.job);
-  const appointments = scored.filter(s => s.score > 0 && !s.job.must && appointment(s.job)).sort(byUrgency).map(s => s.job);
-  const daily = scored.filter(s => s.score > 0 && !s.job.must && s.job.every === 1).sort(byUrgency).map(s => s.job);
-  const due = scored.filter(s => s.score > 0 && !s.job.must && !appointment(s.job) && s.job.every !== 1).sort(byUrgency).map(s => s.job);
-  const extra = scored.filter(s => s.score === 0 && !s.job.after && !s.job.must && s.job.every <= 2)
+  const fixed = job => !!(job.must || job.who);
+  const scored = pool.filter(job => isFor(job, state.character)).map(job => ({ job, score: overdue(job, state) }));
+  const must = scored.filter(s => s.score > 0 && fixed(s.job)).map(s => s.job);
+  const appointments = scored.filter(s => s.score > 0 && !fixed(s.job) && appointment(s.job)).sort(byUrgency).map(s => s.job);
+  const daily = scored.filter(s => s.score > 0 && !fixed(s.job) && s.job.every === 1).sort(byUrgency).map(s => s.job);
+  const due = scored.filter(s => s.score > 0 && !fixed(s.job) && !appointment(s.job) && s.job.every !== 1).sort(byUrgency).map(s => s.job);
+  const extra = scored.filter(s => s.score === 0 && !s.job.after && !fixed(s.job) && s.job.every <= 2)
     .sort((a, b) => jitter.get(a.job.id) - jitter.get(b.job.id)).map(s => s.job);
 
   const picked = [...must, ...appointments];
