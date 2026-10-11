@@ -1,7 +1,7 @@
 // Everything the player can pick up and carry. Each item is a THREE.Group placed in the world.
 // userData.carry / carryRot: custom hold position (mower, hoover); userData.wheel: wheeled along (bins).
-// userData.level: which floor the item is on. Upstairs items live in the upstairs group, so their
-// positions are upstairs plan coordinates with y = 0 at the upstairs floor.
+// userData.level: which floor the item is on. Upstairs and attic items live in the upstairs / attic group,
+// so their positions are plan coordinates with y = 0 at that floor.
 import * as THREE from 'three';
 import { add, mat, castShadows } from './core/build.js';
 
@@ -26,7 +26,7 @@ function bin(lid) {
   };
 }
 
-export function createItems(scene, upstairs) {
+export function createItems(scene, upstairs, attic) {
   const items = {
     cup: item(g => {
       add(g, new THREE.CylinderGeometry(.06, .05, .11, 16), mat('#ffffff'), [0, .055, 0]);
@@ -127,10 +127,50 @@ export function createItems(scene, upstairs) {
       add(g, new THREE.ConeGeometry(0.07, 0.16, 8), mat('#f2c81c'), [-0.12, 0.08, 0.08]);
       add(g, new THREE.BoxGeometry(0.2, 0.06, 0.1), mat('#9a7be0'), [0.02, 0.03, -0.14]);
     }, [2.25, 0, 6.15], { level: 1 }),
+    // dinner, cooked on the hob and served at the dining table
+    dinner: item(g => {
+      add(g, new THREE.CylinderGeometry(0.13, 0.12, 0.14, 18), mat('#3a3d42'), [0, 0.07, 0]);
+      add(g, new THREE.CylinderGeometry(0.12, 0.12, 0.02, 18), mat('#d98a3a'), [0, 0.13, 0]);
+      [-1, 1].forEach(s => add(g, new THREE.BoxGeometry(0.06, 0.02, 0.03), mat('#1d1e22'), [s * 0.16, 0.11, 0]));
+    }, [5.34, 0.91, 1.65], { hidden: true }),
+    // P's crayons and drawing pad, left on the floor
+    crayons: item(g => {
+      add(g, new THREE.BoxGeometry(0.3, 0.01, 0.22), mat('#ffffff'), [0, 0.005, 0]);
+      ['#e04848', '#f2d22e', '#48a0e0', '#6cc070', '#e86a8a'].forEach((c, i) =>
+        add(g, new THREE.CylinderGeometry(0.008, 0.008, 0.1, 6), mat(c), [0.2 + (i % 2) * 0.03, 0.01, -0.06 + i * 0.03], null, [0, 0, Math.PI / 2]));
+    }, [1.3, 0, 7.45], { level: 1, rotY: 0.4 }),
+    // bathroom: a basket of wet washing for the airer in the office
+    washBasket: item(g => {
+      add(g, new THREE.CylinderGeometry(0.22, 0.18, 0.26, 16, 1, true), mat('#e8e2d4'), [0, 0.13, 0]);
+      add(g, new THREE.CircleGeometry(0.18, 16), mat('#e8e2d4'), [0, 0.01, 0], null, [-Math.PI / 2, 0, 0]);
+      const wet = new THREE.Group(); wet.name = 'laundry';
+      [['#1d1e22', 0, 0], ['#c03a2a', 0.08, 0.06], ['#7fb0c4', -0.08, 0.05], ['#f08a3a', 0.02, -0.08]].forEach(([c, x, z]) =>
+        add(wet, new THREE.SphereGeometry(0.1, 10, 8), mat(c), [x, 0.24, z], [1.2, 0.5, 1]));
+      g.add(wet);
+    }, [4.25, 0, 8.55], { level: 1 }),
+
+    // attic
+    lego: item(g => {
+      ['#f2d22e', '#e04848', '#48a0e0', '#6cc070', '#f2d22e', '#e04848'].forEach((c, i) =>
+        add(g, new THREE.BoxGeometry(0.1, 0.05, 0.06), mat(c), [Math.cos(i * 2.1) * 0.13, 0.025 + (i % 2) * 0.05, Math.sin(i * 2.1) * 0.1], null, [0, i * 0.7, 0]));
+    }, [2.2, 0, 2.55], { level: 2 }),
+    socks: item(g => {
+      [['#f2f2f2', 0], ['#2c3b5c', 0.1]].forEach(([c, x]) => add(g, new THREE.SphereGeometry(0.07, 8, 6), mat(c), [x, 0.03, 0], [1.6, 0.4, 0.8]));
+    }, [3.4, 0, 2.7], { level: 2 }),
+    jug: item(g => {   // small watering can for the plants up here
+      add(g, new THREE.CylinderGeometry(0.08, 0.09, 0.18, 12), mat('#4f9a6a'), [0, 0.09, 0]);
+      add(g, new THREE.CylinderGeometry(0.015, 0.02, 0.2, 6), mat('#4f9a6a'), [0.12, 0.14, 0], null, [0, 0, -0.9]);
+    }, [3.35, 0, 7.45], { level: 2 }),
+    // the box that goes up into the loft and comes back down (moved about by the loft jobs)
+    box: item(g => {
+      add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);
+      add(g, new THREE.BoxGeometry(0.46, 0.005, 0.08), mat('#e8d9a8'), [0, 0.322, 0]);
+      add(g, new THREE.BoxGeometry(0.14, 0.004, 0.1), mat('#ffffff'), [0.1, 0.323, 0.1]);
+    }, [3.6, 0, 6.6], { level: 2, hidden: true }),
   };
   Object.values(items).forEach(i => {
     // remember where each item starts, so every new day can put things back
-    const parent = i.userData.level === 1 ? upstairs : scene;
+    const parent = [scene, upstairs, attic][i.userData.level];
     i.userData.home = { pos: i.position.toArray(), rot: [i.rotation.x, i.rotation.y, i.rotation.z], visible: i.visible, parent, level: i.userData.level };
     parent.add(i);
   });

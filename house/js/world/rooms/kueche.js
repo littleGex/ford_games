@@ -51,5 +51,9 @@ export function buildKueche() {
   const steamMat = new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.5, depthWrite: false });
   for (let k = 0; k < 3; k++) add(steam, new THREE.SphereGeometry(0.03, 8, 6), steamMat, [0, k * 0.08, 0]);
 
-  return { steam };
+  // steam over the hob while food is cooking
+  const potSteam = group(5.34, 1.05, 1.65); potSteam.visible = false;
+  for (let k = 0; k < 5; k++) add(potSteam, new THREE.SphereGeometry(0.045, 8, 6), steamMat, [Math.sin(k * 2.3) * 0.06, k * 0.06, Math.cos(k * 2.3) * 0.05]);
+
+  return { steam, potSteam };
 }

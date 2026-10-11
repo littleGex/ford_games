@@ -35,7 +35,7 @@ test('house page loads', async ({ page }) => {
   await expect(page).toHaveTitle(/ford house/i);
 });
 
-test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
+test('day 1 starts with 12 to 14 household jobs', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   test.slow();   // this one draws the scene for real
@@ -45,8 +45,8 @@ test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
     jobs: window.house.board.jobs.map(j => j.id),
     carrying: window.house.S.carrying,
   }));
-  expect(state.jobs.length).toBeGreaterThanOrEqual(10);
-  expect(state.jobs.length).toBeLessThanOrEqual(12);
+  expect(state.jobs.length).toBeGreaterThanOrEqual(12);
+  expect(state.jobs.length).toBeLessThanOrEqual(14);
   // day 1 is random apart from the jobs that are always due on a first day: bin day and the appointments
   expect(state.jobs).toEqual(expect.arrayContaining(['binsOut', 'mow', 'hoover']));
   expect(state.carrying).toBeNull();
@@ -96,7 +96,7 @@ test('finishing the last job shows Day complete, and the next day is saved for n
   await expect(page.locator('#dayDone')).toBeHidden();
   await expect(page.locator('#dayLabel')).toHaveText('Day 2');
   const today = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
-  expect(today.length).toBeGreaterThanOrEqual(10);
+  expect(today.length).toBeGreaterThanOrEqual(12);
 
   // closing and reopening the page carries on with the same day and the same list
   await openHouse(page);
@@ -143,7 +143,7 @@ test('start over under the job list asks first, then goes back to day 1', async 
   expect(await page.evaluate(() => window.house.days.save.day)).toBe(1);
 });
 
-test('each character has their own jobs: Dad shaves, P and Dude do homework', async ({ page }) => {
+test('each character has their own jobs: Dad shaves, Mum works, P and Dude do homework', async ({ page }) => {
   await openHouse(page);
   const jobs = () => page.evaluate(() => window.house.board.jobs.map(j => j.id));
   // a new game starts as Dad on day 1, a school day
@@ -158,10 +158,18 @@ test('each character has their own jobs: Dad shaves, P and Dude do homework', as
   await expect(page.locator('#taskList')).toContainText('Have a shave');
   expect(await jobs()).not.toContain('homework');
 
-  // homework is done at the desk in the Kinderzimmer, upstairs
-  await page.locator('.who button[data-c="boy"]').click();
+  // Mum works in the office
+  await page.locator('.who button[data-c="mum"]').click();
+  await expect(page.locator('#taskList')).toContainText('Do some work');
+  expect(await jobs()).not.toContain('shave');
+
+  // P does her homework at the desk in the Kinderzimmer, Dude at his own desk in the attic
+  await page.locator('.who button[data-c="girl"]').click();
   await page.evaluate(() => { window.house.levels.go(1); window.house.player.group.position.set(1.9, 2.3, 8.05); });
   await expect(page.locator('#actBtn')).toHaveText('Sit at the desk and do your homework');
+  await page.locator('.who button[data-c="boy"]').click();
+  await page.evaluate(() => { window.house.levels.go(2); window.house.player.group.position.set(4.1, 4.6, 2.27); });
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
 });
 
 test('the stairs take you up to the first floor and back down', async ({ page }) => {
@@ -181,4 +189,22 @@ test('the stairs take you up to the first floor and back down', async ({ page })
   await expect(page.locator('#actBtn')).toHaveText('Go downstairs');
   await page.locator('#actBtn').click();
   await expect(page.locator('#floorName')).toHaveText('Erdgeschoss');
+});
+
+test('the next flight takes you from the first floor up to the attic and back', async ({ page }) => {
+  await openHouse(page);
+  await planToday(page, ['teeth', 'hands']);
+  await page.evaluate(() => { window.house.levels.go(1, { arrive: [4.25, 6.3], facing: 0 }); });
+  await expect(page.locator('#actBtn')).toHaveText('Go up to the attic');   // even with the basin close by
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Dachgeschoss');
+  expect(await page.evaluate(() => ({ level: window.house.S.level, attic: window.house.world.attic.visible }))).toEqual({ level: 2, attic: true });
+
+  await page.evaluate(() => window.house.player.group.position.set(1.5, 4.6, 2.5));
+  await expect(page.locator('#roomName')).toHaveText('Dudes Zimmer');
+  await page.evaluate(() => window.house.player.group.position.set(4.3, 4.6, 4.55));   // top of the attic stairs
+  await expect(page.locator('#actBtn')).toHaveText('Go downstairs');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  expect(await page.evaluate(() => window.house.world.attic.visible)).toBe(false);
 });

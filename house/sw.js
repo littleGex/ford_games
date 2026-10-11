@@ -1,6 +1,6 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'house-cache-v7';
+const CACHE_NAME = 'house-cache-v8';
 const urlsToCache = [
   './',
   './index.html',
@@ -29,6 +29,7 @@ const urlsToCache = [
   './js/systems/deliveries.js',
   './js/systems/hoovering.js',
   './js/systems/levels.js',
+  './js/systems/loft.js',
   './js/systems/mowing.js',
   './js/systems/plant.js',
   './js/systems/power.js',
@@ -48,6 +49,11 @@ const urlsToCache = [
   './js/world/rooms/wc.js',
   './js/world/rooms/windfang.js',
   './js/world/rooms/wohnzimmer.js',
+  './js/world/attic/dude.js',
+  './js/world/attic/flur.js',
+  './js/world/attic/index.js',
+  './js/world/attic/office.js',
+  './js/world/attic/structure.js',
   './js/world/upstairs/ankleide.js',
   './js/world/upstairs/bad.js',
   './js/world/upstairs/elternzimmer.js',

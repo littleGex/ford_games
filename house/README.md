@@ -1,7 +1,7 @@
 # Ford House
 
 A 3D version of our house to walk around in and do jobs: hoovering, bins, mowing, charging the car,
-watching TV, making the beds, putting a wash on and more. Both floors, the front and the back garden. Built from the 1:100 floor plan and photos of each room. Runs in the browser
+watching TV, making the beds, putting a wash on and more. All three floors, the front and the back garden. Built from the 1:100 floor plan and photos of each room. Runs in the browser
 on phones and computers, no build step.
 
 Play: open `house/` on the site (e.g. `littlegex.github.io/ford_games/house/`).
@@ -13,20 +13,31 @@ raised by `LEVEL_HEIGHT` in `config.js`. Stand at the foot of the stairs in the 
 the landing, and the action button offers "Go upstairs" / "Go downstairs". While you're downstairs the
 first floor is hidden so you can see in.
 
+The attic (Dachgeschoss: Dude's room, the office and the hall) is a third group, two floors up, from
+page 3 of the plan with its handwritten changes. Its stairs go up over the first-floor stairwell: stand
+on the first-floor landing by the bathroom for "Go up to the attic". The roof slopes down to the front and
+back; the half between the camera and the player turns see-through so you can see into the rooms.
+Attic jobs and items say `level: 2`.
+
 Everything upstairs uses plan coordinates (the same x and z as the floor plan, y = 0 at the
 upstairs floor). Upstairs jobs say `level: 1` on their steps; upstairs items say `level: 1` in
 `items.js`. Colliders remember which floor they were built on.
 
 ## Days
 
-The game runs in days. Each day draws 10-12 jobs from the pool following each job's rules (dishes
+The game runs in days. Each day draws 12-14 jobs from the pool following each job's rules (dishes
 daily, mowing every 4 days, bins out on bin day and back in the next day...), and the house is set up
 to match: the lawn is only long on mowing days, the jacket only lies on the sofa when it's on the list,
 the bins stand at the kerb the day after bin day. Some jobs are only for one of the family: Dad has a
-shave every other day, P and Dude do homework on five days out of seven (two days off, like a weekend).
+shave every other day, Mum works in the office on weekdays and makes up the sofa bed, P and Dude do homework on five days out of seven (two days off, like a weekend),
+Dude practises the keyboard and tidies his room every few days, P tidies her toys, and Dad or Mum cooks
+dinner every day (45 seconds at the hob, then served at the dining table).
 Changing who you play swaps those jobs on the list straight away. Each of the kids has their own
-homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`); until Dude's room on the second floor is built,
-both use the Kinderzimmer desk. Surprise events (post, a parcel at the door, a power
+homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the Kinderzimmer desk, Dude at his desk in
+the attic. Once a week there's a loft job: a box somewhere in the house goes up into the loft (stand
+under the hatch in the attic hall, where the ladder comes down), and a week later one comes back down
+to a room (`BOX_SPOTS`). Each floor has its own hoovering job; the hoover lives under the stairs, so it
+has to be carried up and back; one trip does every floor on the list. Surprise events (post, a parcel at the door, a power
 cut) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
@@ -65,6 +76,7 @@ house/
     core/               renderer & lights, textures, building helpers, collision, input, sound
     world/              the house: structure.js (walls, floors, stairs), rooms/*, outside/*, tv.js, rooms.js
       upstairs/         the first floor: structure.js (slab, walls, stairwell), one file per room
+      attic/            the attic: structure.js (roof, knee walls, stairwell), one file per room
     characters/         figure builder, family looks, the player
     items.js            everything you can pick up
     jobs/
@@ -98,9 +110,11 @@ is beyond 13.
 
    `every: N` days (1 = daily). `after: { job: 'x', days: 1 }` makes a follow-up job (like bins back
    in). `must: true` always puts it on the list when due. `week: 5` means the first 5 days of every 7.
-   `who: ['dad']` (or `'girl'` for P, `'boy'` for Dude) makes it a job only for them, always on their
-   list when due. Jobs every 3+ days are "appointments" and
-   are never early or late; every-other-day jobs can come up a day early to fill a day.
+   `who: ['dad']` (or `'mum'`, `'girl'` for P, `'boy'` for Dude) makes it a job only for them, always on their
+   list when due. The day is filled in this order: must jobs and the player's own jobs, the daily
+   routine, then "appointments" (jobs every 3+ days), most overdue first and never early (on a full day
+   one can be a day late), then the every-other-day jobs. With this many jobs those come round every few
+   days rather than every two; raise `DAY_JOBS` in `js/days/planner.js` for longer days.
 
 2. Add the job itself to `js/jobs/jobs.js`. A job is a list of steps:
 
@@ -132,7 +146,7 @@ npm run test:house
 Runs two Node tests (no browser needed):
 
 - `tests/house/planner.mjs` simulates 120 days with several random seeds and checks the day rules:
-  10-12 jobs a day, mowing exactly every 4 days, bins out every 4 and back in exactly the next day,
+  12-14 jobs a day, mowing exactly every 4 days, bins out every 4 and back in exactly the next day,
   daily jobs nearly every day, appointments never early.
 - `tests/house/playthrough.mjs` builds the whole game in Node with a stand-in for three.js and plays
   12 days in a row like a kid would: walks to every job step (checking it can be reached on foot from
@@ -142,6 +156,6 @@ Runs two Node tests (no browser needed):
   job that hadn't come up, and checks "start over".
 
 Both exit non-zero on a problem. CI runs them on every push. `tests/e2e/house.spec.js` holds the
-Playwright browser tests (page loads, day 1 has 10-12 jobs, keyboard walking, picking up and putting
+Playwright browser tests (page loads, day 1 has 12-14 jobs, keyboard walking, picking up and putting
 down an item, Day complete and the next day surviving a reload, start over from both places, each
 character's own jobs, the stairs), run with `npm run test:e2e`.

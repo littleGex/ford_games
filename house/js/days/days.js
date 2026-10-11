@@ -10,7 +10,7 @@ import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
 function binParams(save) {
   const last = save.lastBinPair;
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last };
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day };   // day: where the loft box is
 }
 
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */

@@ -130,13 +130,32 @@ export function createJobBoard({ scene, items, hud, levels }) {
       const d = Math.hypot(pos.x - p[0], pos.z - p[1]);
       if (d < bd) { bd = d; best = { job, step: s }; }
     }
-    // fixed actions (the stairs) only when standing right there, and never instead of a job step
-    if (!best) for (const f of fixed) {
+    // fixed actions (the stairs) only when standing right there, and closer to them than to any job step,
+    // so a job just behind a wall can't hide the stairs and the stairs can't hide a job you're standing at
+    for (const f of fixed) {
       if (f.level !== S.level) continue;
       const d = Math.hypot(pos.x - f.at[0], pos.z - f.at[1]);
       if (d < FIXED_REACH && d < bd) { bd = d; best = { fixed: f, step: f }; }
     }
     return best;
+  }
+
+  /**
+   * Jobs can share an item (one hoover for every floor). Picking it up or putting it back for one job
+   * counts for the others waiting to do the same. Putting it back while another job still needed it
+   * sends that job back to fetching it.
+   */
+  function shareItem(job, s) {
+    const same = t => t.kind === s.kind && t.item === s.item;
+    for (const other of jobs) {
+      if (other === job || finished(other)) continue;
+      if (same(step(other))) { advance(other); continue; }
+      if (s.kind !== 'drop') continue;
+      const before = other.steps.slice(0, other.i);
+      const picked = before.map(t => t.kind === 'pick' && t.item === s.item).lastIndexOf(true);
+      const putBack = before.map(same).lastIndexOf(true);
+      if (picked > putBack) { other.i = picked; other.status = ''; }
+    }
   }
 
   function act(choice) {
@@ -146,6 +165,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (s.kind === 'sit') { ctx.sitting.sitDown(job, s); return; }
     if (s.kind === 'pick') S.carrying = s.item;
     if (s.kind === 'drop') { place(s); S.carrying = null; }
+    if (s.kind === 'pick' || s.kind === 'drop') shareItem(job, s);
     if (s.onDone) s.onDone(ctx);
     advance(job);
   }

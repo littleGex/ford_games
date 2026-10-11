@@ -15,16 +15,34 @@ export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['bin
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
 
 // Where each of the kids does their homework: the floor, where to stand, the seat [x, seat height, z, facing].
-// Dude's own room on the second floor isn't built yet, so for now he uses the Kinderzimmer desk as well.
+// P at the Kinderzimmer desk, Dude at his own desk in the attic.
 const KINDERZIMMER_DESK = { level: 1, at: [2.3, 8.05], seat: [2.3, 0.48, 8.05, Math.PI / 2], label: 'Sit at the desk and do your homework' };
-const HOMEWORK_SPOT = { girl: KINDERZIMMER_DESK, boy: KINDERZIMMER_DESK };
+const DUDES_DESK = { level: 2, at: [4.62, 2.27], seat: [4.62, 0.45, 2.27, Math.PI / 2], label: 'Sit at your desk and do your homework' };
+const HOMEWORK_SPOT = { girl: KINDERZIMMER_DESK, boy: DUDES_DESK };
+
+// Where the loft box is (or goes to) around the house: the floor, the spot on the floor, a name for the list.
+// A different one each week; the box goes up into the loft through the hatch in the attic hall.
+export const BOX_SPOTS = [
+  { level: 0, at: [3.7, 4.35], name: 'the hall' },
+  { level: 2, at: [3.95, 3.35], name: "Dude's room" },
+  { level: 1, at: [2.55, 4.6], name: 'the bedroom' },
+  { level: 0, at: [2.75, 5.0], name: 'the living room' },
+  { level: 2, at: [2.4, 4.75], name: 'the office' },
+  { level: 1, at: [2.2, 6.2], name: "P's room" },
+];
+const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic hall
 
 /**
  * @param binPair  which pair goes out on bin day (0 blue + yellow, 1 black + brown)
  * @param binsBack which pair is waiting at the kerb to come back in (null if none)
- * @param character who is playing ('dad', 'girl', 'boy'); some jobs happen somewhere different for each of them
+ * @param character who is playing ('dad', 'mum', 'girl', 'boy'); some jobs happen somewhere different for each of them
  */
-export function createJobs({ binPair = 0, binsBack = null, character = 'dad' } = {}) {
+export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1 } = {}) {
+  const boxSpot = BOX_SPOTS[Math.floor(day / 7) % BOX_SPOTS.length];
+  const showBox = (c, level, x, z) => {
+    const box = c.items.box, floor = [c.stage.scene, c.world.upstairs, c.world.attic][level];
+    floor.add(box); box.position.set(x, 0, z); box.rotation.set(0, 0.3, 0); box.userData.level = level; box.visible = true;
+  };
   const [[outA, colA], [outB, colB]] = BIN_PAIRS[binPair];
   const back = binsBack === null ? BIN_PAIRS[binPair] : BIN_PAIRS[binsBack];
   const [[inA, colInA], [inB, colInB]] = back;
@@ -61,6 +79,12 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad' } =
       { kind: 'pick', item: 'mug', label: 'Take the coffee' },
       { kind: 'drop', item: 'mug', at: [1.75, 7.3], place: [1.65, 0.76, 7.3], label: 'Bring it to the dining table' }],
       tidy: () => {} },   // no mug sitting about
+    { id: 'cook', title: 'Cook dinner', steps: [   // Dad and Mum only
+      { kind: 'sit', stand: true, power: true, fx: 'pot', at: [5.0, 1.65], seat: [4.78, 0, 1.65, Math.PI / 2], dur: 45, what: 'Cooking', label: 'Cook dinner on the hob',
+        onDone: c => { c.items.dinner.visible = true; } },
+      { kind: 'pick', item: 'dinner', label: 'Take the pot off the hob' },
+      { kind: 'drop', item: 'dinner', at: [1.9, 6.7], place: [1.5, 0.76, 6.7], label: 'Serve dinner at the dining table' }],
+      tidy: c => { c.items.dinner.visible = false; } },
     { id: 'shopping', title: 'Put the shopping away', steps: [
       { kind: 'pick', item: 'shopping', label: 'Pick up the shopping bag' },
       { kind: 'drop', item: 'shopping', at: [3.95, 3.4], place: [4.2, 0, 3.05], label: 'Put it down by the fridge' },
@@ -79,7 +103,17 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad' } =
       { kind: 'pick', item: 'hoover', label: 'Get the hoover from under the stairs' },
       { kind: 'hoover' },
       { kind: 'drop', item: 'hoover', at: [4.95, 4.3], place: [4.95, 0, 4.3], label: 'Put the hoover back' }],
-      setup: c => c.hoovering.reset(true), tidy: c => c.hoovering.reset(false) },
+      setup: c => c.hoovering.reset(0, true), tidy: c => c.hoovering.reset(0, false) },
+    { id: 'hooverUp', title: 'Hoover upstairs', steps: [
+      { kind: 'pick', item: 'hoover', label: 'Get the hoover from under the stairs' },
+      { kind: 'hoover', level: 1 },
+      { kind: 'drop', item: 'hoover', at: [4.95, 4.3], place: [4.95, 0, 4.3], label: 'Put the hoover back' }],
+      setup: c => c.hoovering.reset(1, true), tidy: c => c.hoovering.reset(1, false) },
+    { id: 'hooverAttic', title: 'Hoover the attic', steps: [
+      { kind: 'pick', item: 'hoover', label: 'Get the hoover from under the stairs' },
+      { kind: 'hoover', level: 2 },
+      { kind: 'drop', item: 'hoover', at: [4.95, 4.3], place: [4.95, 0, 4.3], label: 'Put the hoover back' }],
+      setup: c => c.hoovering.reset(2, true), tidy: c => c.hoovering.reset(2, false) },
 
     // Outside
     { id: 'plant', title: 'Water the plant', steps: [
@@ -127,8 +161,10 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad' } =
     // Obergeschoss (level: 1 on everything that happens upstairs; pick steps follow the item)
     { id: 'beds', title: 'Make the beds', steps: [
       { kind: 'use', level: 1, at: [2.35, 1.9], label: 'Make the big bed', onDone: c => c.world.bigBed.make() },
-      { kind: 'use', level: 1, at: [1.25, 6.9], label: 'Make the daybed', onDone: c => c.world.daybed.make() }],
-      setup: c => { c.world.bigBed.mess(); c.world.daybed.mess(); }, tidy: c => { c.world.bigBed.make(); c.world.daybed.make(); } },
+      { kind: 'use', level: 1, at: [1.25, 6.9], label: "Make P's bed", onDone: c => c.world.daybed.make() },
+      { kind: 'use', level: 2, at: [1.8, 2.75], label: "Make Dude's bed", onDone: c => c.world.dudeBed.make() }],
+      setup: c => { c.world.bigBed.mess(); c.world.daybed.mess(); c.world.dudeBed.mess(); },
+      tidy: c => { c.world.bigBed.make(); c.world.daybed.make(); c.world.dudeBed.make(); } },
     { id: 'teeth', title: 'Brush your teeth', steps: [
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 10, what: 'Brushing teeth', label: 'Brush your teeth at the basin' }] },
     { id: 'shave', title: 'Have a shave', steps: [   // Dad only (see rules.js)
@@ -145,9 +181,47 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad' } =
       { kind: 'drop', item: 'dirtyClothes', level: 1, at: [4.25, 3.55], place: [4.55, 0.62, 3.6], label: 'Put them in the hamper',
         onDone: c => { c.items.dirtyClothes.visible = false; } }],
       tidy: c => { c.items.dirtyClothes.visible = false; } },
-    { id: 'toys', title: 'Tidy up the toys', steps: [
+    { id: 'toys', title: 'Tidy up your toys', steps: [   // P only (see rules.js)
       { kind: 'pick', item: 'toys', label: 'Pick up the toys' },
-      { kind: 'drop', item: 'toys', level: 1, at: [0.8, 8.0], place: [0.8, 0.1, 8.57], label: 'Put them in the toy box' }] },
+      { kind: 'drop', item: 'toys', level: 1, at: [0.8, 8.0], place: [0.8, 0.1, 8.57], label: 'Put them in the toy box' },
+      { kind: 'pick', item: 'crayons', label: 'Pick up the crayons' },
+      { kind: 'drop', item: 'crayons', level: 1, at: [2.3, 7.6], place: [2.85, 0.73, 7.6], label: 'Put them on the desk' }] },
+    // Attic
+    { id: 'music', title: 'Practise the keyboard', steps: [   // Dude only (see rules.js)
+      { kind: 'sit', level: 2, at: [1.1, 2.12], seat: [1.1, 0.45, 2.12, -Math.PI / 2], dur: 25, what: 'Playing the keyboard', label: 'Sit down and play the keyboard' }] },
+    { id: 'tidyDude', title: 'Tidy your room', steps: [   // Dude only
+      { kind: 'pick', item: 'lego', label: 'Pick up the Lego' },
+      { kind: 'drop', item: 'lego', level: 2, at: [2.1, 1.95], place: [2.1, 0.2, 1.47], label: 'Put it in the Lego drawer' },
+      { kind: 'pick', item: 'socks', label: 'Pick up the dirty socks' },
+      { kind: 'drop', item: 'socks', level: 1, at: [4.25, 3.55], place: [4.5, 0.62, 3.55], label: 'Put them in the laundry hamper', onDone: c => { c.items.socks.visible = false; } }],
+      tidy: c => { const l = c.items.lego; c.world.attic.add(l); l.position.set(2.1, 0.2, 1.47); l.userData.level = 2; c.items.socks.visible = false; } },
+    { id: 'plants', title: 'Water the plants upstairs', steps: [
+      { kind: 'pick', item: 'jug', label: 'Take the little watering can' },
+      { kind: 'use', level: 2, at: [1.0, 6.6], label: 'Water the cheese plant' },
+      { kind: 'use', level: 2, at: [4.35, 6.4], label: 'Water the plant on the stool' },
+      { kind: 'drop', item: 'jug', home: true, label: 'Put the watering can back' }] },
+    { id: 'airer', title: 'Hang the washing on the airer', steps: [
+      { kind: 'pick', item: 'washBasket', label: 'Pick up the basket of wet washing' },
+      { kind: 'drop', item: 'washBasket', level: 2, at: [1.35, 6.95], place: [1.9, 0, 7.15], label: 'Put the basket by the airer' },
+      { kind: 'use', level: 2, at: [1.35, 6.95], label: 'Hang the washing on the airer',
+        onDone: c => { c.world.airerClothes.visible = true; c.items.washBasket.getObjectByName('laundry').visible = false; } }],
+      setup: c => { c.world.airerClothes.visible = false; },
+      tidy: c => { c.world.airerClothes.visible = true; c.items.washBasket.getObjectByName('laundry').visible = false; } },
+    { id: 'loftUp', title: `Put a box in the loft (from ${boxSpot.name})`, steps: [
+      { kind: 'pick', item: 'box', label: 'Pick up the box' },
+      { kind: 'drop', item: 'box', level: 2, at: LOFT_AT, place: [LOFT_AT[0], 1.3, LOFT_AT[1]], label: 'Climb the ladder and push the box into the loft',
+        onDone: c => { c.items.box.visible = false; } }],
+      setup: c => showBox(c, boxSpot.level, boxSpot.at[0], boxSpot.at[1]), tidy: () => {} },
+    { id: 'loftDown', title: `Get a box from the loft (to ${boxSpot.name})`, steps: [
+      { kind: 'use', level: 2, at: LOFT_AT, label: 'Climb the ladder and get the box down', onDone: c => showBox(c, 2, LOFT_AT[0] - 0.05, LOFT_AT[1] + 0.15) },
+      { kind: 'pick', item: 'box', label: 'Pick up the box' },
+      { kind: 'drop', item: 'box', level: boxSpot.level, at: boxSpot.at, place: [boxSpot.at[0], 0, boxSpot.at[1]], label: `Put the box down in ${boxSpot.name}` }],
+      tidy: () => {} },
+    { id: 'work', title: 'Do some work', steps: [   // Mum only
+      { kind: 'sit', level: 2, power: true, at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], dur: 40, what: 'Working', label: 'Sit at the office desk and work' }] },
+    { id: 'sofabed', title: 'Make up the sofa bed', steps: [   // Mum only
+      { kind: 'use', level: 2, at: [2.0, 6.3], label: 'Fold the sofa bed away', onDone: c => c.world.sofaBed.make() }],
+      setup: c => c.world.sofaBed.mess(), tidy: c => c.world.sofaBed.make() },
     { id: 'washer', title: 'Put a wash on', steps: [
       { kind: 'pick', item: 'laundryBag', label: 'Take the laundry from the hamper' },
       { kind: 'drop', item: 'laundryBag', level: 1, at: [3.65, 7.95], place: [3.65, 0.3, 8.6], label: 'Load the washing machine',
