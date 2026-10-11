@@ -4,6 +4,7 @@ export class Vector3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y
   set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } setScalar(s) { return this.set(s, s, s); }
   copy(v) { return this.set(v.x, v.y, v.z); } clone() { return new Vector3(this.x, this.y, this.z); }
   add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
+  lerp(v, f) { this.x += (v.x - this.x) * f; this.y += (v.y - this.y) * f; this.z += (v.z - this.z) * f; return this; }
   distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
   toArray() { return [this.x, this.y, this.z]; } fromArray(a) { return this.set(a[0], a[1], a[2]); } }
 class Euler { constructor() { this.x = 0; this.y = 0; this.z = 0; } set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }
@@ -34,6 +35,7 @@ export class DirectionalLight extends Light {} export class PointLight extends L
 export class PerspectiveCamera extends Object3D {}
 export class Fog { constructor(c) { this.color = new Color(c); } }
 export class Matrix4 { makeScale() { return this; } setPosition() { return this; } }
+export class Curve {}
 export class CatmullRomCurve3 { constructor(p) { this.points = p; } }
 export class WebGLRenderer { constructor() { this.shadowMap = {}; this.frames = 0; } setPixelRatio() {} setSize() {} render() { this.frames++; } }
 export class Clock { constructor() { this.elapsedTime = 0; } getDelta() { this.elapsedTime += 0.05; return 0.05; } }

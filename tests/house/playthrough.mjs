@@ -61,6 +61,23 @@ for (const [room, x, z, axis] of [['dressing room', 3.85, 3.95, 'z'], ['bathroom
     if (blocked(px, pz, 1)) { errors.push(`upstairs: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
   }
 }
+// the charging cable lies on top of the ground all the way, not sunk into it (only the ends rise up)
+{
+  const THREE = await import('three');
+  const { cablePoints, cableGround, CablePath } = await import(new URL('../../house/js/systems/charging.js', import.meta.url));
+  const surface = (x, z) => (z > 13.55 && z < 13.68 ? 0.09 : 0.02) + 0.018;   // top of the kerb / path, plus the cable's radius
+  for (const [what, end, share] of [['plugged in', new THREE.Vector3(2.2, 0.7, 13.97), 0.7], ['in your hand', new THREE.Vector3(3.6, 0.72, 11.5), 0.5]]) {
+    const path = new CablePath(cablePoints(end)), v = new THREE.Vector3();
+    let onGround = 0, under = 0; const N = 400;
+    for (let i = 0; i <= N; i++) {
+      path.getPoint(i / N, v);
+      if (v.y < surface(v.x, v.z)) under++;
+      else if (v.y < cableGround(v.x, v.z) + 0.01) onGround++;
+    }
+    if (under) errors.push(`charging cable (${what}): ${under} of ${N + 1} points are under the ground`);
+    if (onGround < N * share) errors.push(`charging cable (${what}): only ${onGround} of ${N + 1} points lie on the ground`);
+  }
+}
 function standNear(p, level = S.level) {
   let best = null, bd = 1e9;
   for (const c of cellsOn[level]) { const d = Math.hypot(c[0] - p[0], c[1] - p[1]); if (d < bd) { bd = d; best = c; } }
