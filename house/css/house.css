@@ -1,0 +1,68 @@
+/* Full-screen dollhouse scene; the HUD floats in the corners like stickers on a floor plan. */
+:root {
+  --night: #16202f;
+  --panel: rgba(18, 27, 41, .82);
+  --paper: #eef3f7;
+  --muted: #9aabc2;
+  --marigold: #ffb02e;
+  --mint: #3fd394;
+  --line: rgba(238, 243, 247, .14);
+  --f-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--night); color: var(--paper); font-family: var(--f-body); }
+[hidden] { display: none !important; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.hud { position: fixed; left: 0; right: 0; pointer-events: none; padding-inline: 16px; }
+.top { top: 0; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.bottom { bottom: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.chip { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+.room .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.room .name { font-family: var(--f-display); font-weight: 800; font-size: 22px; line-height: 1.05; }
+.room .area { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.tasks { min-width: 0; max-width: 240px; pointer-events: auto; }
+.tasks h2 { margin: 0 0 6px; font-family: var(--f-display); font-weight: 800; font-size: 16px; display: flex; justify-content: space-between; gap: 10px; }
+.tasks h2 span { color: var(--marigold); font-variant-numeric: tabular-nums; }
+.tasks ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; max-height: 34vh; overflow-y: auto; }
+.tasks li { display: flex; gap: 8px; align-items: center; font-size: 13px; line-height: 1.25; }
+.tasks li i { flex: 0 0 14px; height: 14px; border-radius: 50%; border: 2px solid var(--marigold); box-sizing: border-box; }
+.tasks li.done { color: var(--muted); text-decoration: line-through; }
+.tasks li.done i { background: var(--mint); border-color: var(--mint); }
+.tasks button { all: unset; cursor: pointer; }
+.tasks button:focus-visible { outline: 2px solid var(--marigold); outline-offset: 3px; border-radius: 4px; }
+.tasks.collapsed ul { display: none; }
+.tasks .next { display: none; min-width: 0; }
+.tasks.collapsed .next { display: grid; gap: 2px; }
+#nextTitle { font-weight: 700; font-size: 13px; line-height: 1.25; }
+#nextStep { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.caret { display: inline-block; font-size: 11px; color: var(--muted); transition: transform .2s; }
+.tasks.collapsed .caret { transform: rotate(-90deg); }
+
+.stick { pointer-events: auto; width: 128px; height: 128px; border-radius: 50%; background: rgba(18, 27, 41, .55); border: 2px solid var(--line); position: relative; touch-action: none; }
+.knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: var(--paper); box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+.right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+
+.btn { pointer-events: auto; border: 0; cursor: pointer; font-family: var(--f-display); font-weight: 800; color: #2a1a00; background: var(--marigold); border-radius: 999px; box-shadow: 0 6px 0 #b8740f, 0 10px 20px rgba(0, 0, 0, .3); }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b8740f; }
+.btn:focus-visible, .ghost:focus-visible { outline: 3px solid var(--paper); outline-offset: 3px; }
+.act { min-width: 96px; max-width: 52vw; padding: 14px 18px; font-size: 17px; line-height: 1.1; text-align: center; }
+.ghost { pointer-events: auto; border: 1px solid var(--line); background: var(--panel); color: var(--paper); border-radius: 999px; padding: 8px 14px; font: 700 13px var(--f-body); cursor: pointer; }
+
+.who { pointer-events: auto; display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
+.who button { border: 0; background: transparent; color: var(--paper); font: 700 13px var(--f-body); padding: 7px 11px; border-radius: 999px; cursor: pointer; }
+.who button[aria-pressed="true"] { background: var(--paper); color: var(--night); }
+.who button:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; }
+
+.toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 120px); transform: translate(-50%, -10px); background: var(--mint); color: #06301d; font-family: var(--f-display); font-weight: 800; font-size: 18px; padding: 10px 18px; border-radius: 14px; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; text-align: center; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.hint { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); transform: translateX(-50%); font-size: 13px; color: var(--paper); background: var(--panel); padding: 6px 12px; border-radius: 999px; pointer-events: none; transition: opacity .6s; white-space: nowrap; }
+.hint.gone { opacity: 0; }
+.alert { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 168px); transform: translateX(-50%); background: var(--marigold); color: #2a1a00; font: 800 16px var(--f-display); padding: 9px 18px; border-radius: 999px; box-shadow: 0 8px 22px rgba(0, 0, 0, .35); pointer-events: none; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; animation: ring 1.2s ease-in-out infinite; }
+@keyframes ring { 0%, 60%, 100% { transform: translateX(-50%) rotate(0); } 10%, 30% { transform: translateX(-50%) rotate(-3deg); } 20%, 40% { transform: translateX(-50%) rotate(3deg); } }
+
+@media (max-width: 420px) { .room .name { font-size: 19px; } .tasks { max-width: 200px; } .tasks li { font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .toast, .hint { transition: none; } .alert { animation: none; } }
