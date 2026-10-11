@@ -13,7 +13,7 @@ raised by `LEVEL_HEIGHT` in `config.js`. Stand at the foot of the stairs in the 
 the landing, and the action button offers "Go upstairs" / "Go downstairs". While you're downstairs the
 first floor is hidden so you can see in.
 
-Everything upstairs uses upstairs plan coordinates (the same x and z as the floor plan, y = 0 at the
+Everything upstairs uses plan coordinates (the same x and z as the floor plan, y = 0 at the
 upstairs floor). Upstairs jobs say `level: 1` on their steps; upstairs items say `level: 1` in
 `items.js`. Colliders remember which floor they were built on.
 
