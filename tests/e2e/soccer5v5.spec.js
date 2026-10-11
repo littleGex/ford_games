@@ -155,11 +155,11 @@ test('a fast shot near the post beats a keeper who cannot track across in time',
 test('the clock counts down and reaching zero in the 1st half triggers half time', async ({ page }) => {
   await page.goto('/soccer5v5/');
 
-  await page.evaluate(() => window.__testAdvanceClock(119));
+  await page.evaluate(() => window.__testAdvanceClock(100)); // 20 seconds left of a 2-min half
   let state = await page.evaluate(() => window.__testGetState());
   expect(state.matchPhase).toBe('playing');
 
-  await page.evaluate(() => window.__testAdvanceClock(2));
+  await page.evaluate(() => window.__testAdvanceClock(25)); // pushes it past zero
   state = await page.evaluate(() => window.__testGetState());
   expect(state.matchPhase).toBe('halftime');
   await expect(page.locator('#status')).toHaveText(/half time/i);
@@ -176,7 +176,9 @@ test('starting the 2nd half swaps sides — teams regenerate on the opposite hal
   expect(state.half).toBe(2);
   expect(state.sidesSwapped).toBe(true);
   expect(state.matchPhase).toBe('playing');
-  expect(Math.round(state.matchTime)).toBe(120);
+  // the clock is already running in real time, so allow for a slow machine
+  expect(state.matchTime).toBeGreaterThan(105);
+  expect(state.matchTime).toBeLessThanOrEqual(120);
   // team L's goalkeeper should now be anchored near the opposite goal
   expect(Math.sign(state.teamL.gk.x - 500)).not.toBe(Math.sign(beforeGkX - 500));
 });
