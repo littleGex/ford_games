@@ -29,6 +29,8 @@
     color: transparent;
     text-align: center;
   }
+  .version { margin: 28px 0 0; font-size: 12px; color: #6f8296; text-align: center; }
+  .version a { color: #8fa3b8; }
   p.subtitle {
     margin: 0 0 32px;
     color: #a7b8c9;
@@ -170,5 +172,15 @@
       <p>Walk round our house and do the jobs</p>
     </a>
   </div>
+
+  <!-- the version comes from package.json, so there's only one place to change it (see CHANGELOG.md) -->
+  <p class="version" id="version" hidden></p>
+  <script>
+    fetch('package.json', { cache: 'no-cache' }).then(r => r.json()).then(({ version }) => {
+      const el = document.getElementById('version');
+      el.innerHTML = `v${version} · <a href="https://github.com/littleGex/ford_games/blob/main/CHANGELOG.md">What's new</a>`;
+      el.hidden = false;
+    }).catch(() => {});
+  </script>
 </body>
 </html>
