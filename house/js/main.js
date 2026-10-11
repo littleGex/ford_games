@@ -85,10 +85,28 @@ function frame() {
   hud.banner(S.dayOver ? null : ctx.deliveries.banner() || ctx.sitting.banner());
   board.updateMarkers(time);
 
+  shiftView(dt);
   stage.camera.position.set(pos.x + Math.sin(yaw) * CAMERA.distance, pos.y + CAMERA.height, pos.z + Math.cos(yaw) * CAMERA.distance);
   stage.camera.lookAt(pos.x, pos.y + CAMERA.lookY, pos.z);
   stage.renderer.render(stage.scene, stage.camera);
   requestAnimationFrame(frame);
+}
+
+// Keep the player clear of the job list in the top right: on a landscape screen the picture slides left
+// by half the list's width, so what's under the list is next door or the garden (depending on the view
+// rotation) rather than the room you're in. It slides back when the list is folded up.
+const taskPanel = document.getElementById('taskPanel');
+let shift = 0, shiftTarget = 0, shiftW = 0, shiftH = 0, measured = 0;
+function shiftView(dt) {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (--measured <= 0 && taskPanel && taskPanel.getBoundingClientRect) {   // measuring every frame would cost layout time
+    measured = 10;
+    shiftTarget = w > h ? Math.min(taskPanel.getBoundingClientRect().width / 2, w * 0.2) : 0;
+  }
+  if (Math.abs(shiftTarget - shift) < 0.5 && w === shiftW && h === shiftH) return;
+  shift = Math.abs(shiftTarget - shift) < 0.5 ? shiftTarget : shift + (shiftTarget - shift) * Math.min(1, dt * 6);
+  shiftW = w; shiftH = h;
+  stage.camera.setViewOffset(w, h, shift, 0, w, h);
 }
 requestAnimationFrame(frame);
 

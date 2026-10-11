@@ -33,7 +33,7 @@ export class CanvasTexture { constructor() { this.repeat = { set() {} }; } clone
 class Light extends Object3D { constructor(c, i = 1) { super(); this.intensity = i; this.target = new Object3D(); this.shadow = any; } }
 export class HemisphereLight extends Light { constructor(a, b, i) { super(a, i); } }
 export class DirectionalLight extends Light {} export class PointLight extends Light {} export class SpotLight extends Light {}
-export class PerspectiveCamera extends Object3D {}
+export class PerspectiveCamera extends Object3D { setViewOffset(fw, fh, x, y, w, h) { this.view = { fullWidth: fw, fullHeight: fh, offsetX: x, offsetY: y, width: w, height: h }; } updateProjectionMatrix() {} }
 export class Fog { constructor(c) { this.color = new Color(c); } }
 export class Matrix4 { makeScale() { return this; } setPosition() { return this; } }
 export class Curve {}
