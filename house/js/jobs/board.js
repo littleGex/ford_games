@@ -112,8 +112,9 @@ export function createJobBoard({ scene, items, hud, levels }) {
       const d = Math.hypot(pos.x - p[0], pos.z - p[1]);
       if (d < bd) { bd = d; best = { job, step: s }; }
     }
-    // fixed actions (the stairs) only when standing right there, and never instead of a job step
-    if (!best) for (const f of fixed) {
+    // fixed actions (the stairs) only when standing right there, and closer to them than to any job step,
+    // so a job just behind a wall can't hide the stairs and the stairs can't hide a job you're standing at
+    for (const f of fixed) {
       if (f.level !== S.level) continue;
       const d = Math.hypot(pos.x - f.at[0], pos.z - f.at[1]);
       if (d < FIXED_REACH && d < bd) { bd = d; best = { fixed: f, step: f }; }

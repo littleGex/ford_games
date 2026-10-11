@@ -1,6 +1,10 @@
 // Named areas for the room chip in the corner. Areas (m²) are the figures printed on the floor plan.
 // Order matters: the first rectangle that contains the player wins.
 export const ROOMS = [
+  // Dachgeschoss
+  { level: 2, name: 'Dudes Zimmer', area: '15,00 m²', r: [0, 0, 5.64, 3.94] },
+  { level: 2, name: 'Büro', area: '9,83 m²', r: [0, 3.94, 3.02, 8.88] },
+  { level: 2, name: 'Flur', area: 'ca. 3,17 m²', r: [3.02, 3.94, 5.64, 8.88] },
   // Obergeschoss
   { level: 1, name: 'Elternzimmer', area: '16,90 m²', r: [0, 0, 3.2, 5.6] },
   { level: 1, name: 'Ankleide', area: '10,24 m²', r: [3.2, 0, 5.64, 3.95] },
