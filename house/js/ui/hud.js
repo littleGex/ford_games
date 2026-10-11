@@ -13,6 +13,8 @@ export function createHud() {
     dayDone: $('dayDone'), dayDoneTitle: $('dayDoneTitle'), dayDoneStats: $('dayDoneStats'), dayDoneTomorrow: $('dayDoneTomorrow'),
     dayDoneTotals: $('dayDoneTotals'), dayNext: $('dayNext'), dayRestart: $('dayRestart'), dayRestartConfirm: $('dayRestartConfirm'),
     dayRestartYes: $('dayRestartYes'), dayRestartNo: $('dayRestartNo'),
+    gameRestart: $('gameRestart'), gameRestartConfirm: $('gameRestartConfirm'),
+    gameRestartYes: $('gameRestartYes'), gameRestartNo: $('gameRestartNo'),
   };
   let toastTimer = null, lastRoom = '', lastAction = null, lastBanner = null;
 
@@ -44,6 +46,8 @@ export function createHud() {
   }
 
   const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  // "Start over" asks first: the link swaps for "Lose all progress? Yes / No"
+  const askFirst = (link, confirm, asking) => { link.hidden = asking; confirm.hidden = !asking; };
 
   return {
     renderJobs,
@@ -55,16 +59,22 @@ export function createHud() {
       el.dayDoneTomorrow.replaceChildren(...items.map(t => Object.assign(document.createElement('li'), { textContent: t })));
       el.dayNext.textContent = `Start day ${day + 1}`;
       el.dayDoneTotals.textContent = `${plural(totals.daysDone, 'day')} and ${plural(totals.jobsDone, 'job')} done so far`;
-      el.dayRestart.hidden = false; el.dayRestartConfirm.hidden = true;
+      askFirst(el.dayRestart, el.dayRestartConfirm, false);
       el.dayDone.hidden = false;
       el.dayNext.focus();
     },
-    hideDayComplete() { el.dayDone.hidden = true; },
+    hideDayComplete() { el.dayDone.hidden = true; askFirst(el.gameRestart, el.gameRestartConfirm, false); },
     onDayButtons({ next, restart }) {
       el.dayNext.addEventListener('click', next);
-      el.dayRestart.addEventListener('click', () => { el.dayRestart.hidden = true; el.dayRestartConfirm.hidden = false; });
-      el.dayRestartNo.addEventListener('click', () => { el.dayRestart.hidden = false; el.dayRestartConfirm.hidden = true; });
-      el.dayRestartYes.addEventListener('click', restart);
+      // the same "start over" on the Day complete screen and under the job list
+      for (const [link, confirm, yes, no] of [
+        [el.dayRestart, el.dayRestartConfirm, el.dayRestartYes, el.dayRestartNo],
+        [el.gameRestart, el.gameRestartConfirm, el.gameRestartYes, el.gameRestartNo],
+      ]) {
+        link.addEventListener('click', () => askFirst(link, confirm, true));
+        no.addEventListener('click', () => askFirst(link, confirm, false));
+        yes.addEventListener('click', restart);
+      }
     },
     setRoom(room) {
       const key = `${room.level || 0}:${room.name}`;
