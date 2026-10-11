@@ -1,12 +1,26 @@
 const { test, expect } = require('@playwright/test');
 
 // Headless Chromium draws WebGL in software, at a couple of frames a second. Each frame blocks the
-// page, so key presses and clicks time out. The tests that play the game switch drawing off once
-// the game has loaded; the first two tests still render for real.
-async function openWithoutDrawing(page) {
+// page, so key presses, clicks and even reading state time out. Apart from 'house page loads', the
+// tests stop the game drawing after `frames` frames: none for the tests that play the game, a few
+// for the test that checks the scene draws without errors. The game sets window.house just before
+// its frame loop starts, which is where drawing gets limited.
+async function openHouse(page, { frames = 0 } = {}) {
+  await page.addInitScript(limit => {
+    let house;
+    Object.defineProperty(window, 'house', {
+      configurable: true,
+      get: () => house,
+      set: value => {
+        house = value;
+        const renderer = house.stage.renderer, draw = renderer.render.bind(renderer);
+        let left = limit;
+        renderer.render = (...args) => { if (left-- > 0) draw(...args); };
+      },
+    });
+  }, frames);
   await page.goto('/house/');
   await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
-  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
 }
 
 // Each day's list is random, so tests that need a particular job set today's list themselves.
@@ -23,8 +37,7 @@ test('house page loads', async ({ page }) => {
 test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/house/');
-  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await openHouse(page, { frames: 3 });
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
   const state = await page.evaluate(() => ({
     jobs: window.house.board.jobs.map(j => j.id),
@@ -32,13 +45,14 @@ test('day 1 starts with 10 to 12 household jobs', async ({ page }) => {
   }));
   expect(state.jobs.length).toBeGreaterThanOrEqual(10);
   expect(state.jobs.length).toBeLessThanOrEqual(12);
-  expect(state.jobs).toContain('dishes');   // a daily job
+  // day 1 is random apart from the jobs that are always due on a first day: bin day and the appointments
+  expect(state.jobs).toEqual(expect.arrayContaining(['binsOut', 'mow', 'hoover']));
   expect(state.carrying).toBeNull();
   expect(errors).toEqual([]);
 });
 
 test('walking with the keyboard moves the player towards the house and hides the hint', async ({ page }) => {
-  await openWithoutDrawing(page);
+  await openHouse(page);
   const startZ = await page.evaluate(() => window.house.player.group.position.z);
   await page.keyboard.down('w');
   await page.waitForTimeout(500);
@@ -49,7 +63,7 @@ test('walking with the keyboard moves the player towards the house and hides the
 });
 
 test('picking up an item next to it and putting it down completes a job', async ({ page }) => {
-  await openWithoutDrawing(page);
+  await openHouse(page);
   await planToday(page, ['jacket', 'hands']);
   // stand next to the jacket on the sofa, pick it up, then stand at the coat rail and hang it up
   await page.evaluate(() => window.house.player.group.position.set(1.2, 0, 2.1));
@@ -68,7 +82,7 @@ test('picking up an item next to it and putting it down completes a job', async 
 });
 
 test('finishing the last job shows Day complete, and the next day is saved for next time', async ({ page }) => {
-  await openWithoutDrawing(page);
+  await openHouse(page);
   await planToday(page, ['hands']);
   await page.evaluate(() => window.house.player.group.position.set(5.0, 0, 7.98));   // in the WC by the basin
   await expect(page.locator('#actBtn')).toHaveText('Wash hands');
@@ -83,13 +97,13 @@ test('finishing the last job shows Day complete, and the next day is saved for n
   expect(today.length).toBeGreaterThanOrEqual(10);
 
   // closing and reopening the page carries on with the same day and the same list
-  await openWithoutDrawing(page);
+  await openHouse(page);
   await expect(page.locator('#dayLabel')).toHaveText('Day 2');
   expect(await page.evaluate(() => window.house.board.jobs.map(j => j.id))).toEqual(today);
 });
 
 test('start over goes back to day 1 after confirming', async ({ page }) => {
-  await openWithoutDrawing(page);
+  await openHouse(page);
   await planToday(page, ['hands']);
   await page.evaluate(() => window.house.player.group.position.set(5.0, 0, 7.98));
   await page.locator('#actBtn').click();
