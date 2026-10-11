@@ -1,10 +1,10 @@
 const { test, expect } = require('@playwright/test');
 
 // Headless Chromium draws WebGL in software, at a couple of frames a second. Each frame blocks the
-// page, so key presses, clicks and even reading state time out. Apart from 'house page loads', the
-// tests stop the game drawing after `frames` frames: none for the tests that play the game, a few
-// for the test that checks the scene draws without errors. The game sets window.house just before
-// its frame loop starts, which is where drawing gets limited.
+// page, so key presses, clicks and even reading state time out. The tests stop the game drawing
+// after `frames` frames: none for the tests that play the game, a few for the tests that check the
+// page loads and the scene draws without errors. The game sets window.house just before its frame
+// loop starts, which is where drawing gets limited.
 async function openHouse(page, { frames = 0 } = {}) {
   await page.addInitScript(limit => {
     let house;
@@ -30,7 +30,7 @@ async function planToday(page, ids) {
 }
 
 test('house page loads', async ({ page }) => {
-  await page.goto('/house/');
+  await openHouse(page, { frames: 3 });
   await expect(page).toHaveTitle(/ford house/i);
 });
 
