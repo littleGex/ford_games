@@ -20,14 +20,15 @@ import { createDeliveries } from './systems/deliveries.js';
 import { createPlant } from './systems/plant.js';
 import { createDays } from './days/days.js';
 import { createLevels } from './systems/levels.js';
+import { createLoft } from './systems/loft.js';
 import { createWaiting } from './systems/waiting.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
-const items = createItems(stage.scene, world.upstairs);
+const items = createItems(stage.scene, world.upstairs, world.attic);
 const player = createPlayer(stage.scene, items);
 const hud = createHud();
-const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs] });
+const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs, world.attic] });
 
 const clock = new THREE.Clock();
 
@@ -43,10 +44,11 @@ ctx.plant = createPlant(ctx);
 ctx.mowing = createMowing(ctx);
 ctx.hoovering = createHoovering(ctx);
 ctx.levels = createLevels(ctx);
+ctx.loft = createLoft(ctx);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days];
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft];
 
 // controls
 const turnView = () => { yawTarget += Math.PI / 2; };
@@ -83,10 +85,28 @@ function frame() {
   hud.banner(S.dayOver ? null : ctx.deliveries.banner() || ctx.sitting.banner());
   board.updateMarkers(time);
 
+  shiftView(dt);
   stage.camera.position.set(pos.x + Math.sin(yaw) * CAMERA.distance, pos.y + CAMERA.height, pos.z + Math.cos(yaw) * CAMERA.distance);
   stage.camera.lookAt(pos.x, pos.y + CAMERA.lookY, pos.z);
   stage.renderer.render(stage.scene, stage.camera);
   requestAnimationFrame(frame);
+}
+
+// Keep the player clear of the job list in the top right: on a landscape screen the picture slides left
+// by half the list's width, so what's under the list is next door or the garden (depending on the view
+// rotation) rather than the room you're in. It slides back when the list is folded up.
+const taskPanel = document.getElementById('taskPanel');
+let shift = 0, shiftTarget = 0, shiftW = 0, shiftH = 0, measured = 0;
+function shiftView(dt) {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (--measured <= 0 && taskPanel && taskPanel.getBoundingClientRect) {   // measuring every frame would cost layout time
+    measured = 10;
+    shiftTarget = w > h ? Math.min(taskPanel.getBoundingClientRect().width / 2, w * 0.2) : 0;
+  }
+  if (Math.abs(shiftTarget - shift) < 0.5 && w === shiftW && h === shiftH) return;
+  shift = Math.abs(shiftTarget - shift) < 0.5 ? shiftTarget : shift + (shiftTarget - shift) * Math.min(1, dt * 6);
+  shiftW = w; shiftH = h;
+  stage.camera.setViewOffset(w, h, shift, 0, w, h);
 }
 requestAnimationFrame(frame);
 

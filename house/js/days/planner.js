@@ -10,12 +10,13 @@
 //
 // A day gets between DAY_JOBS.min and DAY_JOBS.max jobs:
 //   1. jobs that must happen today, and the jobs just for whoever is playing,
-//   2. due appointments (jobs that come round every 3+ days), so they stay on schedule,
-//   3. daily jobs,
+//   2. daily jobs,
+//   3. due appointments (jobs that come round every 3+ days), the most overdue first, up to DAY_JOBS.max.
+//      One that doesn't fit is a day late, and goes first the next day; appointments are never early,
 //   4. other due jobs, the most overdue first,
 //   5. if still short, extra quick jobs (every <= 2 days) that aren't strictly due yet.
 
-export const DAY_JOBS = { min: 10, max: 12 };
+export const DAY_JOBS = { min: 12, max: 14 };
 
 /** How overdue a job is: 1 = due today, 2 = a whole cycle late, 0 = not due, Infinity = never done. */
 export function overdue(job, state) {
@@ -60,8 +61,9 @@ export function planDay(pool, state, rng = Math.random, limits = DAY_JOBS) {
   const extra = scored.filter(s => s.score === 0 && !s.job.after && !fixed(s.job) && s.job.every <= 2)
     .sort((a, b) => jitter.get(a.job.id) - jitter.get(b.job.id)).map(s => s.job);
 
-  const picked = [...must, ...appointments];
-  for (const job of [...daily, ...due, ...extra]) { if (picked.length >= target) break; picked.push(job); }
+  const picked = [...must, ...daily];
+  for (const job of appointments) { if (picked.length >= limits.max) break; picked.push(job); }
+  for (const job of [...due, ...extra]) { if (picked.length >= target) break; picked.push(job); }
   const ids = new Set(picked.map(j => j.id));
   return pool.filter(j => ids.has(j.id)).map(j => j.id);
 }

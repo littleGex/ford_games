@@ -67,14 +67,20 @@ export function buildUpstairsStructure() {
   wall(0, 5.6, 3.2, 5.7);                                            // bedroom | kids' room
   run('x', 3.32, 5.64, 6.85, 6.95, [[3.5, 4.25, 'door']]);          // landing | bathroom
 
-  // stairwell: wooden banister round the opening, open at the top where you step off
+  // stairwell: wooden banister round the opening, open at the top where you step off, and open again at
+  // the front end where the attic stairs start (ATTIC_FOOT in systems/levels.js)
   const pine = mat('#c98d4e');
-  box(4.55, 4.75, 4.62, S.z2, 0.9, 0, pine);
-  box(4.53, 4.75, 4.64, S.z2, 0.05, 0.9, pine, false);
+  const atticFoot = S.z2 - 0.66;   // the attic stairs' first three steps
+  box(4.55, 4.75, 4.62, atticFoot, 0.9, 0, pine);
+  box(4.53, 4.75, 4.64, atticFoot, 0.05, 0.9, pine, false);
+  box(4.53, atticFoot - 0.08, 4.64, atticFoot, 0.95, 0, pine);   // newel post
   box(4.6, 4.0, 5.64, 4.06, 0.9, 0, pine);
   solid(4.55, 4.75, 5.64, S.z2); solid(4.62, 4.0, 5.64, 4.75);
   // the top three steps, so the stairs read as arriving up here
   for (let i = 0; i < 3; i++) box(4.65, 4.06 + i * 0.22, 5.64, 4.28 + i * 0.22, 0.05, -0.05 - i * 0.18, mat(i % 2 ? '#b88a5c' : '#c99a6b'), false);
+
+  // the first steps of the attic stairs, going up over the stairwell from its front end
+  for (let i = 0; i < 3; i++) box(4.65, S.z2 - 0.22 * (i + 1), 5.64, S.z2 - 0.22 * i, 0.05, 0.12 + i * 0.17, mat(i % 2 ? '#b88a5c' : '#c99a6b'), false);
 
   // a soft light over the landing
   const lamp = new THREE.PointLight('#fff3dc', 0.35, 6, 1.5); lamp.position.set(4.0, 1.3, 5.3); put(lamp);

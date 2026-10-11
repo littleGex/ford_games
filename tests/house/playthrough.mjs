@@ -27,6 +27,9 @@ const errors = [];
 await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
 const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
+const { DAY_JOBS } = await import(new URL('../../house/js/days/planner.js', import.meta.url));
+const { HOOVER_SPOTS } = await import(new URL('../../house/js/systems/hoovering.js', import.meta.url));
+const { BOX_SPOTS } = await import(new URL('../../house/js/jobs/jobs.js', import.meta.url));
 const G = globalThis.house, S = G.S;
 const frame = () => { const f = raf.shift(); if (!f) throw new Error('no frame scheduled'); f(); };
 for (let i = 0; i < 5; i++) frame();
@@ -52,14 +55,24 @@ function walkable(level, sx, sz) {
   }
   return out;
 }
-const cellsOn = [walkable(0, 3.92, 10.6), walkable(1, 4.1, 4.55)];
-console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length);
+const cellsOn = [walkable(0, 3.92, 10.6), walkable(1, 4.1, 4.55), walkable(2, 4.25, 4.6)];
+console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length, 'attic', cellsOn[2].length);
 // every upstairs doorway can be walked straight through, 0.5 m either side (furniture mustn't block it)
 for (const [room, x, z, axis] of [['dressing room', 3.85, 3.95, 'z'], ['bathroom', 3.875, 6.9, 'z'], ['main bedroom', 3.26, 4.5, 'x'], ["kids' room", 3.26, 6.225, 'x']]) {
   for (let d = -0.5; d <= 0.5; d += 0.1) {
     const px = axis === 'x' ? x + d : x, pz = axis === 'z' ? z + d : z;
     if (blocked(px, pz, 1)) { errors.push(`upstairs: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
   }
+}
+// the attic: every doorway can be walked through and every room reached from the top of the stairs
+for (const [room, x, z, axis] of [["Dude's room", 4.15, 3.94, 'z'], ['office', 3.025, 4.7, 'x']]) {
+  for (let d = -0.5; d <= 0.5; d += 0.1) {
+    const px = axis === 'x' ? x + d : x, pz = axis === 'z' ? z + d : z;
+    if (blocked(px, pz, 2)) { errors.push(`attic: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
+  }
+}
+for (const [room, x, z] of [["Dude's room", 2.0, 2.4], ['office', 2.0, 4.8], ['hall by the cupboards', 3.6, 6.9]]) {
+  if (!cellsOn[2].some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`attic: can't walk to the ${room} (${x}, ${z})`);
 }
 // the charging cable lies on top of the ground all the way, not sunk into it (only the ends rise up)
 {
@@ -86,30 +99,36 @@ function standNear(p, level = S.level) {
 
 // --- getting about: walk to the stairs and use the button, like a player would
 const goTo = cell => { G.player.group.position.x = cell[0]; G.player.group.position.z = cell[1]; };
-const STAIRS = { 0: { at: [4.4, 6.05], label: 'Go upstairs' }, 1: { at: [4.15, 4.45], label: 'Go downstairs' } };
+const STAIRS = {
+  '0>1': { at: [4.4, 6.05], label: 'Go upstairs' }, '1>0': { at: [4.15, 4.45], label: 'Go downstairs' },
+  '1>2': { at: [4.6, 6.5], label: 'Go up to the attic' }, '2>1': { at: [4.3, 4.55], label: 'Go downstairs' },
+};
 let stairTrips = 0;
 function travel(level) {
-  if (S.level === level) return;
-  const here = STAIRS[S.level];
-  goTo(standNear(here.at).cell); frame();
-  const n = G.board.nearestAction(G.player.group.position);
-  if (!n || !n.fixed || n.step.label !== here.label) { errors.push(`stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${here.label}"`); G.levels.go(level); }
-  else G.board.act(n);
-  stairTrips++;
-  frame();
-  if (S.level !== level) errors.push(`stairs didn't take me to floor ${level}`);
+  while (S.level !== level) {
+    const from = S.level, next = from + Math.sign(level - from), here = STAIRS[`${from}>${next}`];
+    goTo(standNear(here.at).cell); frame();
+    const n = G.board.nearestAction(G.player.group.position);
+    if (!n || !n.fixed || n.step.label !== here.label) { errors.push(`stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${here.label}"`); G.levels.show(next); }
+    else G.board.act(n);
+    stairTrips++;
+    frame();
+    if (S.level !== next) { errors.push(`stairs didn't take me from floor ${from} to ${next}`); return; }
+  }
 }
 
 // --- playing one job, step by step
 function doStep(job) {
   const s = job.steps[job.i];
-  if (s.kind === 'mow' || s.kind === 'hoover') travel(0);
+  if (s.kind === 'mow') travel(0);
+  if (s.kind === 'hoover') travel(s.level || 0);
   if (s.kind === 'mow') {
     for (const c of G.world.lawn.cells) { if (job.steps[job.i] !== s) break; G.player.group.position.set(c.x, 0, c.z - 0.95); G.player.group.rotation.y = 0; frame(); }
     return job.steps[job.i] !== s || 'lawn never finished';
   }
   if (s.kind === 'hoover') {
-    for (const [x, z] of [[2.3, 0.75], [1.5, 3.6], [2.4, 4.7], [0.4, 6.4], [2.5, 6.1], [2.4, 8.4], [4.0, 4.6], [3.95, 5.9]]) {
+    for (const [x, z] of HOOVER_SPOTS[s.level || 0]) {
+      // stand about a hoover's length away and point the hoover at the dust
       const { cell } = standNear([x, z - 0.55]); goTo(cell);
       G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
     }
@@ -173,7 +192,7 @@ for (let n = 1; n <= 12; n++) {
   const plan = G.board.jobs.filter(j => !j.event).map(j => j.id);
   dayLog.push(plan);
   plan.forEach(id => played.add(id));
-  if (plan.length < 10 || plan.length > 12) errors.push(`${label}: ${plan.length} jobs, want 10-12`);
+  if (plan.length < DAY_JOBS.min || plan.length > DAY_JOBS.max) errors.push(`${label}: ${plan.length} jobs, want ${DAY_JOBS.min}-${DAY_JOBS.max}`);
 
   if (S.level !== 0 || G.world.upstairs.visible) errors.push(`${label}: didn't start downstairs`);
   // the house matches the list
@@ -215,6 +234,61 @@ const missing = pool.filter(id => !played.has(id));
 if (missing.length) {
   G.days.plan(missing);
   playDay('extra day (' + missing.join(', ') + ')');
+}
+
+// --- a day as Dude: his homework at his own desk, keyboard practice and tidying his room
+G.days.setCharacter('boy');
+G.days.plan(['homework', 'music', 'tidyDude']);
+// (P's toys and Dad's cooking come up in the 12 days or the extra day)
+if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
+playDay("Dude's day");
+G.days.next();
+
+// --- a day as Mum: work in the office, make up the sofa bed, cook dinner
+G.days.setCharacter('mum');
+G.days.plan(['work', 'sofabed', 'cook']);
+playDay("Mum's day");
+G.days.next();
+G.days.setCharacter('dad');
+
+// --- the loft box: every spot it can be at is on open floor, and the ladder is down while a loft job is on
+for (const b of BOX_SPOTS) if (blocked(b.at[0], b.at[1], b.level)) errors.push(`loft box spot in ${b.name} is inside something`);
+G.days.plan(['loftDown']);
+frame();
+if (!G.world.loftLadder.visible) errors.push('loft: ladder not down for a loft job');
+playDay('loft day');
+if (G.world.loftLadder.visible) errors.push('loft: ladder still down after the job');
+G.days.next();
+
+// --- up to the attic and back down by the stairs
+// (walking through the middle of the bathroom doorway, next to the attic stairs, must not offer them)
+G.levels.show(1); goTo([3.875, 6.6]); frame();
+{ const n = G.board.nearestAction(G.player.group.position); if (n && n.fixed) errors.push(`bathroom doorway offers "${n.step.label}"`); }
+G.levels.show(0);
+travel(2);
+if (G.world.attic.visible !== true || G.world.upstairs.visible !== true) errors.push('attic: not shown when up there');
+travel(0);
+if (G.world.attic.visible || G.world.upstairs.visible) errors.push('attic: still shown when back downstairs');
+
+// --- one trip with the hoover does every floor on the list
+{
+  G.days.plan(['hoover', 'hooverUp', 'hooverAttic']);
+  const floors = ['hoover', 'hooverUp', 'hooverAttic'].map(id => G.board.find(id));
+  const must = (r, what) => { if (r !== true) errors.push(`one hoover trip, ${what}: ${r}`); };
+  must(doStep(floors[0]), 'picking it up');
+  if (floors.some(j => j.steps[j.i].kind !== 'hoover')) errors.push('picking the hoover up once should start every hoover job');
+  floors.forEach(j => must(doStep(j), j.id));   // hoover each floor, carrying it all the way
+  if (S.carrying !== 'hoover') errors.push('the hoover should still be in hand after the last floor');
+  must(doStep(floors[0]), 'putting it back');
+  if (floors.some(j => j.i < j.steps.length) || S.carrying) errors.push('putting the hoover back once should finish every hoover job');
+
+  // putting it back before the other floor is done sends that job back to fetching it
+  G.days.plan(['hoover', 'hooverUp']);
+  const [down, up] = ['hoover', 'hooverUp'].map(id => G.board.find(id));
+  for (const what of ['pick', 'hoover', 'drop']) must(doStep(down), what);
+  if (down.i < down.steps.length || up.i !== 0) errors.push(`hoover put back early: upstairs job at step ${up.i}, want 0 (get the hoover again)`);
+  for (const what of ['pick', 'hoover', 'drop']) must(doStep(up), 'upstairs ' + what);
+  if (up.i < up.steps.length) errors.push('the upstairs hoover job never finished');
 }
 
 // --- starting over goes back to day 1
