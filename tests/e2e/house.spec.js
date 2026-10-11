@@ -119,3 +119,22 @@ test('start over goes back to day 1 after confirming', async ({ page }) => {
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
   await expect(page.locator('#dayDone')).toBeHidden();
 });
+
+test('the stairs take you up to the first floor and back down', async ({ page }) => {
+  await openHouse(page);
+  await planToday(page, ['teeth', 'hands']);
+  await page.evaluate(() => window.house.player.group.position.set(4.4, 0, 6.05));   // foot of the stairs
+  await expect(page.locator('#actBtn')).toHaveText('Go upstairs');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  expect(await page.evaluate(() => window.house.S.level)).toBe(1);
+
+  // upstairs job: brush your teeth at the bathroom basin
+  await page.evaluate(() => window.house.player.group.position.set(4.6, 2.3, 7.22));
+  await expect(page.locator('#actBtn')).toHaveText('Brush your teeth at the basin');
+
+  await page.evaluate(() => window.house.player.group.position.set(4.15, 2.3, 4.45));   // top of the stairs
+  await expect(page.locator('#actBtn')).toHaveText('Go downstairs');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#floorName')).toHaveText('Erdgeschoss');
+});

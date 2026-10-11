@@ -20,7 +20,7 @@ function planFor(save, params) {
 }
 
 export function createDays(ctx) {
-  const { board, hud, stage, items, clock } = ctx;
+  const { board, hud, items, clock } = ctx;
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
@@ -30,7 +30,7 @@ export function createDays(ctx) {
     if (S.sitting) ctx.sitting.standUp();
     S.carrying = null; S.dayOver = false; S.lampOn = false;
     board.clear();
-    resetItems(stage.scene, items);
+    resetItems(items);
 
     // every job in the house either needs doing today, or is shown done
     for (const job of createJobs(params)) {
@@ -42,7 +42,7 @@ export function createDays(ctx) {
     const t = now();
     ctx.power.reset(t); ctx.deliveries.reset(t); ctx.charging.reset(); ctx.mowing.reset();
     ctx.power.applyLights();
-    ctx.player.reset(); ctx.view.reset();
+    ctx.player.reset(); ctx.levels.show(0); ctx.view.reset();
     dayStart = t; completeAt = null;
     hud.setDay(save.day);
     hud.hideDayComplete();

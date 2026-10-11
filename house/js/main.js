@@ -19,13 +19,15 @@ import { createCharging } from './systems/charging.js';
 import { createDeliveries } from './systems/deliveries.js';
 import { createPlant } from './systems/plant.js';
 import { createDays } from './days/days.js';
+import { createLevels } from './systems/levels.js';
+import { createWaiting } from './systems/waiting.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
-const items = createItems(stage.scene);
+const items = createItems(stage.scene, world.upstairs);
 const player = createPlayer(stage.scene, items);
 const hud = createHud();
-const board = createJobBoard({ scene: stage.scene, items, hud });
+const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs] });
 
 const clock = new THREE.Clock();
 
@@ -40,9 +42,11 @@ ctx.deliveries = createDeliveries(ctx);
 ctx.plant = createPlant(ctx);
 ctx.mowing = createMowing(ctx);
 ctx.hoovering = createHoovering(ctx);
+ctx.levels = createLevels(ctx);
+ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.plant, ctx.days];
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days];
 
 // controls
 const turnView = () => { yawTarget += Math.PI / 2; };
@@ -73,14 +77,14 @@ function frame() {
   for (const sys of systems) sys.update(dt, time);
 
   const pos = player.group.position;
-  hud.setRoom(roomAt(pos.x, pos.z));
+  hud.setRoom(roomAt(pos.x, pos.z, S.level));
   nearest = S.dayOver ? null : board.nearestAction(pos);
   hud.setAction(nearest ? nearest.step.label : null);
   hud.banner(S.dayOver ? null : ctx.deliveries.banner() || ctx.sitting.banner());
   board.updateMarkers(time);
 
-  stage.camera.position.set(pos.x + Math.sin(yaw) * CAMERA.distance, CAMERA.height, pos.z + Math.cos(yaw) * CAMERA.distance);
-  stage.camera.lookAt(pos.x, CAMERA.lookY, pos.z);
+  stage.camera.position.set(pos.x + Math.sin(yaw) * CAMERA.distance, pos.y + CAMERA.height, pos.z + Math.cos(yaw) * CAMERA.distance);
+  stage.camera.lookAt(pos.x, pos.y + CAMERA.lookY, pos.z);
   stage.renderer.render(stage.scene, stage.camera);
   requestAnimationFrame(frame);
 }

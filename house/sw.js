@@ -1,6 +1,6 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'house-cache-v2';
+const CACHE_NAME = 'house-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -28,10 +28,12 @@ const urlsToCache = [
   './js/systems/charging.js',
   './js/systems/deliveries.js',
   './js/systems/hoovering.js',
+  './js/systems/levels.js',
   './js/systems/mowing.js',
   './js/systems/plant.js',
   './js/systems/power.js',
   './js/systems/sitting.js',
+  './js/systems/waiting.js',
   './js/ui/hud.js',
   './js/world/index.js',
   './js/world/rooms.js',
@@ -46,6 +48,12 @@ const urlsToCache = [
   './js/world/rooms/wc.js',
   './js/world/rooms/windfang.js',
   './js/world/rooms/wohnzimmer.js',
+  './js/world/upstairs/ankleide.js',
+  './js/world/upstairs/bad.js',
+  './js/world/upstairs/elternzimmer.js',
+  './js/world/upstairs/index.js',
+  './js/world/upstairs/kinderzimmer.js',
+  './js/world/upstairs/structure.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js'
 ];
 

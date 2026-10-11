@@ -32,32 +32,54 @@ const frame = () => { const f = raf.shift(); if (!f) throw new Error('no frame s
 for (let i = 0; i < 5; i++) frame();
 console.log('boot ok, jobs:', G.board.jobs.length, 'renders:', G.stage.renderer.frames);
 
-// --- reachability: flood-fill walkable space from the front path
+// --- reachability: flood-fill the walkable space on each floor, from the front path downstairs and
+// from the top of the stairs upstairs
 const RES = 0.05, X0 = -2.25, Z0 = -17.3, NX = Math.round(7.75 / RES), NZ = Math.round(30.7 / RES);
-const seen = new Uint8Array(NX * NZ), cells = [];
 const idx = (i, k) => k * NX + i;
-const start = [Math.round((3.92 - X0) / RES), Math.round((10.6 - Z0) / RES)];
-const q = [start]; seen[idx(...start)] = 1;
-while (q.length) {
-  const [i, k] = q.pop(); cells.push([X0 + i * RES, Z0 + k * RES]);
-  for (const [di, dk] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const ni = i + di, nk = k + dk;
-    if (ni < 0 || nk < 0 || ni >= NX || nk >= NZ || seen[idx(ni, nk)]) continue;
-    seen[idx(ni, nk)] = 1;
-    if (!blocked(X0 + ni * RES, Z0 + nk * RES)) q.push([ni, nk]);
+function walkable(level, sx, sz) {
+  const seen = new Uint8Array(NX * NZ), out = [];
+  const start = [Math.round((sx - X0) / RES), Math.round((sz - Z0) / RES)];
+  if (blocked(X0 + start[0] * RES, Z0 + start[1] * RES, level)) errors.push(`floor ${level}: start spot (${sx}, ${sz}) is blocked`);
+  const q = [start]; seen[idx(...start)] = 1;
+  while (q.length) {
+    const [i, k] = q.pop(); out.push([X0 + i * RES, Z0 + k * RES]);
+    for (const [di, dk] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const ni = i + di, nk = k + dk;
+      if (ni < 0 || nk < 0 || ni >= NX || nk >= NZ || seen[idx(ni, nk)]) continue;
+      seen[idx(ni, nk)] = 1;
+      if (!blocked(X0 + ni * RES, Z0 + nk * RES, level)) q.push([ni, nk]);
+    }
   }
+  return out;
 }
-console.log('walkable cells:', cells.length);
-function standNear(p) {
+const cellsOn = [walkable(0, 3.92, 10.6), walkable(1, 4.1, 4.55)];
+console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length);
+function standNear(p, level = S.level) {
   let best = null, bd = 1e9;
-  for (const c of cells) { const d = Math.hypot(c[0] - p[0], c[1] - p[1]); if (d < bd) { bd = d; best = c; } }
+  for (const c of cellsOn[level]) { const d = Math.hypot(c[0] - p[0], c[1] - p[1]); if (d < bd) { bd = d; best = c; } }
   return { cell: best, dist: bd };
 }
 
+// --- getting about: walk to the stairs and use the button, like a player would
+const goTo = cell => { G.player.group.position.x = cell[0]; G.player.group.position.z = cell[1]; };
+const STAIRS = { 0: { at: [4.4, 6.05], label: 'Go upstairs' }, 1: { at: [4.15, 4.45], label: 'Go downstairs' } };
+let stairTrips = 0;
+function travel(level) {
+  if (S.level === level) return;
+  const here = STAIRS[S.level];
+  goTo(standNear(here.at).cell); frame();
+  const n = G.board.nearestAction(G.player.group.position);
+  if (!n || !n.fixed || n.step.label !== here.label) { errors.push(`stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${here.label}"`); G.levels.go(level); }
+  else G.board.act(n);
+  stairTrips++;
+  frame();
+  if (S.level !== level) errors.push(`stairs didn't take me to floor ${level}`);
+}
+
 // --- playing one job, step by step
-const goTo = cell => { G.player.group.position.set(cell[0], 0, cell[1]); };
 function doStep(job) {
   const s = job.steps[job.i];
+  if (s.kind === 'mow' || s.kind === 'hoover') travel(0);
   if (s.kind === 'mow') {
     for (const c of G.world.lawn.cells) { if (job.steps[job.i] !== s) break; G.player.group.position.set(c.x, 0, c.z - 0.95); G.player.group.rotation.y = 0; frame(); }
     return job.steps[job.i] !== s || 'lawn never finished';
@@ -69,8 +91,9 @@ function doStep(job) {
     }
     return job.steps[job.i] !== s || 'dust left behind';
   }
-  if (s.kind === 'charge') { for (let n = 0; n < 2500 && job.steps[job.i] === s; n++) { if (!S.powerOn) fixPower(); frame(); } return job.steps[job.i] !== s || 'never charged'; }
+  if (s.kind === 'charge' || s.kind === 'wait') { for (let n = 0; n < 2500 && job.steps[job.i] === s; n++) { if (!S.powerOn) fixPower(); frame(); } return job.steps[job.i] !== s || 'never finished running'; }
 
+  travel(G.board.levelOf(s));
   const p = stepAt(s), { cell, dist } = standNear(p);
   if (dist > REACH - 0.02) return `can't get within reach of [${p.map(v => v.toFixed(2))}] (closest ${dist.toFixed(2)} m)`;
   goTo(cell); frame();
@@ -125,6 +148,7 @@ for (let n = 1; n <= 12; n++) {
   plan.forEach(id => played.add(id));
   if (plan.length < 10 || plan.length > 12) errors.push(`${label}: ${plan.length} jobs, want 10-12`);
 
+  if (S.level !== 0 || G.world.upstairs.visible) errors.push(`${label}: didn't start downstairs`);
   // the house matches the list
   const has = id => plan.includes(id);
   if (has('mow') !== (G.world.lawn.cutCount === 0)) errors.push(`${label}: lawn ${G.world.lawn.cutCount === 0 ? 'long' : 'cut'} but mowing ${has('mow') ? 'is' : "isn't"} on the list`);
@@ -171,6 +195,8 @@ G.days.restart();
 if (G.days.day !== 1 || G.board.jobs.length < 10) errors.push(`start over: day ${G.days.day} with ${G.board.jobs.length} jobs`);
 
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);
+console.log('trips up or down the stairs:', stairTrips);
+if (!stairTrips) errors.push('never used the stairs');
 console.log('renders:', G.stage.renderer.frames, 'carrying:', S.carrying, 'power:', S.powerOn);
 console.log(errors.length ? 'PROBLEMS:\n- ' + errors.join('\n- ') : 'no problems');
 process.exitCode = errors.length ? 1 : 0;
