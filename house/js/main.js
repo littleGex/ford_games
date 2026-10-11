@@ -21,6 +21,9 @@ import { createPlant } from './systems/plant.js';
 import { createDays } from './days/days.js';
 import { createLevels } from './systems/levels.js';
 import { createLoft } from './systems/loft.js';
+import { createWeather } from './systems/weather.js';
+import { createWiping } from './systems/wiping.js';
+import { createSorting } from './ui/sorting.js';
 import { createWaiting } from './systems/waiting.js';
 
 const stage = createStage(document.getElementById('scene'));
@@ -45,14 +48,21 @@ ctx.mowing = createMowing(ctx);
 ctx.hoovering = createHoovering(ctx);
 ctx.levels = createLevels(ctx);
 ctx.loft = createLoft(ctx);
+ctx.weather = createWeather(ctx);
+ctx.wiping = createWiping(ctx);
+ctx.sorting = createSorting(ctx);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft];
+const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather];
 
 // controls
 const turnView = () => { yawTarget += Math.PI / 2; };
-const doAction = () => { if (!S.dayOver) board.act(nearest); };
+const doAction = () => {
+  if (S.dayOver || S.sorting) return;
+  if (S.wiping) { ctx.wiping.stop(); return; }
+  board.act(nearest);
+};
 const input = createInput({
   stick: document.getElementById('stick'), knob: document.getElementById('knob'),
   onAction: doAction, onTurn: turnView,
@@ -73,16 +83,18 @@ function frame() {
   let walking = false;
   if (S.dayOver) { /* the Day complete screen is up */ }
   else if (S.sitting) { if (axis.len > 0.3) ctx.sitting.standUp(); }
+  else if (S.wiping || S.sorting) { /* wiping a window uses the stick; sorting has its own card */ }
   else if (axis.len > 0.08) walking = player.stepFromInput(axis, yaw, dt);
   player.animate(dt, walking);
+  if (S.wiping) ctx.wiping.feed(axis, dt);
 
   for (const sys of systems) sys.update(dt, time);
 
   const pos = player.group.position;
   hud.setRoom(roomAt(pos.x, pos.z, S.level));
-  nearest = S.dayOver ? null : board.nearestAction(pos);
-  hud.setAction(nearest ? nearest.step.label : null);
-  hud.banner(S.dayOver ? null : ctx.deliveries.banner() || ctx.sitting.banner());
+  nearest = S.dayOver || S.sorting || S.wiping ? null : board.nearestAction(pos);
+  hud.setAction(S.wiping ? 'Stop wiping' : nearest ? nearest.step.label : null);
+  hud.banner(S.dayOver ? null : ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
   board.updateMarkers(time);
 
   shiftView(dt);

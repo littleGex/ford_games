@@ -73,6 +73,8 @@ export function createPlayer(scene, items) {
     group,
     get character() { return cur; },
     setCharacter, stepFromInput, animate, handPosition, reset,
+    /** The right arm (wiping windows moves it). */
+    arms: () => cur && cur.arms[1],
     /** Point just in front of the player (e.g. where the mower deck or hoover head is). */
     ahead(dist) { const r = group.rotation.y; return { x: group.position.x + Math.sin(r) * dist, z: group.position.z + Math.cos(r) * dist }; },
   };

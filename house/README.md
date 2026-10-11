@@ -37,8 +37,12 @@ homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the Kinderzimmer desk
 the attic. Once a week there's a loft job: a box somewhere in the house goes up into the loft (stand
 under the hatch in the attic hall, where the ladder comes down), and a week later one comes back down
 to a room (`BOX_SPOTS`). Each floor has its own hoovering job; the hoover lives under the stairs, so it
-has to be carried up and back; one trip does every floor on the list. Surprise events (post, a parcel at the door, a power
-cut) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
+has to be carried up and back; one trip does every floor on the list. Doing the washing is a chain: sort it by colour at the hamper (a little
+card: whites, colours, darks), load the machine, wait for it, then carry the wet washing up to the airer
+in the office; the next day it's folded and each pile goes to the right wardrobe (Dude's, P's, and Mum
+and Dad's in the dressing room). Washing the terrace windows means wiping each one in circles with the
+stick. Surprise events (post, a parcel at the door, a power cut, and rain while the washing is out on
+the line: get it in before the countdown runs out) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
 Progress is saved in the browser (`localStorage`, key `fordHouse.save.v1`), so each phone has its own
@@ -82,7 +86,7 @@ house/
     jobs/
       rules.js          how often each job comes round (tune the game here)
       jobs.js           the jobs: steps, plus how the house looks when each one needs doing / is done
-      board.js          runs today's jobs: markers, the action button, pick / drop / use / sit
+      board.js          runs today's jobs: markers, the action button, pick / drop / use / sit / sort / wipe
     days/
       planner.js        picks each day's jobs from the rules (pure logic, tested in Node)
       days.js           starts days, sets the house up, saves progress, Day complete screen
@@ -127,8 +131,10 @@ is beyond 13.
 
    Step kinds: `pick`, `drop` (`place`, `at` + `y`, or `home: true`), `use` (with `onDone(ctx)`),
    `sit` (timed, see the TV, coffee, teeth and shower jobs; `stand: true` to stand, `fx` for steam or
-   shower water), `wait` (runs by itself, like the washing machine), and `mow` / `hoover` / `charge`,
-   which are driven by their system in `js/systems/`. Add `level: 1` to steps that happen upstairs.
+   shower water), `wait` (runs by itself, like the washing machine), `sort` (the sort-the-washing card,
+   `js/ui/sorting.js`), `wipe` (wipe a window by moving the stick in circles, `dirt: n` says which,
+   `js/systems/wiping.js`), and `mow` / `hoover` / `charge`, which are driven by their system in
+   `js/systems/`. Add `level: 1` (or `level: 2` for the attic) to steps that happen upstairs.
 
    Items start every day at their home spot from `js/items.js` (the "needs doing" position). On days
    the job isn't on the list it's shown done: by default its items are moved to where its drop steps

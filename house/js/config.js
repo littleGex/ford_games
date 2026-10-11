@@ -29,6 +29,9 @@ export const EVENTS = {
   power:  { chancePerDay: 0.35, firstAfter: [50, 120], gapAfter: [150, 240], maxPerDay: 1 },
   post:   { chancePerDay: 0.7, after: [25, 60] },
   parcel: { chancePerDay: 0.5, after: [95, 160], waitAtDoor: 45 },
+  // rain only comes on days the washing is out on the line: `after` seconds after it's hung up, and you
+  // have `bringIn` seconds to get it off the line before it's soaked
+  rain:   { chancePerDay: 0.6, after: [15, 45], bringIn: 40 },
 };
 
 export const DAY_COMPLETE_DELAY = 1.5;   // seconds between the last job and the "Day complete" screen
