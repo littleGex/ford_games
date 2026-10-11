@@ -28,8 +28,8 @@ what's coming tomorrow, then the next day starts.
 
 Progress is saved in the browser (`localStorage`, key `fordHouse.save.v1`), so each phone has its own
 house: closing the page and coming back carries on with the same day and the same list. A job that
-was half done starts again from the beginning. "Start over from day 1" on the Day complete screen
-wipes the save (after a confirm).
+was half done starts again from the beginning. "Start over from day 1", under the job list and on
+the Day complete screen, wipes the save (after a confirm).
 
 ## Run it locally
 
@@ -137,5 +137,5 @@ Runs two Node tests (no browser needed):
 
 Both exit non-zero on a problem. CI runs them on every push. `tests/e2e/house.spec.js` holds the
 Playwright browser tests (page loads, day 1 has 10-12 jobs, keyboard walking, picking up and putting
-down an item, Day complete and the next day surviving a reload, start over, the stairs), run with
+down an item, Day complete and the next day surviving a reload, start over from both places, the stairs), run with
 `npm run test:e2e`.

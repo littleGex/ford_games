@@ -27,6 +27,13 @@
       <h2><button id="taskToggle" aria-expanded="true"><span id="dayLabel">Day 1</span> <b class="caret">▾</b></button><span id="taskCount">0/0</span></h2>
       <div class="next"><div id="nextTitle"></div><div id="nextStep"></div></div>
       <ul id="taskList"></ul>
+      <div class="tasks-restart">
+        <button class="linkbtn" id="gameRestart">Start over from day 1</button>
+        <span id="gameRestartConfirm" hidden>Lose all progress?
+          <button class="linkbtn danger" id="gameRestartYes">Yes, start over</button>
+          <button class="linkbtn" id="gameRestartNo">No</button>
+        </span>
+      </div>
     </div>
   </div>
 
