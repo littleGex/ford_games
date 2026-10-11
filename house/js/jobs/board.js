@@ -140,6 +140,24 @@ export function createJobBoard({ scene, items, hud, levels }) {
     return best;
   }
 
+  /**
+   * Jobs can share an item (one hoover for every floor). Picking it up or putting it back for one job
+   * counts for the others waiting to do the same. Putting it back while another job still needed it
+   * sends that job back to fetching it.
+   */
+  function shareItem(job, s) {
+    const same = t => t.kind === s.kind && t.item === s.item;
+    for (const other of jobs) {
+      if (other === job || finished(other)) continue;
+      if (same(step(other))) { advance(other); continue; }
+      if (s.kind !== 'drop') continue;
+      const before = other.steps.slice(0, other.i);
+      const picked = before.map(t => t.kind === 'pick' && t.item === s.item).lastIndexOf(true);
+      const putBack = before.map(same).lastIndexOf(true);
+      if (picked > putBack) { other.i = picked; other.status = ''; }
+    }
+  }
+
   function act(choice) {
     if (!choice) return;
     if (choice.fixed) { choice.fixed.act(); return; }
@@ -147,6 +165,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (s.kind === 'sit') { ctx.sitting.sitDown(job, s); return; }
     if (s.kind === 'pick') S.carrying = s.item;
     if (s.kind === 'drop') { place(s); S.carrying = null; }
+    if (s.kind === 'pick' || s.kind === 'drop') shareItem(job, s);
     if (s.onDone) s.onDone(ctx);
     advance(job);
   }

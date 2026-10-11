@@ -8,7 +8,7 @@ import { S } from '../state.js';
 const FOOT = { at: [4.4, 6.05], arrive: [4.3, 6.0], facing: 0 };            // ground-floor hall, foot of the stairs
 const TOP = { at: [4.15, 4.45], arrive: [4.1, 4.55], facing: Math.PI / 2 }; // first-floor landing, top of the stairs
 // first floor <-> attic: the next flight goes up over the stairwell from its front end
-const ATTIC_FOOT = { at: [4.3, 6.3], arrive: [4.25, 6.2], facing: 0 };            // first-floor landing, by the bathroom
+const ATTIC_FOOT = { at: [4.6, 6.5], arrive: [4.3, 6.45], facing: 0 };            // first-floor landing, the gap in the banister by the bathroom
 const ATTIC_TOP = { at: [4.3, 4.55], arrive: [4.25, 4.6], facing: Math.PI / 2 };  // attic hall, top of the stairs
 export const STAIRS = { FOOT, TOP, ATTIC_FOOT, ATTIC_TOP };
 

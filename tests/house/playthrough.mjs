@@ -101,7 +101,7 @@ function standNear(p, level = S.level) {
 const goTo = cell => { G.player.group.position.x = cell[0]; G.player.group.position.z = cell[1]; };
 const STAIRS = {
   '0>1': { at: [4.4, 6.05], label: 'Go upstairs' }, '1>0': { at: [4.15, 4.45], label: 'Go downstairs' },
-  '1>2': { at: [4.3, 6.3], label: 'Go up to the attic' }, '2>1': { at: [4.3, 4.55], label: 'Go downstairs' },
+  '1>2': { at: [4.6, 6.5], label: 'Go up to the attic' }, '2>1': { at: [4.3, 4.55], label: 'Go downstairs' },
 };
 let stairTrips = 0;
 function travel(level) {
@@ -261,10 +261,35 @@ if (G.world.loftLadder.visible) errors.push('loft: ladder still down after the j
 G.days.next();
 
 // --- up to the attic and back down by the stairs
+// (walking through the middle of the bathroom doorway, next to the attic stairs, must not offer them)
+G.levels.show(1); goTo([3.875, 6.6]); frame();
+{ const n = G.board.nearestAction(G.player.group.position); if (n && n.fixed) errors.push(`bathroom doorway offers "${n.step.label}"`); }
+G.levels.show(0);
 travel(2);
 if (G.world.attic.visible !== true || G.world.upstairs.visible !== true) errors.push('attic: not shown when up there');
 travel(0);
 if (G.world.attic.visible || G.world.upstairs.visible) errors.push('attic: still shown when back downstairs');
+
+// --- one trip with the hoover does every floor on the list
+{
+  G.days.plan(['hoover', 'hooverUp', 'hooverAttic']);
+  const floors = ['hoover', 'hooverUp', 'hooverAttic'].map(id => G.board.find(id));
+  const must = (r, what) => { if (r !== true) errors.push(`one hoover trip, ${what}: ${r}`); };
+  must(doStep(floors[0]), 'picking it up');
+  if (floors.some(j => j.steps[j.i].kind !== 'hoover')) errors.push('picking the hoover up once should start every hoover job');
+  floors.forEach(j => must(doStep(j), j.id));   // hoover each floor, carrying it all the way
+  if (S.carrying !== 'hoover') errors.push('the hoover should still be in hand after the last floor');
+  must(doStep(floors[0]), 'putting it back');
+  if (floors.some(j => j.i < j.steps.length) || S.carrying) errors.push('putting the hoover back once should finish every hoover job');
+
+  // putting it back before the other floor is done sends that job back to fetching it
+  G.days.plan(['hoover', 'hooverUp']);
+  const [down, up] = ['hoover', 'hooverUp'].map(id => G.board.find(id));
+  for (const what of ['pick', 'hoover', 'drop']) must(doStep(down), what);
+  if (down.i < down.steps.length || up.i !== 0) errors.push(`hoover put back early: upstairs job at step ${up.i}, want 0 (get the hoover again)`);
+  for (const what of ['pick', 'hoover', 'drop']) must(doStep(up), 'upstairs ' + what);
+  if (up.i < up.steps.length) errors.push('the upstairs hoover job never finished');
+}
 
 // --- starting over goes back to day 1
 G.days.restart();

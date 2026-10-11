@@ -1,5 +1,6 @@
 // Dusty patches to hoover on each floor. The hoover head picks them up. The hoover lives under the stairs
-// downstairs, so hoovering upstairs or in the attic means carrying it up (and back down again).
+// downstairs, so hoovering upstairs or in the attic means carrying it up (and back down again). One trip
+// does every floor on today's list: picking the hoover up counts for all the hoover jobs (see board.js).
 import * as THREE from 'three';
 import { S } from '../state.js';
 import { add, group, mat, setBuildTarget } from '../core/build.js';

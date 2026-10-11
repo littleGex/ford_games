@@ -37,7 +37,7 @@ homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the Kinderzimmer desk
 the attic. Once a week there's a loft job: a box somewhere in the house goes up into the loft (stand
 under the hatch in the attic hall, where the ladder comes down), and a week later one comes back down
 to a room (`BOX_SPOTS`). Each floor has its own hoovering job; the hoover lives under the stairs, so it
-has to be carried up and back. Surprise events (post, a parcel at the door, a power
+has to be carried up and back; one trip does every floor on the list. Surprise events (post, a parcel at the door, a power
 cut) turn up on some days. When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
