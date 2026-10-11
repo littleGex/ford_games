@@ -80,6 +80,22 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.14, 0.11, 0.24, 16), mat('#2f6fd6'), [0, 0.12, 0]);
       add(g, new THREE.BoxGeometry(0.14, 0.06, 0.09), mat('#f2d14a'), [0.02, 0.26, 0]);
     }, [5.05, 0, -2.2]),
+    // garden tools for the seasons: the rake by the shed, the snow shovel by the front door
+    rake: item(g => {
+      add(g, new THREE.CylinderGeometry(0.015, 0.015, 1.2, 8), mat('#b08850'), [0, 0.6, 0]);
+      add(g, new THREE.BoxGeometry(0.4, 0.03, 0.04), mat('#3fa36b'), [0, 0.02, 0.02]);
+      for (let k = 0; k < 7; k++) add(g, new THREE.BoxGeometry(0.012, 0.012, 0.09), mat('#3fa36b'), [-0.18 + k * 0.06, 0.01, 0.07]);
+    }, [2.05, 0, -14.95], { userData: { carry: [0.12, 0, 0.6], carryRot: [-0.5, 0, 0] } }),
+    shovel: item(g => {
+      add(g, new THREE.CylinderGeometry(0.016, 0.016, 1.05, 8), mat('#2a2d33'), [0, 0.6, 0]);
+      add(g, new THREE.BoxGeometry(0.42, 0.02, 0.32), mat('#e04848'), [0, 0.02, 0.12]);
+      add(g, new THREE.BoxGeometry(0.16, 0.03, 0.03), mat('#2a2d33'), [0, 1.12, 0]);
+    }, [4.45, 0, 9.5], { userData: { carry: [0.12, 0, 0.6], carryRot: [-0.5, 0, 0] } }),
+    // a garden bag of raked leaves (shows up once the lawn is raked)
+    leafBag: item(g => {
+      add(g, new THREE.CylinderGeometry(0.2, 0.18, 0.4, 14), mat('#3f7a3a'), [0, 0.2, 0]);
+      ['#d9822b', '#c4472b', '#e0a030'].forEach((c, i) => add(g, new THREE.SphereGeometry(0.08, 8, 6), mat(c), [-0.07 + i * 0.07, 0.41, (i % 2) * 0.05], [1, 0.5, 1]));
+    }, [2.4, 0, -13.6], { hidden: true }),
     hoover: item(g => {
       add(g, new THREE.BoxGeometry(0.26, 0.05, 0.12), mat('#3a3d44'), [0, 0.03, 0]);
       add(g, new THREE.CylinderGeometry(0.02, 0.02, 0.75, 10), mat('#9aa1a8'), [0, 0.42, 0]);

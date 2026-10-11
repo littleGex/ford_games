@@ -187,6 +187,26 @@ test('doing the washing starts with sorting it by colour', async ({ page }) => {
   expect(await page.evaluate(() => window.house.board.find('washer').i)).toBe(1);
 });
 
+test('the seasons: raking leaves in autumn, clearing snow in winter', async ({ page }) => {
+  await page.goto('/house/?season=autumn');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  expect(await page.evaluate(() => window.house.season)).toBe('autumn');
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+  await planToday(page, ['rake']);
+  await page.evaluate(() => window.house.player.group.position.set(2.05, 0, -14.4));   // by the shed
+  await expect(page.locator('#actBtn')).toHaveText('Take the rake from by the shed');
+
+  await page.evaluate(() => localStorage.clear());   // a fresh game, so day 1 is planned in winter
+  await page.goto('/house/?season=winter');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  const winter = await page.evaluate(() => ({ season: window.house.season, mow: window.house.board.jobs.some(j => j.id === 'mow') }));
+  expect(winter).toEqual({ season: 'winter', mow: false });   // no mowing in the snow
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+  await planToday(page, ['snow']);
+  await page.evaluate(() => window.house.player.group.position.set(4.1, 0, 9.9));   // by the front door
+  await expect(page.locator('#actBtn')).toHaveText('Grab the snow shovel');
+});
+
 test('the stairs take you up to the first floor and back down', async ({ page }) => {
   await openHouse(page);
   await planToday(page, ['teeth', 'hands']);

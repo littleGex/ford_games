@@ -15,6 +15,7 @@ globalThis.window = globalThis;
 globalThis.innerWidth = 390; globalThis.innerHeight = 844; globalThis.devicePixelRatio = 3;
 globalThis.addEventListener = (t, f) => { (listeners[t] ||= []).push(f); };
 globalThis.matchMedia = () => ({ matches: false });
+globalThis.location = { search: '?season=autumn' };   // the same season whatever month the test runs in (snow is played on the extra day)
 globalThis.document = {
   getElementById: () => el(), querySelectorAll: () => [ { ...el(), dataset: { c: 'dad' } }, { ...el(), dataset: { c: 'girl' } } ],
   createElement: tag => tag === 'canvas' ? { width: 0, height: 0, getContext: () => ctx2d } : el(),
@@ -28,6 +29,7 @@ await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
 const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
 const { DAY_JOBS } = await import(new URL('../../house/js/days/planner.js', import.meta.url));
+const { SWEEPS } = await import(new URL('../../house/js/systems/sweeping.js', import.meta.url));
 const { HOOVER_SPOTS } = await import(new URL('../../house/js/systems/hoovering.js', import.meta.url));
 const { BOX_SPOTS } = await import(new URL('../../house/js/jobs/jobs.js', import.meta.url));
 const G = globalThis.house, S = G.S;
@@ -133,6 +135,14 @@ function doStep(job) {
       G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
     }
     return job.steps[job.i] !== s || 'dust left behind';
+  }
+  if (s.kind === 'rake' || s.kind === 'shovel') {   // walk the piles of leaves / snow with the rake or shovel
+    travel(0);
+    for (const [x, z] of SWEEPS[s.kind].spots) {
+      const { cell } = standNear([x, z - 0.55]); goTo(cell);
+      G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
+    }
+    return job.steps[job.i] !== s || `${s.kind === 'rake' ? 'leaves' : 'snow'} left behind`;
   }
   if (s.kind === 'charge' || s.kind === 'wait') { for (let n = 0; n < 2500 && job.steps[job.i] === s; n++) { if (!S.powerOn) fixPower(); frame(); } return job.steps[job.i] !== s || 'never finished running'; }
 
