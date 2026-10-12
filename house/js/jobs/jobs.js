@@ -159,7 +159,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     { id: 'solar', title: 'Check the solar panels', steps: [
       { kind: 'use', at: [5.0, 4.4], label: 'Check the solar reading on the cabinet', onDone: c => c.hud.toast('Not much power today: the panels on the shed need a clean') },
       { kind: 'pick', item: 'panelBrush', label: 'Get the long brush from the shed' },
-      { kind: 'wipe', dirt: 3, at: [2.65, -14.85], label: 'Brush the panels on the shed roof in circles' },
+      { kind: 'wipe', dirt: 3, at: [4.3, -16.2], label: 'Brush the panels on the shed roof in circles' },
       { kind: 'drop', item: 'panelBrush', home: true, label: 'Put the brush back by the shed' }],
       setup: c => { c.world.dirt[3].visible = true; c.world.dirt[3].material.opacity = 1; }, tidy: c => { c.world.dirt[3].visible = false; } },
     { id: 'snow', title: 'Clear the snow off the path', steps: [

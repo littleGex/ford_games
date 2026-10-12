@@ -338,7 +338,7 @@ test('the solar panels: check the reading, then brush the panels on the shed', a
   };
   await act(5.05, 4.45, 'Check the solar reading on the cabinet');
   await act(3.4, -14.6, 'Get the long brush from the shed');
-  await act(2.65, -14.7, 'Brush the panels on the shed roof in circles');
+  await act(4.35, -16.1, 'Brush the panels on the shed roof in circles');
   await expect(page.locator('#alert')).toContainText('Wipe in circles');
 });
 

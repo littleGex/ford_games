@@ -105,14 +105,14 @@ export function buildGarden() {
     for (let i = 0; i <= 10; i++) { g.beginPath(); g.moveTo(0, i * 25.6); g.lineTo(256, i * 25.6); g.stroke(); }
   });
   const panelMat = new THREE.MeshStandardMaterial({ map: cellTex, roughness: 0.35, metalness: 0.2 });
-  const PANEL_TILT = -0.35, panelY = WH + 0.2;
-  [1.95, 3.35].forEach(x => {
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.04, 1.85), panelMat);
-    panel.position.set(x, panelY, -16.3); panel.rotation.x = PANEL_TILT; panel.castShadow = true; put(panel);
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.29, 0.03, 1.89), mat('#c9ccd1'));
-    frame.position.set(x, panelY - 0.02, -16.3); frame.rotation.x = PANEL_TILT; put(frame);
-    [-0.7, 0.7].forEach(dz => cyl(x, -16.3 + dz, 0.025, 0.2 + dz * 0.25, '#9aa1a8', WH));   // mounting legs
+  // the panels lean towards the back gate side of the shed: one group, tilted about its long edge
+  const tilt = group(2.65, WH + 0.33, -16.3); tilt.rotation.z = -0.25;
+  [-0.55, 0.55].forEach(dz => {
+    add(tilt, new THREE.BoxGeometry(2.2, 0.03, 1.04), mat('#c9ccd1'), [0, -0.02, dz]);
+    add(tilt, new THREE.BoxGeometry(2.16, 0.04, 1.0), panelMat, [0, 0, dz]);
   });
+  castShadows(tilt);
+  [[1.65, 0.6], [3.65, 0.08]].forEach(([x, h]) => [-16.95, -15.65].forEach(z => cyl(x, z, 0.025, h, '#9aa1a8', WH)));   // mounting legs
   const dustTex = canvasTex(g => {
     for (let i = 0; i < 90; i++) {
       g.fillStyle = `rgba(${150 + Math.random() * 50 | 0},${130 + Math.random() * 40 | 0},90,${(0.3 + Math.random() * 0.4).toFixed(2)})`;
@@ -120,8 +120,7 @@ export function buildGarden() {
     }
     for (let i = 0; i < 14; i++) { g.fillStyle = ['#d9822b', '#7a8a3a', '#c4472b'][i % 3]; g.fillRect(Math.random() * 240, Math.random() * 240, 14, 8); }   // leaves
   });
-  const panelDirt = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 1.85), new THREE.MeshBasicMaterial({ map: dustTex, transparent: true, depthWrite: false }));
-  panelDirt.position.set(2.65, panelY + 0.03, -16.3); panelDirt.rotation.x = -Math.PI / 2 + PANEL_TILT; put(panelDirt);
+  const panelDirt = add(tilt, new THREE.PlaneGeometry(2.2, 2.1), new THREE.MeshBasicMaterial({ map: dustTex, transparent: true, depthWrite: false }), [0, 0.03, 0], null, [-Math.PI / 2, 0, 0]);
   panelDirt.visible = false;
 
   // Dad's workbench against the side of the shed, with a vice and tools, and a wall-mounted bike stand
