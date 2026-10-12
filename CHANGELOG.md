@@ -10,12 +10,14 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.5.8] - 2026-10-12
+
 ### Fixed
 - Ford House: P couldn't get or put back the box of crickets when her homework was on the list too, because
   the button at her desk always offered the homework. The box now lives on the windowsill, and whatever
-  you're carrying can always be put down first when you're at the spot it goes.
+  you're carrying can always be put down first when you're at the spot it goes (#59).
 - Ford House: the little craft table in P's room was so close to her bed and the terrarium that you could
-  only walk past it on two sides. It's a bit smaller and further into the room, so you can walk all the way round.
+  only walk past it on two sides. It's a bit smaller and further into the room, so you can walk all the way round (#59).
 
 ## [4.5.7] - 2026-10-12
 
@@ -198,7 +200,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.7...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.8...HEAD
+[4.5.8]: https://github.com/littleGex/ford_games/compare/v4.5.7...v4.5.8
 [4.5.7]: https://github.com/littleGex/ford_games/compare/v4.5.6...v4.5.7
 [4.5.6]: https://github.com/littleGex/ford_games/compare/v4.5.5...v4.5.6
 [4.5.5]: https://github.com/littleGex/ford_games/compare/v4.5.4...v4.5.5
