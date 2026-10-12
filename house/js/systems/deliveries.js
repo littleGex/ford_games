@@ -70,7 +70,7 @@ export function createDeliveries({ stage, items, board, hud }) {
 
   function update(dt, time) {
     if (S.dayOver) { if (state !== 'gone') sendAway(); return; }
-    if (!S.started) return;
+    if (!S.started || S.mission) return;   // no post or parcels in the middle of a mission
     if (!postDone && time > postAt) {
       postDone = true; items.post.visible = true;
       board.add({ id: 'post', title: 'Empty the letterbox', event: true, steps: [

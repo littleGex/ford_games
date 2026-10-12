@@ -133,4 +133,10 @@ button, a, [role="button"] { touch-action: manipulation; }
 .home .linkbtn.danger { color: #ff8a8a; }
 .home .linkbtn:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; border-radius: 4px; }
 .home .tasks-restart { margin: 0; padding: 0; border: 0; color: var(--muted); }
+.mission-play { display: flex; flex-direction: column; gap: 4px; }
+.mission-play button { border: 0; border-radius: 999px; padding: 6px 12px; font: 800 13px var(--f-display); color: #2a1a00; background: var(--marigold); cursor: pointer; white-space: nowrap; }
+.mission-play button::before { content: '▶ '; font-size: 10px; }
+.mission-play button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+.mission-best { color: var(--marigold) !important; font-weight: 700; margin-top: 2px; }
+.mission-stars { margin: 0 0 6px; font-size: 40px; letter-spacing: 6px; color: var(--marigold); line-height: 1; }
 @media (prefers-reduced-motion: reduce) { .toast, .hint { transition: none; } .alert, .daydone-card, .sort-card, .sort-card.shake, .home-card { animation: none; } }

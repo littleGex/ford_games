@@ -100,7 +100,7 @@ export function createDays(ctx) {
   }
 
   function update(dt, time) {
-    if (S.dayOver) return;
+    if (S.dayOver || S.mission) return;   // a mission's jobs don't finish the day
     if (board.allDone() && !S.carrying && !S.sitting) {
       if (completeAt === null) completeAt = time + DAY_COMPLETE_DELAY;
       if (time >= completeAt) complete();

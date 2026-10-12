@@ -52,6 +52,8 @@ export function createHud() {
   return {
     renderJobs,
     setDay(n) { el.dayLabel.textContent = `Day ${n}`; },
+    /** Something else in the day's place on the job list (a mission and its clock). */
+    setDayLabel(text) { el.dayLabel.textContent = text; },
     showDayComplete({ day, jobs, minutes, tomorrow, totals }) {
       el.dayDoneTitle.textContent = `Day ${day} complete`;
       el.dayDoneStats.textContent = minutes ? `${plural(jobs, 'job')} done in ${plural(minutes, 'minute')}` : `All ${plural(jobs, 'job')} done`;

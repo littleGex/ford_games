@@ -11,6 +11,11 @@ pull request; at release time that section becomes the new version (see "Releasi
 ## [Unreleased]
 
 ### Added
+- Ford House: the first mission, **the school run**, for P or Dude, from the home screen: get up,
+  breakfast, get dressed, pack your school bag, then cycle out of the back gate before the bell at 8:00.
+  Stars for how early you get there, with your best kept for each of the kids.
+- Ford House: Dude's clarinet, on its stand by his desk with a music stand. New job for Dude every few days:
+  practise the clarinet for 18 seconds, with a made-up clarinet tune and music notes floating up.
 - Ford House: a home screen when the game opens and from the ☰ button: carry on with today, pick who's
   playing, the missions to come, start over, and a way back to Game Zone. The game pauses while it's open.
 

@@ -48,7 +48,7 @@ export function createWeather({ stage, world, items, board, hud, player, season 
   function update(dt, time) {
     if (!S.started || S.dayOver) { if (rain.visible) rain.visible = false; return; }
     // once the washing is out, roll whether it'll rain today
-    if (state === 'dry' && world.washingLine.hasWashing()) {
+    if (state === 'dry' && !S.mission && world.washingLine.hasWashing()) {
       // (in winter it snows instead, see systems/seasonal.js)
       if (season !== 'winter' && Math.random() < cfg.chancePerDay) { state = 'coming'; rainAt = time + rand(...cfg.after); }
       else state = 'over';

@@ -263,7 +263,7 @@ if (missing.length) {
 
 // --- a day as Dude: his homework at his own desk, keyboard practice and tidying his room
 G.days.setCharacter('boy');
-G.days.plan(['homework', 'music', 'tidyDude']);
+G.days.plan(['homework', 'music', 'tidyDude', 'clarinet']);
 // (P's toys and Dad's cooking come up in the 12 days or the extra day)
 if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
 playDay("Dude's day");
@@ -303,6 +303,28 @@ G.days.plan(['washing', 'hands']);
   if (G.world.washingLine.hasWashing()) errors.push('rain: washing still on the line');
 }
 G.days.next();
+
+// --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day
+for (const who of ['girl', 'boy']) {
+  const dayBefore = G.days.day, planBefore = G.board.jobs.map(j => j.id).join();
+  G.missions.start('schoolRun', who);
+  if (G.board.jobs.length !== 1 || S.mission.who !== who) errors.push(`school run (${who}): didn't start with one step on the list`);
+  for (let round = 0; round < 30 && !S.mission.done; round++) {
+    for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+      let guard = 0;
+      while (job.i < job.steps.length && guard++ < 10) {
+        const before = job.i, r = doStep(job);
+        if (r !== true) { errors.push(`school run (${who}) "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; break; }
+      }
+    }
+    frame();
+  }
+  if (!S.mission.done) errors.push(`school run (${who}): never got to school`);
+  else console.log(`school run as ${who}: ${G.board.jobs.length} steps, arrived at minute ${Math.round(S.mission.t / 4)} after 7:30, best`, G.missions.best('schoolRun', who));
+  if (G.days.save.today.done.some(id => id.startsWith('schoolRun'))) errors.push('school run: mission steps got saved as day jobs');
+  G.missions.end();
+  if (S.mission || G.days.day !== dayBefore || G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`school run (${who}): the day didn't come back as it was`);
+}
 
 // --- up to the attic and back down by the stairs
 // (walking through the middle of the bathroom doorway, next to the attic stairs, must not offer them)
