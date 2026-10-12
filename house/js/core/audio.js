@@ -47,6 +47,20 @@ export function ring() {
   } catch (e) { /* ignore */ }
 }
 
+/** The fire alarm: three loud, harsh beeps. */
+export function alarm() {
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    [0, 0.45, 0.9].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square'; o.frequency.value = 950;
+      g.gain.setValueAtTime(0.0001, now + t); g.gain.exponentialRampToValueAtTime(0.09, now + t + 0.01); g.gain.setValueAtTime(0.09, now + t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.34);
+      o.connect(g); g.connect(ctx.destination); o.start(now + t); o.stop(now + t + 0.36);
+    });
+  } catch (e) { /* ignore */ }
+}
+
 // Music while someone sits and plays or works: the radio on a desk, Dude's clarinet. Made-up tunes, made with
 // the browser's own sound (no recordings). music('radio') / music('clarinet') starts one, music(null) stops.
 const SONGS = {

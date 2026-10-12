@@ -30,6 +30,16 @@ with the day.
   Coffee and snacks are there whenever you like, and some time in the day the phone rings with an urgent
   call to join within 20 minutes. At a desk the job due soonest comes first. Stars: on time for every
   meeting, done by 17:00, and taking a break.
+- **Work at the office** (Dad), 7:00 until home by 17:30: get up, dressed and breakfast, then cycle out
+  of the back gate to the office (`js/world/office.js`, built from Dad's sketch: open-plan desks, the
+  boss's office, a meeting room, Dad's room, the kitchen and a bathroom, a bike rack outside, a road on
+  one side and a courtyard on the other). Clock in at the machine by the door, then the working day in
+  any order: the meeting with the boss at 10:00 at his round table, the team meeting at 14:00 in the
+  meeting room, emails, a report and code at Dad's desk, lunch from the kitchen fridge, water; coffee,
+  snacks and the bathroom whenever you like. The phone rings once with an urgent call, and once in the
+  day the fire alarm goes off: out through the fire door to the assembly point and wait 30 seconds for
+  the all-clear, with nothing else allowed meanwhile. Then shut down, clock out, cycle home and put the
+  bike back on the terrace. Stars: on time for the meetings, home by 17:30, a break.
 - **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
   for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
   pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the

@@ -15,6 +15,7 @@ import { buildTerrace } from './outside/terrace.js';
 import { buildGarden } from './outside/garden.js';
 import { buildUpstairs } from './upstairs/index.js';
 import { buildAttic } from './attic/index.js';
+import { buildOffice } from './office.js';
 
 export function buildWorld(scene) {
   setBuildTarget(scene, 0);
@@ -22,7 +23,7 @@ export function buildWorld(scene) {
   const world = Object.assign({}, structure,
     buildWohnzimmer(), buildEsszimmer(), buildKueche(), buildFlur(), buildWindfang(), buildWc(),
     buildFront(), buildNeighbours(), buildTerrace(), buildGarden(),
-    buildUpstairs(scene), buildAttic(scene));
+    buildUpstairs(scene), buildAttic(scene), buildOffice());
   world.dirt.push(world.panelDirt);   // dirt[3]: the solar panels on the shed (wiped like the terrace windows)
   return world;
 }
