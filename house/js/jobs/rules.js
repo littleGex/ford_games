@@ -44,7 +44,6 @@ export const POOL_RULES = [
   { id: 'sofabed', every: 3, who: ['mum'] },
   { id: 'fixBike', every: 6, who: ['dad'] },     // the shed
   { id: 'solar', every: 5, who: ['dad'] },
-  { id: 'trim', every: 5, who: ['dad', 'mum'], season: ['spring', 'summer', 'autumn'] },
   // appointments
   { id: 'hoover', every: 3 },
   { id: 'shopping', every: 3 },
@@ -57,6 +56,7 @@ export const POOL_RULES = [
   { id: 'windows', every: 7 },
   // seasons
   { id: 'rake', every: 3, season: ['autumn'] },
+  { id: 'trim', every: 5, season: ['spring', 'summer', 'autumn'] },   // trim the bushes (anyone)
   { id: 'snow', every: 2, season: ['winter'] },
   { id: 'hooverUp', every: 4 },
   { id: 'hooverAttic', every: 5 },

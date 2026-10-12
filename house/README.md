@@ -76,8 +76,8 @@ desk, plays with it (it sits on her hand while she sits on her bed) and cleans o
 mess, rinse and refill the water bowl at the bathroom basin). Once it's been fed and played with it's
 happy: its colours warm up and it bobs its head.
 
-The shed at the bottom of the garden has solar panels on its roof and Dad's workbench beside it. Mum or
-Dad trims the bushes when they get shaggy (not in winter) and tips the clippings in the brown bin; Dad
+The shed at the bottom of the garden has solar panels on its roof and Dad's workbench beside it. Anyone
+can trim the bushes when they get shaggy (not in winter) and tip the clippings in the brown bin; Dad
 fixes P's bike at the workbench, and when the solar reading on the cabinet under the stairs is low he
 brushes the panels clean in circles with the long brush.
 

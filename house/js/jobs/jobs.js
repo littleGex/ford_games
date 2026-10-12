@@ -141,7 +141,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'leafBag', label: 'Pick up the bag of leaves' },
       { kind: 'drop', item: 'leafBag', at: [4.3, 9.65], place: [4.85, 0.95, 9.65], label: 'Tip the leaves into the brown bin', onDone: c => { c.items.leafBag.visible = false; } }],
       setup: c => c.sweeping.reset('rake', true), tidy: c => c.sweeping.reset('rake', false) },
-    // the shed: trimming the bushes (Mum and Dad), fixing a bike and the solar panels (Dad)
+    // the shed: trimming the bushes (anyone), fixing a bike and the solar panels (Dad)
     { id: 'trim', title: 'Trim the bushes', steps: [
       { kind: 'pick', item: 'shears', label: 'Get the hedge trimmer from the shed' },
       { kind: 'trim' },

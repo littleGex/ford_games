@@ -12,7 +12,7 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ### Added
 - Ford House: the shed. Solar panels on its roof, Dad's workbench with a bike stand beside it, and garden
-  tools by its door. New jobs: **trim the bushes** (Mum and Dad, not in winter: take the hedge trimmer
+  tools by its door. New jobs: **trim the bushes** (anyone, not in winter: take the hedge trimmer
   round the shaggy bushes, then the clippings go in the brown bin), **fix P's bike** (Dad: wheel it to the
   workbench, fix the puncture and oil the chain, wheel it back) and **check the solar panels** (Dad: the
   reading on the cabinet under the stairs is low, so brush the dust and leaves off the panels in circles).
