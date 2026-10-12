@@ -10,16 +10,18 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.5.9] - 2026-10-12
+
 ### Added
 - Ford House: a second mission, **3D printing**, for Dad (no clock, just for fun). Pick a design on a
   close-up of the laptop at his desk (a dragon for P, a plant pot, a phone stand, a rocket for Dude), order
   filament in a colour you choose, take the parcel from the courier, load the printer in the light-box
   cupboard by the sofa, send the print from the laptop and watch it grow layer by layer, then put the model
-  where it belongs. The home screen lists everything you've made so far (#55).
+  where it belongs. The home screen lists everything you've made so far (#62, closes #55).
 
 ### Changed
 - Ford House: the little side table by the sofa is now the light-box cupboard with the 3D printer inside
-  (glass top and door, lit inside); the phone still rests on top.
+  (glass top and door, lit inside); the phone still rests on top (#62).
 
 ## [4.5.8] - 2026-10-12
 
@@ -211,7 +213,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.8...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.9...HEAD
+[4.5.9]: https://github.com/littleGex/ford_games/compare/v4.5.8...v4.5.9
 [4.5.8]: https://github.com/littleGex/ford_games/compare/v4.5.7...v4.5.8
 [4.5.7]: https://github.com/littleGex/ford_games/compare/v4.5.6...v4.5.7
 [4.5.6]: https://github.com/littleGex/ford_games/compare/v4.5.5...v4.5.6
