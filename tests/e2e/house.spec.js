@@ -393,6 +393,30 @@ test('work at the office: cycle there, clock in, and a fire drill stops everythi
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
+test("Mum's office: drive there, zebra crossing, badge at security, clock in, up the stairs", async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="officeMum"][data-kid="mum"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Work at the office · 7:00');
+  await page.evaluate(() => { const H = window.house; for (let k = 0; k < 3; k++) H.board.advance(H.board.jobs.find(j => j.i < j.steps.length)); H.levels.show(0); });
+  const act = async (x, z, label) => {
+    await page.evaluate(([px, pz]) => window.house.player.group.position.set(px, 0, pz), [x, z]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(0.6, 13.0, 'Get in the car and drive to work');
+  await expect(page.locator('#roomName')).toHaveText('Parkplatz');
+  await act(89.6, 10.7, 'Cross the road on the zebra crossing');
+  await act(92.1, 9.7, 'Show your badge at the security window');
+  await expect(page.locator('#taskList')).toContainText('Coffee from the café (if you like)');
+  await act(98.0, 8.0, 'Clock in at the machine inside the entrance');
+  await act(95.5, 6.4, 'Go up the stairs to your office');
+  await expect(page.locator('#missionDone')).toBeVisible();
+  await expect(page.locator('#missionDoneStats')).toContainText('Up the stairs at');
+  await page.locator('#missionBack').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
 test('the 3D printing mission: pick a design on the laptop close-up', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();

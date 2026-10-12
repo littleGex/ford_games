@@ -62,7 +62,16 @@ function walkable(level, sx, sz, { X0, Z0, NX, NZ } = HOUSE_GRID) {
   return out;
 }
 const officeCells = walkable(0, 43.0, 15.3, OFFICE_GRID);   // the office and round it, from the bike rack
-const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells), walkable(1, 4.1, 4.55), walkable(2, 4.25, 4.6)];
+// Mum's office site: the car park side and, behind the gate (closed until you show your badge), the building
+const MUM_GRID = { X0: 76.2, Z0: -4.8, NX: Math.round(31.6 / RES), NZ: Math.round(22 / RES) };
+const mumOutside = walkable(0, 86.0, 7.25, MUM_GRID);
+if (mumOutside.some(c => c[0] > 92.7 && c[1] < 13.4)) errors.push("Mum's office: you can get past the closed security gate");
+G.world.mumGate.open();
+const mumCells = walkable(0, 86.0, 7.25, MUM_GRID);
+G.world.mumGate.close();
+for (const [what, x, z] of [['the zebra crossing', 89.6, 10.7], ['the security window', 92.15, 9.55], ['the clock-in machine', 98.0, 8.4], ['the café counter', 101.5, 2.6], ['the foot of the stairs', 95.5, 6.1]])
+  if (!mumCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office: can't walk to ${what} from the car park`);
+const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells), walkable(1, 4.1, 4.55), walkable(2, 4.25, 4.6)];
 // every room in the office can be reached from the bike rack
 for (const [room, x, z] of [['open plan', 42.6, 3.0], ["boss's office", 41.5, 8.4], ['meeting room', 41.9, 12.0], ["Dad's room", 44.0, 8.9], ['kitchen', 44.5, 10.9], ['bathroom', 44.5, 13.0], ['assembly point', 43.1, -2.4]])
   if (!officeCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`office: can't walk to the ${room} (${x}, ${z})`);
@@ -550,6 +559,25 @@ for (const who of ['dad', 'mum']) {
   if (G.player.group.position.x > 30) errors.push('office: still at the office after going back to the day');
   const spot = MISSIONS.office.spot('dad');
   if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push('office: Dad starts inside something');
+}
+
+// --- Mum's day at the office (so far): drive there, cross on the zebra, show her badge, clock in (and a
+// coffee from the café), then up the stairs
+{
+  const planBefore = G.board.jobs.map(j => j.id).join(), seen = new Set();
+  G.missions.start('officeMum', 'mum');
+  playWorkDay("Mum's office", seen);
+  if (!S.mission.done) errors.push("Mum's office: never got up the stairs");
+  for (const key of ['clockIn', 'coffee']) if (!seen.has(key)) errors.push(`Mum's office: never had "${key}" on the list`);
+  if (!G.world.mumCar.visible || G.world.car.visible) errors.push("Mum's office: the car didn't move to the office car park");
+  if (S.mission.done) {
+    const b = G.missions.best('officeMum', 'mum');
+    if (b.stars !== 3) errors.push(`Mum's office: a quick morning only got ${b.stars} stars`);
+    else console.log("Mum's office: up the stairs at", Math.round(b.minutes), 'min');
+  }
+  G.missions.end();
+  if (!G.world.car.visible || G.world.mumCar.visible) errors.push("Mum's office: the car isn't back home after the mission");
+  if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push("Mum's office: the day didn't come back as it was");
 }
 
 // --- up to the attic and back down by the stairs

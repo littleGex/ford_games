@@ -16,7 +16,8 @@ export function createHome(ctx) {
     document.querySelectorAll('.mission-best').forEach(b => {
       const id = b.dataset && b.dataset.best, who = [['girl', 'P'], ['boy', 'Dude'], ['dad', 'Dad'], ['mum', 'Mum']];
       if (!id) return;
-      const best = ctx.missions ? who.map(([k, name]) => [name, ctx.missions.best(id, k)]).filter(([, r]) => r) : [];
+      const ids = id.split(' ');   // a card can show more than one mission (the office: Dad's and Mum's)
+      const best = ctx.missions ? ids.flatMap(i => who.map(([k, name]) => [name, ctx.missions.best(i, k)])).filter(([, r]) => r) : [];
       b.textContent = best.map(([name, r]) => r.made
         ? `Made so far: ${r.made.map(d => (DESIGNS.find(x => x.id === d) || { name: d }).name).join(', ')}`   // 3D printing
         : `${name} ${'★'.repeat(r.stars)} ${clockText(r.minutes)}`).join(' · ');

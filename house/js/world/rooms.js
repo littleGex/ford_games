@@ -38,6 +38,16 @@ ROOMS.push(
   { name: 'WC', area: 'office bathroom', r: [O + 3.05, 12.2, O + 6.2, 13.7] },
   { name: 'Büro', area: 'outside the office', r: [O - 14, -8, O + 15.2, 22] },
 );
+// Mum's office site (world/mumoffice.js, from x 80)
+const MO = 80;
+ROOMS.push(
+  { name: 'Café', area: 'ground floor', r: [MO + 17.7, 0.5, MO + 26, 6.0] },
+  { name: 'Eingangshalle', area: "entrance hall of Mum's office", r: [MO + 14, 0.5, MO + 26, 9.0] },
+  { name: 'Pforte', area: 'security gate', r: [MO + 11.7, 6.5, MO + 14.6, 12.6] },
+  { name: 'Parkplatz', area: 'car park', r: [MO - 1, 0, MO + 7.5, 11] },
+  { name: 'Straße', area: 'the road', r: [MO + 7.5, -6, MO + 11.7, 36] },
+  { name: 'Bürogelände', area: "outside Mum's office", r: [MO - 8, -6, MO + 34, 36] },
+);
 const OUTSIDE = { name: 'Garten', area: 'outside', level: 0 };
 
 /**

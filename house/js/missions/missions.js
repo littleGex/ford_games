@@ -22,6 +22,7 @@ import { PRINTER } from '../world/rooms/wohnzimmer.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { ring, alarm } from '../core/audio.js';
 import { OFFICE } from '../world/office.js';
+import { MUM } from '../world/mumoffice.js';
 
 const KEY = 'fordHouse.missions.v1';
 const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
@@ -227,6 +228,38 @@ export const MISSIONS = {
     result: (mission, arrived) => workResult(mission, arrived, ['boss', 'team', 'urgent'], hm(17.5), 'Home at'),
   },
 
+  // Mum's day at her office. For now it ends at the top of the stairs: the office floor upstairs is still
+  // to be built (Alan is sketching it), then the working day carries on up there.
+  officeMum: {
+    title: 'Work at the office', who: ['mum'],
+    clock: { start: hm(7), end: hm(8.5), secondsPerMinute: 0.5 },          // up the stairs by 8:30
+    stars: minutes => minutes <= hm(8.25) ? 3 : minutes <= hm(8.5) ? 2 : 1,
+    spot: who => ({ name: NAMES[who], level: 1, start: [2.75, 2.35], facing: -Math.PI / 2 }),
+    intro: 'Drive to the office: be up the stairs to your desk by 8:30',
+    setup(c) { c.world.bigBed.mess(); c.world.mumGate.close(); c.world.mumCar.visible = false; },
+    jobs: () => [
+      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: [2.35, 1.9], label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
+      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2], dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
+      { title: 'Have breakfast', steps: [{ kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 6, what: 'Having breakfast', label: 'Sit down and have breakfast' }] },
+      { title: 'Drive to work', steps: [{ kind: 'use', at: [0.6, 13.25], label: 'Get in the car and drive to work', onDone: c => c.missions.travel('mumOffice') }] },
+      { title: 'Cross the road', steps: [{ kind: 'use', at: MUM.zebra, label: 'Cross the road on the zebra crossing', onDone: c => c.hud.toast('Look left, look right... and across!') }] },
+      { title: 'Show your badge', steps: [{ kind: 'use', at: MUM.badge, label: 'Show your badge at the security window',
+        onDone: c => { c.world.mumGate.open(); c.hud.toast('Guard: "Morning! In you go."'); } }] },
+      [
+        { key: 'clockIn', title: 'Clock in', steps: [{ kind: 'use', at: MUM.clock, label: 'Clock in at the machine inside the entrance', onDone: c => c.hud.toast(`Clocked in at ${clockText(c.missions.minutes())}`) }] },
+        { key: 'coffee', optional: true, title: 'Coffee from the café (if you like)', steps: [
+          { kind: 'sit', stand: true, at: MUM.cafe.at, seat: MUM.cafe.seat, dur: 5, what: 'Buying a coffee', label: 'Get a coffee to take upstairs' }] },
+      ],
+      { title: 'Up to the office', steps: [{ kind: 'use', at: MUM.stairs, label: 'Go up the stairs to your office' }] },
+    ],
+    result(mission, arrived) {
+      const stars = MISSIONS.officeMum.stars(arrived), coffee = (mission.breaks || {}).coffee;
+      return { stars, title: stars === 3 ? 'Early start!' : stars === 2 ? 'Just in time!' : 'A bit late!',
+        stats: `Up the stairs at ${clockText(arrived)}${coffee ? ', coffee in hand' : ''}. (The office floor upstairs is coming soon.)` };
+    },
+    onOptional(c, mission, job) { (mission.breaks ||= {})[job.key] = 1; },
+  },
+
   print3d: {
     title: '3D printing', who: ['dad'],
     spot: () => ({ name: 'Dad', level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
@@ -371,6 +404,7 @@ export function createMissions(ctx) {
     S.mission = null;
     if (S.laptop) ctx.laptop.close();
     if (ctx.printing) ctx.printing.reset();
+    ctx.world.car.visible = true; ctx.world.mumCar.visible = false; ctx.world.mumGate.close();   // Mum's car back home
     el.box.hidden = true;
     if (S.sitting) ctx.sitting.standUp();
     player.setCharacter(days.character);
@@ -394,6 +428,17 @@ export function createMissions(ctx) {
     travel(where) {
       const bike = ctx.items.dadBike, scene = ctx.stage.scene;
       levels.show(0);
+      if (where === 'mumOffice' || where === 'homeByCar') {   // Mum drives: the car leaves the house and turns up in the car park
+        const there = where === 'mumOffice';
+        ctx.world.car.visible = !there; ctx.world.mumCar.visible = there;
+        if (there) { player.group.position.set(MUM.park[0], 0, MUM.park[1]); player.group.rotation.y = Math.PI / 2; }
+        else { player.group.position.set(0.6, 0, 13.0); player.group.rotation.y = Math.PI; }
+        S.mission.atWork = there;
+        if (S.mission.clock) S.mission.t += 20 * S.mission.clock.secondsPerMinute;
+        if (ctx.view) ctx.view.reset();
+        hud.toast(there ? `You drive to the office: ${clockText(now())}` : `Home again: ${clockText(now())}`);
+        return;
+      }
       if (where === 'office') {
         scene.attach(bike); bike.position.set(OFFICE.rack[0], 0, OFFICE.rack[1]); bike.rotation.set(0, 0, 0);
         player.group.position.set(OFFICE.arrive[0], 0, OFFICE.arrive[1]); player.group.rotation.y = Math.PI;
