@@ -1,4 +1,4 @@
-// Kinderzimmer (the smaller bedroom, front left): pink quilted daybed along the gable wall with paintings
+// P's room (Kinderzimmer on the plan; the smaller bedroom, front left): pink quilted daybed along the gable wall with paintings
 // and a football-shirt bunting above it, pine bookshelf in the corner by the window, white desk with the
 // blue chair, grey-green wardrobe by the door, a little wooden craft table and a toy box.
 import * as THREE from 'three';

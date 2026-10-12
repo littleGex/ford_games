@@ -22,6 +22,13 @@ async function openHouse(page, { frames = 0 } = {}) {
   await page.goto('/house/');
   // a frame that is drawn can take many seconds on a busy machine
   await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/, { timeout: frames ? 60000 : 20000 });
+  await play(page);
+}
+
+// The game opens on the home screen; Play closes it.
+async function play(page) {
+  await page.locator('#homePlay').click();
+  await expect(page.locator('#home')).toBeHidden();
 }
 
 // Each day's list is random, so tests that need a particular job set today's list themselves.
@@ -122,7 +129,7 @@ test('start over goes back to day 1 after confirming', async ({ page }) => {
   await expect(page.locator('#dayDone')).toBeHidden();
 });
 
-test('start over under the job list asks first, then goes back to day 1', async ({ page }) => {
+test('start over on the home screen asks first, then goes back to day 1', async ({ page }) => {
   await openHouse(page);
   await planToday(page, ['hands']);
   await page.evaluate(() => window.house.player.group.position.set(5.0, 0, 7.98));
@@ -131,6 +138,7 @@ test('start over under the job list asks first, then goes back to day 1', async 
   await expect(page.locator('#dayLabel')).toHaveText('Day 2');
 
   // saying no keeps the day
+  await page.locator('#menuBtn').click();
   await page.locator('#gameRestart').click();
   await page.locator('#gameRestartNo').click();
   await expect(page.locator('#gameRestart')).toBeVisible();
@@ -139,7 +147,7 @@ test('start over under the job list asks first, then goes back to day 1', async 
   await page.locator('#gameRestart').click();
   await page.locator('#gameRestartYes').click();
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
-  await expect(page.locator('#gameRestart')).toBeVisible();
+  await expect(page.locator('#home')).toBeHidden();   // straight into day 1
   expect(await page.evaluate(() => window.house.days.save.day)).toBe(1);
 });
 
@@ -163,7 +171,7 @@ test('each character has their own jobs: Dad shaves, Mum works, P and Dude do ho
   await expect(page.locator('#taskList')).toContainText('Do some work');
   expect(await jobs()).not.toContain('shave');
 
-  // P does her homework at the desk in the Kinderzimmer, Dude at his own desk in the attic
+  // P does her homework at the desk in her room, Dude at his own desk in the attic
   await page.locator('.who button[data-c="girl"]').click();
   await page.evaluate(() => { window.house.levels.go(1); window.house.player.group.position.set(1.9, 2.3, 8.05); });
   await expect(page.locator('#actBtn')).toHaveText('Sit at the desk and do your homework');
@@ -190,6 +198,7 @@ test('doing the washing starts with sorting it by colour', async ({ page }) => {
 test('the seasons: raking leaves in autumn, clearing snow in winter', async ({ page }) => {
   await page.goto('/house/?season=autumn');
   await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await play(page);
   expect(await page.evaluate(() => window.house.season)).toBe('autumn');
   await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
   await planToday(page, ['rake']);
@@ -199,12 +208,50 @@ test('the seasons: raking leaves in autumn, clearing snow in winter', async ({ p
   await page.evaluate(() => localStorage.clear());   // a fresh game, so day 1 is planned in winter
   await page.goto('/house/?season=winter');
   await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await play(page);
   const winter = await page.evaluate(() => ({ season: window.house.season, mow: window.house.board.jobs.some(j => j.id === 'mow') }));
   expect(winter).toEqual({ season: 'winter', mow: false });   // no mowing in the snow
   await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
   await planToday(page, ['snow']);
   await page.evaluate(() => window.house.player.group.position.set(4.1, 0, 9.9));   // by the front door
   await expect(page.locator('#actBtn')).toHaveText('Grab the snow shovel');
+});
+
+test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {
+  await page.goto('/house/');
+  await expect(page.locator('#home')).toBeVisible();   // the game opens on it
+  await expect(page.locator('#homeTitle')).toHaveText('Ford House');
+  await expect(page.locator('#homePlay')).toHaveText('Start day 1');
+  await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
+  await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
+  await expect(page.locator('.mission')).toHaveCount(2);
+
+  // picking who plays here changes the player too
+  await page.locator('.home-who button[data-c="mum"]').click();
+  await expect(page.locator('.who button[data-c="mum"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => window.house.days.character)).toBe('mum');
+
+  // the game is paused while it's open
+  const before = await page.evaluate(() => window.house.clock.elapsedTime);
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.house.clock.elapsedTime)).toBe(before);
+
+  await page.locator('#homePlay').click();
+  await expect(page.locator('#home')).toBeHidden();
+  await page.locator('#menuBtn').click();                 // ☰ brings it back
+  await expect(page.locator('#home')).toBeVisible();
+  await expect(page.locator('#homeSub')).toContainText('playing as Mum');
+  await page.keyboard.press('Escape');                    // Escape closes it
+  await expect(page.locator('#home')).toBeHidden();
+});
+
+test("standing in the terrace door still counts as the living room", async ({ page }) => {
+  await openHouse(page);
+  await page.evaluate(() => window.house.player.group.position.set(1.6, 0, 1.0));
+  await expect(page.locator('#roomName')).toHaveText('Wohnzimmer');
+  await page.evaluate(() => window.house.player.group.position.set(1.6, 0, -0.2));   // in the doorway, inside the wall
+  await page.waitForTimeout(200);
+  await expect(page.locator('#roomName')).toHaveText('Wohnzimmer');
 });
 
 test('the stairs take you up to the first floor and back down', async ({ page }) => {

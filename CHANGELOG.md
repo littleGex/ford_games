@@ -10,6 +10,16 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: a home screen when the game opens and from the ☰ button: carry on with today, pick who's
+  playing, the missions to come, start over, and a way back to Game Zone. The game pauses while it's open.
+
+### Changed
+- Ford House: the Kinderzimmer is called P's room; "Start over" moved from under the job list to the home screen.
+
+### Fixed
+- Ford House: standing in a doorway (like the terrace door) no longer says you're in the garden.
+
 ## [4.5.4] - 2026-10-12
 
 ### Added

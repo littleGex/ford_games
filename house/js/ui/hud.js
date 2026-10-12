@@ -100,7 +100,7 @@ export function createHud() {
     },
     hideHint() { el.hint.classList.add('gone'); },
     bindCharacterButtons(onPick) {
-      const buttons = document.querySelectorAll('.who button');
+      const buttons = document.querySelectorAll('.who button, .home-who button');   // the corner and the home screen
       const mark = k => buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === k)));
       buttons.forEach(b => b.addEventListener('click', () => { onPick(b.dataset.c); mark(b.dataset.c); }));
       return mark;

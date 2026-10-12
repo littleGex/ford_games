@@ -207,6 +207,7 @@ function playDay(label) {
 
 // --- play 12 days in a row, checking the day rules and the house setup each morning
 S.started = true;
+G.home.close();   // the game opens on the home screen; Play
 const played = new Set(), dayLog = [], binTitles = [];
 const kerb = id => G.items[id].position.z > 12.5;
 const binIds = ['binBlue', 'binYellow', 'binBlack', 'binBrown'];

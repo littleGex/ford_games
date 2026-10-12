@@ -15,7 +15,7 @@ export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['bin
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
 
 // Where each of the kids does their homework: the floor, where to stand, the seat [x, seat height, z, facing].
-// P at the Kinderzimmer desk, Dude at his own desk in the attic.
+// P at the desk in her room, Dude at his own desk in the attic.
 const KINDERZIMMER_DESK = { level: 1, at: [2.3, 8.05], seat: [2.3, 0.48, 8.05, Math.PI / 2], label: 'Sit at the desk and do your homework' };
 const DUDES_DESK = { level: 2, at: [4.62, 2.27], seat: [4.62, 0.45, 2.27, Math.PI / 2], label: 'Sit at your desk and do your homework' };
 const HOMEWORK_SPOT = { girl: KINDERZIMMER_DESK, boy: DUDES_DESK };
