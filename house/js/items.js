@@ -96,6 +96,23 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.BoxGeometry(0.42, 0.02, 0.32), mat('#e04848'), [0, 0.02, 0.12]);
       add(g, new THREE.BoxGeometry(0.16, 0.03, 0.03), mat('#2a2d33'), [0, 1.12, 0]);
     }, [4.45, 0, 9.5], { userData: { carry: [0.12, 0, 0.6], carryRot: [-0.5, 0, 0] } }),
+    // from the shed: the hedge trimmer (leaning by the shed's front corner) and the soft brush on a long pole
+    // for the solar panels; a bag of clippings shows up once the bushes are trimmed
+    shears: item(g => {
+      add(g, new THREE.BoxGeometry(0.1, 0.12, 0.22), mat('#3fa36b'), [0, 0.06, 0]);
+      add(g, new THREE.BoxGeometry(0.03, 0.02, 0.55), mat('#b9bdc2'), [0, 0.06, 0.38]);
+      for (let k = 0; k < 9; k++) add(g, new THREE.BoxGeometry(0.06, 0.008, 0.012), mat('#8a8f96'), [0, 0.06, 0.15 + k * 0.055]);
+      add(g, new THREE.TorusGeometry(0.05, 0.012, 6, 14), mat('#2b2d31'), [0, 0.13, -0.08], null, [0, Math.PI / 2, 0]);
+    }, [1.2, 0, -14.95], { rotY: 0.6, userData: { carry: [0.1, 0.62, 0.3], carryRot: [0, 0, 0] } }),
+    panelBrush: item(g => {
+      add(g, new THREE.CylinderGeometry(0.015, 0.015, 1.6, 8), mat('#9aa1a8'), [0, 0.8, 0]);
+      add(g, new THREE.BoxGeometry(0.32, 0.06, 0.08), mat('#2f6fd6'), [0, 1.62, 0]);
+      add(g, new THREE.BoxGeometry(0.3, 0.05, 0.07), mat('#f2f2f2'), [0, 1.67, 0]);
+    }, [3.75, 0, -15.0], { userData: { carry: [0.12, 0, 0.3], carryRot: [0.55, 0, 0] } }),
+    clippingsBag: item(g => {
+      add(g, new THREE.CylinderGeometry(0.2, 0.18, 0.4, 14), mat('#3f7a3a'), [0, 0.2, 0]);
+      ['#2f5b2e', '#4f8a3a', '#3b6b36'].forEach((c, i) => add(g, new THREE.SphereGeometry(0.08, 8, 6), mat(c), [-0.07 + i * 0.07, 0.41, (i % 2) * 0.05], [1, 0.6, 1]));
+    }, [2.4, 0, -14.2], { hidden: true }),
     // a garden bag of raked leaves (shows up once the lawn is raked)
     leafBag: item(g => {
       add(g, new THREE.CylinderGeometry(0.2, 0.18, 0.4, 14), mat('#3f7a3a'), [0, 0.2, 0]);

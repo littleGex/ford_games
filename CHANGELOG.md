@@ -10,6 +10,15 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.5.7] - 2026-10-12
+
+### Added
+- Ford House: the shed. Solar panels on its roof, Dad's workbench with a bike stand beside it, and garden
+  tools by its door. New jobs: **trim the bushes** (anyone, not in winter: take the hedge trimmer
+  round the shaggy bushes, then the clippings go in the brown bin), **fix P's bike** (Dad: wheel it to the
+  workbench, fix the puncture and oil the chain, wheel it back) and **check the solar panels** (Dad: the
+  reading on the cabinet under the stairs is low, so brush the dust and leaves off the panels in circles) (#56).
+
 ## [4.5.6] - 2026-10-12
 
 ### Added
@@ -182,7 +191,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.6...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.7...HEAD
+[4.5.7]: https://github.com/littleGex/ford_games/compare/v4.5.6...v4.5.7
 [4.5.6]: https://github.com/littleGex/ford_games/compare/v4.5.5...v4.5.6
 [4.5.5]: https://github.com/littleGex/ford_games/compare/v4.5.4...v4.5.5
 [4.5.4]: https://github.com/littleGex/ford_games/compare/v4.5.3...v4.5.4
