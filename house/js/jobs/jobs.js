@@ -239,10 +239,10 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'crayons', level: 1, at: [2.3, 7.6], place: [2.85, 0.73, 7.6], label: 'Put them on the desk' }] },
     // P's bearded dragon (P only, see rules.js): feed it, play with it, clean out its terrarium
     { id: 'feedDragon', title: 'Feed your bearded dragon', steps: [
-      { kind: 'pick', item: 'cricketBox', label: 'Get the box of crickets from your desk' },
+      { kind: 'pick', item: 'cricketBox', label: 'Get the box of crickets from the windowsill' },
       { kind: 'sit', stand: true, level: 1, at: TERRARIUM.at, seat: [TERRARIUM.at[0], 0, TERRARIUM.at[1], -Math.PI / 2 - 0.4], dur: 8, dragon: 'feed',
         what: 'Feeding the dragon', label: 'Put the crickets and greens in the terrarium', onDone: c => { c.world.crickets.visible = false; } },
-      { kind: 'drop', item: 'cricketBox', home: true, label: 'Put the box back on your desk' }] },
+      { kind: 'drop', item: 'cricketBox', home: true, label: 'Put the box back on the windowsill' }] },
     { id: 'playDragon', title: 'Play with your bearded dragon', steps: [
       { kind: 'pick', item: 'dragon', level: 1, at: TERRARIUM.at, label: 'Lift the dragon out of the terrarium' },
       { kind: 'sit', level: 1, at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2], dur: 15, dragon: 'cuddle',

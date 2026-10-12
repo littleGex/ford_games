@@ -278,6 +278,25 @@ if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework 
 playDay("Dude's day");
 G.days.next();
 
+// --- carrying something wins: by P's desk and window with the cricket box, the button puts the box
+// back rather than offering her homework at her desk nearby
+G.days.setCharacter('girl');
+G.days.plan(['feedDragon', 'homework']);
+{
+  const feed = G.board.find('feedDragon');
+  for (let k = 0; k < 2 && feed.i < 2; k++) { const r = doStep(feed); if (r !== true) errors.push('dragon box: ' + r); }
+  const s = feed.steps[feed.i];
+  if (s.kind !== 'drop' || S.carrying !== 'cricketBox') errors.push(`dragon box: expected to be carrying the box back, at step "${s.label}"`);
+  else {
+    const home = G.items.cricketBox.userData.home.pos;
+    const spots = cellsOn[1].filter(c => Math.hypot(c[0] - home[0], c[1] - home[2]) < REACH - 0.05);
+    const wrong = spots.filter(c => { goTo(c); const n = G.board.nearestAction(G.player.group.position); return !n || n.step !== s; });
+    if (wrong.length) errors.push(`dragon box: from ${wrong.length} of ${spots.length} spots by the desk the button isn't "${s.label}"`);
+  }
+  G.days.setCharacter('dad');
+  G.days.next();
+}
+
 // --- a day as P with her bearded dragon: feed it, play with it, clean out the terrarium
 G.days.setCharacter('girl');
 G.days.plan(['feedDragon', 'playDragon', 'cleanDragon']);
