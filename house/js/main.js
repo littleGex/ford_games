@@ -25,6 +25,7 @@ import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
 import { createHome } from './ui/home.js';
+import { createMissions } from './missions/missions.js';
 import { preventZoom } from './core/nozoom.js';
 import { createSweeping } from './systems/sweeping.js';
 import { createSeasonal } from './systems/seasonal.js';
@@ -79,11 +80,16 @@ const input = createInput({
 });
 hud.onAction(doAction);
 document.getElementById('rotBtn').addEventListener('click', turnView);
-const markCharacter = hud.bindCharacterButtons(key => { player.setCharacter(key); ctx.days.setCharacter(key); });
+const markCharacter = hud.bindCharacterButtons(key => {
+  if (S.mission) return;   // a mission is played as one of the kids
+  player.setCharacter(key); ctx.days.setCharacter(key);
+});
 player.setCharacter(ctx.days.character);
 markCharacter(ctx.days.character);
 ctx.days.start();
 ctx.home = createHome(ctx);
+ctx.missions = createMissions(ctx);
+systems.push(ctx.missions);
 ctx.home.open();   // the game opens on the home screen
 
 let drawn = false, room = null;

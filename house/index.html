@@ -51,7 +51,8 @@
 
       <h2>Missions</h2>
       <ul class="missions">
-        <li class="mission soon"><span class="mission-icon" aria-hidden="true">🚲</span><span><b>The school run</b><small>P or Dude: get up, breakfast, dressed, bag packed, then cycle to school before the bell</small></span><em>Coming soon</em></li>
+        <li class="mission" id="missionSchoolRun"><span class="mission-icon" aria-hidden="true">🚲</span><span><b>The school run</b><small>Get up, breakfast, dressed, bag packed, then cycle to school before the bell at 8:00</small><small class="mission-best" data-best="schoolRun"></small></span>
+          <span class="mission-play" role="group" aria-label="Play the school run as"><button data-mission="schoolRun" data-kid="girl">P</button><button data-mission="schoolRun" data-kid="boy">Dude</button></span></li>
         <li class="mission soon"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small>Mum or Dad: kids upstairs, showered, teeth brushed, a story, lights out</small></span><em>Coming soon</em></li>
       </ul>
 
@@ -65,6 +66,18 @@
         </div>
         <a class="linkbtn" href="../" id="homeBack">← Back to Game Zone</a>
       </div>
+    </div>
+  </div>
+
+  <div class="daydone" id="missionDone" role="dialog" aria-modal="true" aria-labelledby="missionDoneTitle" hidden>
+    <div class="daydone-card">
+      <p class="daydone-eyebrow" id="missionDoneEyebrow">The school run</p>
+      <h1 id="missionDoneTitle">Just in time!</h1>
+      <p class="mission-stars" id="missionStars" aria-label="3 of 3 stars">★★★</p>
+      <p class="daydone-stats" id="missionDoneStats"></p>
+      <button class="btn daydone-next" id="missionAgain">Try again</button>
+      <p class="daydone-totals" id="missionBest"></p>
+      <div class="daydone-restart"><button class="linkbtn" id="missionBack">Back to the day</button></div>
     </div>
   </div>
 

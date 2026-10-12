@@ -9,8 +9,21 @@ Play: open `house/` on the site (e.g. `littlegex.github.io/ford_games/house/`).
 ## Home screen
 
 The game opens on a home screen (`js/ui/home.js`): carry on with today's day, pick who's playing, see the
-missions (coming soon: the school run and bedtime), start over from day 1, or go back to Game Zone. The
+missions, start over from day 1, or go back to Game Zone. The
 ☰ button in the top corner (or Escape) brings it back. The game is paused while it's open.
+
+## Missions
+
+Missions are one-off storylines, started from the home screen (`js/missions/missions.js`). A mission puts
+the day's list aside and gives you its own steps one after another, with its own clock; at the end a card
+shows your stars, time and best (saved per kid in `localStorage`, key `fordHouse.missions.v1`), then
+"Back to the day" carries on with the day.
+
+- **The school run** (P or Dude): get out of bed, breakfast at the dining table, get dressed at your
+  wardrobe, pack your school bag at your desk, put it in the basket of the bike on the terrace and cycle
+  out of the back gate (you're faster on the bike). The school clock starts at 7:30 and the bell rings at
+  8:00: before 7:50 is three stars, before the bell two, late one.
+- Bedtime (Mum or Dad) is next.
 
 ## Floors
 
@@ -37,7 +50,7 @@ to match: the lawn is only long on mowing days, the jacket only lies on the sofa
 the bins stand at the kerb the day after bin day. Some jobs are only for one of the family: Dad has a
 shave every other day and works at his desk in the dressing room on weekdays (four 20-second tasks:
 emails, a video call, a report, writing code that types itself out on the monitor), Mum works in the office on weekdays and makes up the sofa bed, P and Dude do homework on five days out of seven (two days off, like a weekend),
-Dude practises the keyboard and tidies his room every few days, P tidies her toys, and Dad or Mum cooks
+Dude practises the keyboard and the clarinet (18 seconds at his music stand, with a made-up clarinet tune) and tidies his room every few days, P tidies her toys, and Dad or Mum cooks
 dinner every day (45 seconds at the hob, then served at the dining table).
 Changing who you play swaps those jobs on the list straight away. Each of the kids has their own
 homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the desk in her room, Dude at his desk in

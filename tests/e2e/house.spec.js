@@ -273,6 +273,27 @@ test("the page can't be pinch- or double-tap-zoomed", async ({ page }) => {
   expect(zoom.list).toBe('pan-y');
 });
 
+test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
+  await openHouse(page);
+  const day = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="schoolRun"][data-kid="girl"]').click();
+  await expect(page.locator('#home')).toBeHidden();
+  await expect(page.locator('#dayLabel')).toHaveText('The school run · 7:30');
+  await expect(page.locator('#taskList')).toContainText('Get up');
+  await expect(page.locator('#actBtn')).toHaveText('Get out of bed');   // P starts next to her bed
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#taskList')).toContainText('Eat your breakfast');   // the next step joins the list
+
+  await page.locator('#menuBtn').click();
+  await expect(page.locator('#homePlay')).toHaveText('Back to the school run');
+  await page.locator('#homePlay').click();
+
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+  expect(await page.evaluate(() => window.house.board.jobs.map(j => j.id))).toEqual(day);
+});
+
 test('the stairs take you up to the first floor and back down', async ({ page }) => {
   await openHouse(page);
   await planToday(page, ['teeth', 'hands']);
