@@ -7,6 +7,11 @@
 // bag, put it on your bike on the terrace and cycle out of the back gate. The school clock starts at 7:30
 // and the bell rings at 8:00: before 7:50 is three stars, before the bell two, late one.
 //
+// Work from home (Mum or Dad), 7:00 to 17:00: get up, shower, get dressed, breakfast, then a working day with
+// several things on the list at once to do in any order (meetings at set times, work at your desk, lunch, a
+// glass of water), coffee and snacks whenever you like, and the phone ringing with an urgent call. Stars for
+// being on time to the meetings, finishing by 17:00, and taking a break.
+//
 // 3D printing (Dad, no clock, just for fun): pick a design on the laptop, order a spool of filament, take the
 // parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
 // laptop, watch it grow, then take the model out and put it where it belongs.
@@ -15,6 +20,7 @@ import { resetItems } from '../items.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
+import { ring } from '../core/audio.js';
 
 const KEY = 'fordHouse.missions.v1';
 const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
@@ -31,6 +37,23 @@ export const KIDS = {
 
 const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
 const DAD_DESK = [3.75, 0.5];   // Dad's desk in the dressing room, with the laptop
+
+// Mum's and Dad's desks for working from home, and which screen shows for each kind of work
+const DESKS = {
+  dad: { level: 1, at: DAD_DESK, seat: [3.74, 0.45, 0.5, -Math.PI / 2], glow: 'dadScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'code' }, radio: 'dadNotes' },
+  mum: { level: 2, at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], glow: 'mumScreen', pages: { meeting: 'sheet', mail: 'sheet', doc: 'sheet', code: 'sheet' }, radio: 'mumNotes' },
+};
+/** A sit-at-your-desk step: a meeting (no radio) or some work (the radio plays). */
+const deskStep = (who, kind, dur, what, label, extra = {}) => {
+  const d = DESKS[who];
+  return { kind: 'sit', level: d.level, power: true, glow: d.glow, page: d.pages[kind], ...(kind === 'meeting' ? {} : { fx: d.radio }),
+           at: d.at, seat: d.seat, dur, what, label, ...extra };
+};
+const hm = h => h * 60;   // hours to minutes since midnight
+const coffeeJob = () => ({ key: 'coffee', optional: true, title: 'Coffee (whenever you like)', steps: [
+  { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee' }] });
+const snackJob = () => ({ key: 'snack', optional: true, title: 'Snack (whenever you like)', steps: [
+  { kind: 'use', at: [3.95, 3.4], label: 'Grab a snack from the fridge' }] });
 
 export const MISSIONS = {
   schoolRun: {
@@ -58,6 +81,66 @@ export const MISSIONS = {
         { kind: 'pick', item: 'bike', label: 'Get on your bike' },
         { kind: 'drop', item: 'bike', at: [4.35, -16.7], place: [4.35, 0, -16.95], label: 'Ride out of the back gate to school' }] },
     ],
+  },
+
+  wfh: {
+    title: 'Work from home', who: ['dad', 'mum'],
+    clock: { start: hm(7), end: hm(17), secondsPerMinute: 0.5 },          // 7:00 to 17:00 in five minutes
+    spot: who => ({ name: NAMES[who], level: 1, start: [2.75, 2.35], facing: -Math.PI / 2 }),
+    intro: 'Get up and ready: your first meeting is at 9:00',
+    setup(c) { c.world.bigBed.mess(); },
+    jobs: (spot, who) => [
+      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: [2.35, 1.9], label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
+      { title: 'Have a shower', steps: [{ kind: 'sit', stand: true, level: 1, fx: 'shower', at: [4.7, 7.85], seat: [5.2, 0, 8.5, 0], dur: 10, what: 'Showering', label: 'Have a shower' }] },
+      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2], dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
+      { title: 'Have breakfast', steps: [{ kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 8, what: 'Having breakfast', label: 'Sit down and have breakfast' }] },
+      // the working day: all of these at once, in any order
+      [
+        { key: 'meet9', due: hm(9), title: 'Team meeting at 9:00', steps: [deskStep(who, 'meeting', 15, 'In the team meeting', 'Sit at your desk and join the team meeting', { notBefore: hm(8.5) })] },
+        { key: 'mail', title: 'Answer your emails', steps: [deskStep(who, 'mail', 12, 'Answering emails', 'Sit at your desk and answer your emails')] },
+        { key: 'doc', title: 'Write the report', steps: [deskStep(who, 'doc', 18, 'Writing the report', 'Sit at your desk and write the report')] },
+        { key: 'lunch', title: 'Lunch (from 12:00)', steps: [
+          { kind: 'use', at: [4.3, 1.6], notBefore: hm(12), label: 'Make a sandwich in the kitchen' },
+          { kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 10, what: 'Eating lunch', label: 'Sit down and eat your lunch' }] },
+        { key: 'water', title: 'Drink a glass of water', steps: [{ kind: 'use', at: [5.0, 0.95], label: 'Pour a glass of water at the sink and drink it' }] },
+        { key: 'meet14', due: hm(14), title: 'Project meeting at 14:00', steps: [deskStep(who, 'meeting', 15, 'In the project meeting', 'Sit at your desk and join the project meeting', { notBefore: hm(13.5) })] },
+        { key: 'code', title: who === 'dad' ? 'Write some code' : 'Do the spreadsheets', steps: [deskStep(who, 'code', 18, 'Working', 'Sit at your desk and get some work done')] },
+        coffeeJob(), snackJob(),
+      ],
+      { key: 'finish', title: 'Finish your day', steps: [{ kind: 'use', level: DESKS[who].level, at: DESKS[who].at, label: 'Shut down the laptop: done for the day!' }] },
+    ],
+    // whenever you've had a coffee or a snack, another is on offer a little later; the phone rings once with an urgent call
+    onOptional(c, mission, job) {
+      (mission.breaks ||= { coffee: 0, snack: 0 })[job.key]++;
+      mission.later.push({ at: c.missions.minutes() + 90, job: job.key === 'coffee' ? coffeeJob() : snackJob() });
+    },
+    update(c, mission, minutes) {
+      mission.later ||= [];
+      for (const l of mission.later.filter(l => minutes >= l.at)) { mission.later.splice(mission.later.indexOf(l), 1); c.missions.add(l.job, { optional: true }); }
+      if (mission.callAt === undefined) {
+        let at = hm(10.5) + Math.random() * hm(5);            // some time between 10:30 and 15:30, not on top of the 14:00 meeting
+        if (at > hm(13.3) && at < hm(14.6)) at = hm(14.75);
+        mission.callAt = at;
+      }
+      if (!mission.called && minutes >= mission.callAt && c.board.jobs.some(j => j.key === 'finish') === false) {
+        mission.called = true; ring();
+        c.hud.toast('Ring ring! Your boss needs you on an urgent call');
+        c.missions.add({ key: 'urgent', due: minutes + 20, title: `Urgent call by ${clockText(minutes + 20)}!`,
+          steps: [deskStep(mission.who, 'meeting', 10, 'On an urgent call', 'Sit at your desk and join the urgent call')] });
+      }
+    },
+    result(mission, arrived) {
+      const meetings = ['meet9', 'meet14', 'urgent'].filter(k => mission.due[k] !== undefined);
+      const onTime = meetings.filter(k => mission.doneAt[k] !== undefined && mission.doneAt[k] <= mission.due[k] + 35);
+      const breaks = mission.breaks || { coffee: 0, snack: 0 };
+      const checks = [onTime.length === meetings.length, arrived <= hm(17), breaks.coffee + breaks.snack > 0];
+      const stars = Math.max(1, checks.filter(Boolean).length);
+      const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+      return {
+        stars, title: stars === 3 ? "A great day's work!" : arrived > hm(17) ? 'A long day!' : 'Good work!',
+        stats: `Done for the day at ${clockText(arrived)}. On time for ${onTime.length} of ${plural(meetings.length, 'meeting')}. Breaks: ${plural(breaks.coffee, 'coffee')}, ${plural(breaks.snack, 'snack')}.`,
+      };
+    },
   },
 
   print3d: {
@@ -99,7 +182,7 @@ export function createMissions(ctx) {
   const $ = id => document.getElementById(id);
   const el = { box: $('missionDone'), eyebrow: $('missionDoneEyebrow'), title: $('missionDoneTitle'), stars: $('missionStars'),
                stats: $('missionDoneStats'), best: $('missionBest'), again: $('missionAgain'), back: $('missionBack') };
-  let jobs = [], next = 0, shownMinute = -1;
+  let jobs = [], next = 0, shownMinute = -1, pending = new Set(), extra = 0;
 
   const now = () => S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute;
   function showClock(force) {
@@ -118,7 +201,7 @@ export function createMissions(ctx) {
     if (S.laptop) ctx.laptop.close();
     if (ctx.home) ctx.home.close();
     el.box.hidden = true;
-    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {} };
+    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {}, doneAt: {}, due: {}, later: [] };
     S.carrying = null; S.dayOver = false; S.wiping = null;
     hud.hideDayComplete();
     board.clear();
@@ -127,21 +210,36 @@ export function createMissions(ctx) {
     player.setCharacter(who);
     levels.show(kid.level);
     player.group.position.x = kid.start[0]; player.group.position.z = kid.start[1]; player.group.rotation.y = kid.facing;
-    jobs = m.jobs(kid);
-    next = 0; shownMinute = -1;
+    jobs = m.jobs(kid, who);
+    next = 0; shownMinute = -1; pending = new Set(); extra = 0;
     addNext();
     showClock(true);
     hud.toast(m.clock ? `${m.title}: the bell rings at ${clockText(m.clock.end)}!` : `${m.title}: ${m.intro}`);
   }
 
-  /** The next step of the mission joins the list (a step can depend on choices made earlier). */
+  /** Put one mission job on the list. Required ones have to be done before the mission moves on; optional
+   *  ones (a coffee) are there if you want them. */
+  function put(j, id, { optional = false } = {}) {
+    const job = board.add({ ...j, id, mission: true, optional: optional || !!j.optional });
+    if (j.due !== undefined) S.mission.due[j.key] = j.due;
+    if (!job.optional) pending.add(job);
+    return job;
+  }
+
+  /** The next part of the mission joins the list: one job, or several at once (a job can depend on choices
+   *  made earlier). */
   function addNext() {
-    const k = next++, j = typeof jobs[k] === 'function' ? jobs[k](ctx, S.mission) : jobs[k];
-    board.add({ ...j, id: `${S.mission.id}-${k}`, mission: true });
+    const k = next++, entry = typeof jobs[k] === 'function' ? jobs[k](ctx, S.mission) : jobs[k];
+    (Array.isArray(entry) ? entry : [entry]).forEach((j, n) => put(j, `${S.mission.id}-${k}-${n}`));
   }
 
   board.onFinished(job => {
     if (!S.mission || !job.mission || S.mission.done) return;
+    const m = MISSIONS[S.mission.id];
+    if (job.key) S.mission.doneAt[job.key] = S.mission.clock ? now() : S.mission.t;
+    if (job.optional) { if (m.onOptional) m.onOptional(ctx, S.mission, job); return; }
+    pending.delete(job);
+    if (pending.size) return;
     if (next < jobs.length) { addNext(); return; }
     finish();
   });
@@ -149,7 +247,7 @@ export function createMissions(ctx) {
   function finish() {
     const mission = S.mission, m = MISSIONS[mission.id];
     if (!m.clock) return finishForFun(mission, m);
-    const arrived = now(), stars = m.stars(arrived);
+    const arrived = now(), r = m.result ? m.result(mission, arrived) : null, stars = r ? r.stars : m.stars(arrived);
     el.stars.hidden = false; el.again.textContent = 'Try again';
     mission.done = true;
     const best = ((BEST[mission.id] ||= {})[mission.who]);
@@ -157,10 +255,10 @@ export function createMissions(ctx) {
     if (better) { BEST[mission.id][mission.who] = { stars, minutes: arrived }; saveBest(); }
     const late = arrived >= m.clock.end;
     el.eyebrow.textContent = `${m.title} · ${NAMES[mission.who]}`;
-    el.title.textContent = late ? 'Late for school!' : stars === 3 ? 'Early bird!' : 'Just in time!';
+    el.title.textContent = r ? r.title : late ? 'Late for school!' : stars === 3 ? 'Early bird!' : 'Just in time!';
     el.stars.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
     el.stars.setAttribute('aria-label', `${stars} of 3 stars`);
-    el.stats.textContent = `You got to school at ${clockText(arrived)}. The bell rings at ${clockText(m.clock.end)}.`;
+    el.stats.textContent = r ? r.stats : `You got to school at ${clockText(arrived)}. The bell rings at ${clockText(m.clock.end)}.`;
     const b = BEST[mission.id][mission.who];
     el.best.textContent = better ? 'A new best!' : `Your best: ${'★'.repeat(b.stars)} at ${clockText(b.minutes)}`;
     el.box.hidden = false;
@@ -203,7 +301,13 @@ export function createMissions(ctx) {
       if (!S.mission || S.mission.done) return;
       S.mission.t += dt;
       showClock(false);
+      const m = MISSIONS[S.mission.id];
+      if (m.update) m.update(ctx, S.mission, now());
     },
+    /** Add a job to the running mission (an urgent call, another coffee). */
+    add(j, opts) { return put(j, `${S.mission.id}-x${extra++}`, opts); },
+    /** The mission clock, in minutes since midnight. */
+    minutes: () => (S.mission && S.mission.clock ? now() : 0),
     /** The best result for a mission and player: { stars, minutes } (the school run), { made: [...] } (3D printing), or undefined. */
     best: (id, who) => BEST[id] && BEST[id][who],
     get active() { return S.mission; },

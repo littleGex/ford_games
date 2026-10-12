@@ -164,6 +164,7 @@ function doStep(job) {
   }
   if (s.kind === 'charge' || s.kind === 'wait') { for (let n = 0; n < 2500 && job.steps[job.i] === s; n++) { if (!S.powerOn) fixPower(); frame(); } return job.steps[job.i] !== s || 'never finished running'; }
 
+  if (s.notBefore) for (let k = 0; k < 5000 && G.missions.minutes() < s.notBefore; k++) frame();   // a mission step that opens later (lunch from 12:00)
   travel(G.board.levelOf(s));
   const p = stepAt(s), { cell, dist } = standNear(p);
   if (dist > REACH - 0.02) return `can't get within reach of [${p.map(v => v.toFixed(2))}] (closest ${dist.toFixed(2)} m)`;
@@ -220,6 +221,7 @@ function playDay(label) {
       if (job.event) events[job.id] = (events[job.id] || 0) + 1;
       let guard = 0;
       while (job.i < job.steps.length && guard++ < 10) {
+        if (!G.board.jobs.includes(job)) break;   // gone from the list meanwhile (the driver gave up on a neighbours' parcel)
         if (!S.powerOn && job.id !== 'fuses') fixPower();
         const before = job.i, r = doStep(job);
         if (r !== true) { errors.push(`${label} ${job.id} step ${before + 1} (${job.steps[before].kind}): ${r}`); job.i = job.steps.length; S.carrying = null; break; }
@@ -479,6 +481,35 @@ for (const who of ['girl', 'boy']) {
   if (!made || made.made.length !== DESIGNS.length) errors.push(`3D printing: made so far ${made && made.made}`);
   else console.log('3D printing: made', made.made.join(', '));
   G.player.setCharacter(G.days.character);
+}
+
+// --- work from home, as Dad and as Mum: the morning in order, then the working day in any order, with a
+// coffee, the urgent call and the 14:00 meeting, ending with the results card
+for (const who of ['dad', 'mum']) {
+  const { MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  const spot = MISSIONS.wfh.spot(who);
+  if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push(`work from home (${who}): starts inside something`);
+  const planBefore = G.board.jobs.map(j => j.id).join();
+  G.missions.start('wfh', who);
+  S.mission.callAt = 10 * 60;   // make sure the phone rings
+  const seen = new Set();
+  // a good worker: one step at a time, whatever's due soonest first (the urgent call, the next meeting)
+  for (let k = 0; k < 400 && !S.mission.done; k++) {
+    const notYet = j => (j.steps[j.i].notBefore || 0) > G.missions.minutes();
+    const open = G.board.jobs.filter(j => j.i < j.steps.length && !(j.optional && S.mission.breaks && S.mission.breaks[j.key] >= 1))
+      .sort((a, b) => (notYet(a) - notYet(b)) || ((a.due ?? 1e9) - (b.due ?? 1e9)));   // what can be done now, soonest due first
+    open.forEach(j => seen.add(j.key || j.title));
+    if (!open.length) { frame(); continue; }
+    const job = open[0], before = job.i, r = doStep(job);
+    if (r !== true) { errors.push(`work from home (${who}) "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; }
+  }
+  if (!S.mission.done) errors.push(`work from home (${who}): the day never finished`);
+  for (const k of ['meet9', 'mail', 'doc', 'lunch', 'water', 'meet14', 'code', 'coffee', 'snack', 'urgent', 'finish'])
+    if (!seen.has(k)) errors.push(`work from home (${who}): never had "${k}" on the list`);
+  if (S.mission.done && G.missions.best('wfh', who).stars !== 3) errors.push(`work from home (${who}): a good day only got ${G.missions.best('wfh', who).stars} stars (due ${JSON.stringify(S.mission.due)}, done ${JSON.stringify(S.mission.doneAt)})`);
+  if (S.mission.done) console.log(`work from home as ${who}: done at ${Math.round(G.missions.minutes())} min, best`, G.missions.best('wfh', who));
+  G.missions.end();
+  if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`work from home (${who}): the day didn't come back as it was`);
 }
 
 // --- up to the attic and back down by the stairs

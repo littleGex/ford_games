@@ -23,6 +23,13 @@ with the day.
   wardrobe, pack your school bag at your desk, put it in the basket of the bike on the terrace and cycle
   out of the back gate (you're faster on the bike). The school clock starts at 7:30 and the bell rings at
   8:00: before 7:50 is three stars, before the bell two, late one.
+- **Work from home** (Mum or Dad): the day runs from 7:00 to 17:00 (five minutes). Get up, shower, get
+  dressed and have breakfast, then the working day puts several things on the list at once, to do in any
+  order: the team meeting at 9:00 and the project meeting at 14:00 at your desk (Dad's in the dressing
+  room, Mum's in the attic office), emails, a report, more work, lunch from 12:00 and a glass of water.
+  Coffee and snacks are there whenever you like, and some time in the day the phone rings with an urgent
+  call to join within 20 minutes. At a desk the job due soonest comes first. Stars: on time for every
+  meeting, done by 17:00, and taking a break.
 - **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
   for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
   pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the

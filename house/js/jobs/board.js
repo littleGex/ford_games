@@ -71,6 +71,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
 
   function canDo(s) {
     if (PASSIVE.has(s.kind)) return false;
+    if (s.notBefore && !(S.mission && S.mission.clock && S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute >= s.notBefore)) return false;   // a mission step that isn't open yet (lunch from 12:00)
     if (s.kind === 'sit') return !S.sitting;
     if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe') return true;
     if (s.kind === 'choose') return !S.carrying;
@@ -132,7 +133,9 @@ export function createJobBoard({ scene, items, hud, levels }) {
       if (!s || !canDo(s) || levelOf(s) !== S.level) continue;
       const p = at(s); if (!p) continue;
       const d = Math.hypot(pos.x - p[0], pos.z - p[1]);
-      if (d < bd) { bd = d; best = { job, step: s }; }
+      // several things at the same spot (meetings and work at a desk): the one due soonest comes first
+      const sooner = best && Math.abs(d - bd) < 1e-6 && (job.due ?? Infinity) < (best.job.due ?? Infinity);
+      if (d < bd - 1e-6 || sooner) { bd = d; best = { job, step: s }; }
       if (s.kind === 'drop' && d < hd) { hd = d; held = { job, step: s }; }   // canDo: it's what you're carrying
     }
     // putting down what's in your hands wins over anything else close by (P's homework at the same desk
