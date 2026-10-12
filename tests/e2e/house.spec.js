@@ -224,7 +224,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(3);   // the school run, 3D printing, bedtime (coming soon)
+  await expect(page.locator('.mission')).toHaveCount(4);   // the school run, work from home, 3D printing, bedtime (coming soon)
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
@@ -340,6 +340,29 @@ test('the solar panels: check the reading, then brush the panels on the shed', a
   await act(3.4, -14.6, 'Get the long brush from the shed');
   await act(4.35, -16.1, 'Brush the panels on the shed roof in circles');
   await expect(page.locator('#alert')).toContainText('Wipe in circles');
+});
+
+test('work from home: the morning, then several jobs at once and a phone call', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="wfh"][data-kid="dad"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Work from home · 7:00');
+  await expect(page.locator('#actBtn')).toHaveText('Get out of bed');   // Dad starts next to the big bed
+  await page.evaluate(() => { const H = window.house; for (let k = 0; k < 4; k++) H.board.advance(H.board.jobs.find(j => j.i < j.steps.length)); });
+  await expect(page.locator('#taskList')).toContainText('Team meeting at 9:00');
+  await expect(page.locator('#taskList')).toContainText('Lunch (from 12:00)');
+  await expect(page.locator('#taskList')).toContainText('Coffee (whenever you like)');
+  // at the desk the meeting comes first; at 8:00 it isn't open yet, from 8:30 it is
+  await page.evaluate(() => { const H = window.house; H.S.mission.t = 60 * 0.5; H.player.group.position.set(3.95, 2.3, 0.6); });
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and answer your emails');
+  await page.evaluate(() => { window.house.S.mission.t = 95 * 0.5; });   // 8:35
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and join the team meeting');
+  // the phone rings with an urgent call, which then comes first at the desk
+  await page.evaluate(() => { const H = window.house; H.S.mission.t = 95 * 0.5; H.S.mission.callAt = 0; });   // rings at 8:35, so it's due before the 9:00 meeting
+  await expect(page.locator('#taskList')).toContainText('Urgent call by');
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and join the urgent call');
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
 test('the 3D printing mission: pick a design on the laptop close-up', async ({ page }) => {
