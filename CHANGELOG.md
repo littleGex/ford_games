@@ -10,16 +10,18 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-10-12
+
 ### Added
 - Ford House: a new mission, **work from home**, for Mum or Dad, from 7:00 to 17:00. Get up, shower, get
   dressed and have breakfast, then a working day with several things to do in any order: meetings at 9:00
   and 14:00, emails, a report, more work, lunch from 12:00 and a glass of water, with coffee and snacks
   whenever you like and an urgent phone call some time in the day. Stars for being on time to every
-  meeting, finishing by 17:00 and taking a break.
+  meeting, finishing by 17:00 and taking a break (#68).
 
 ### Changed
 - Ford House: when several things are at the same spot (like meetings and work at a desk), the button
-  offers the one due soonest.
+  offers the one due soonest (#68).
 
 ## [4.5.9] - 2026-10-12
 
@@ -224,7 +226,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.9...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/littleGex/ford_games/compare/v4.5.9...v4.6.0
 [4.5.9]: https://github.com/littleGex/ford_games/compare/v4.5.8...v4.5.9
 [4.5.8]: https://github.com/littleGex/ford_games/compare/v4.5.7...v4.5.8
 [4.5.7]: https://github.com/littleGex/ford_games/compare/v4.5.6...v4.5.7
