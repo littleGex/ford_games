@@ -10,6 +10,22 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.5.6] - 2026-10-12
+
+### Added
+- Ford House: P's bearded dragon, in a terrarium in her room with a basking lamp, a branch and a rock. It
+  potters about and basks under the lamp. Three new jobs for P: feed it (crickets and greens), play with it
+  (it sits on her hand on her bed) and clean out the terrarium (scoop the mess, fresh water in its bowl).
+  Fed and played with, it's happy: warmer colours and a head-bob every so often (#51, closes #43).
+
+### Changed
+- Ford House: a character's own jobs that come round every few days (P's dragon jobs, Dude's music) wait a
+  day when the day is already full, so a day still has 12-14 jobs (#51).
+
+### Fixed
+- Ford House: on the school run P started inside the craft table in her room and couldn't move; she now
+  starts next to her bed (#52).
+
 ## [4.5.5] - 2026-10-12
 
 ### Added
@@ -166,7 +182,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.5...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.6...HEAD
+[4.5.6]: https://github.com/littleGex/ford_games/compare/v4.5.5...v4.5.6
 [4.5.5]: https://github.com/littleGex/ford_games/compare/v4.5.4...v4.5.5
 [4.5.4]: https://github.com/littleGex/ford_games/compare/v4.5.3...v4.5.4
 [4.5.3]: https://github.com/littleGex/ford_games/compare/v4.5.2...v4.5.3

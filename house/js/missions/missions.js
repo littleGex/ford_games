@@ -15,8 +15,8 @@ const saveBest = () => { try { localStorage.setItem(KEY, JSON.stringify(BEST)); 
 export const clockText = minutes => `${Math.floor(minutes / 60)}:${String(Math.floor(minutes % 60)).padStart(2, '0')}`;
 
 // where things are for each of the kids
-const KIDS = {
-  girl: { name: 'P', level: 1, start: [1.6, 6.95], facing: Math.PI / 2, bed: [1.25, 6.9], bedHandle: 'daybed',
+export const KIDS = {
+  girl: { name: 'P', level: 1, start: [1.45, 7.5], facing: -Math.PI / 2, bed: [1.25, 6.9], bedHandle: 'daybed',
           wardrobe: { at: [2.3, 6.95], seat: [2.3, 0, 6.95, Math.PI / 2] }, desk: [2.3, 8.05], bag: [2.85, 0.73, 7.9] },
   boy:  { name: 'Dude', level: 2, start: [1.8, 2.45], facing: Math.PI, bed: [1.8, 2.75], bedHandle: 'dudeBed',
           wardrobe: { at: [0.35, 2.95], seat: [0.35, 0, 2.95, 0] }, desk: [4.62, 2.27], bag: [5.3, 0.76, 2.0] },
