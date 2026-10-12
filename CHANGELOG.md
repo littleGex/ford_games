@@ -10,6 +10,17 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: a new mission, **work from home**, for Mum or Dad, from 7:00 to 17:00. Get up, shower, get
+  dressed and have breakfast, then a working day with several things to do in any order: meetings at 9:00
+  and 14:00, emails, a report, more work, lunch from 12:00 and a glass of water, with coffee and snacks
+  whenever you like and an urgent phone call some time in the day. Stars for being on time to every
+  meeting, finishing by 17:00 and taking a break.
+
+### Changed
+- Ford House: when several things are at the same spot (like meetings and work at a desk), the button
+  offers the one due soonest.
+
 ## [4.5.9] - 2026-10-12
 
 ### Added

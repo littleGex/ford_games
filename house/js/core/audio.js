@@ -32,6 +32,21 @@ export function buzz() {
   } catch (e) { /* ignore */ }
 }
 
+/** The phone ringing: two short bursts of a warbling tone. */
+export function ring() {
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    [0, 0.5].forEach(t => {
+      const o = ctx.createOscillator(), lfo = ctx.createOscillator(), depth = ctx.createGain(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 880; lfo.frequency.value = 18; depth.gain.value = 60;
+      lfo.connect(depth); depth.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, now + t); g.gain.exponentialRampToValueAtTime(0.12, now + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.38);
+      o.connect(g); g.connect(ctx.destination); o.start(now + t); lfo.start(now + t); o.stop(now + t + 0.4); lfo.stop(now + t + 0.4);
+    });
+  } catch (e) { /* ignore */ }
+}
+
 // Music while someone sits and plays or works: the radio on a desk, Dude's clarinet. Made-up tunes, made with
 // the browser's own sound (no recordings). music('radio') / music('clarinet') starts one, music(null) stops.
 const SONGS = {
