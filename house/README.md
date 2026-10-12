@@ -29,7 +29,8 @@ The game runs in days. Each day draws 12-14 jobs from the pool following each jo
 daily, mowing every 4 days, bins out on bin day and back in the next day...), and the house is set up
 to match: the lawn is only long on mowing days, the jacket only lies on the sofa when it's on the list,
 the bins stand at the kerb the day after bin day. Some jobs are only for one of the family: Dad has a
-shave every other day, Mum works in the office on weekdays and makes up the sofa bed, P and Dude do homework on five days out of seven (two days off, like a weekend),
+shave every other day and works at his desk in the dressing room on weekdays (four 20-second tasks:
+emails, a video call, a report, writing code that types itself out on the monitor), Mum works in the office on weekdays and makes up the sofa bed, P and Dude do homework on five days out of seven (two days off, like a weekend),
 Dude practises the keyboard and tidies his room every few days, P tidies her toys, and Dad or Mum cooks
 dinner every day (45 seconds at the hob, then served at the dining table).
 Changing who you play swaps those jobs on the list straight away. Each of the kids has their own

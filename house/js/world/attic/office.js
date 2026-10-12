@@ -3,6 +3,19 @@
 // wall, a grey sofa along the hall wall and a clothes airer full of washing in the middle.
 import * as THREE from 'three';
 import { add, box, ball, cyl, fbox, group, mat, solid } from '../../core/build.js';
+import { canvasTex } from '../../core/textures.js';
+import { musicNotes } from '../upstairs/ankleide.js';
+
+// Mum's work on screen: a spreadsheet with a chart (256 x 160 on the canvas)
+const sheet = canvasTex(g => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 256, 160); g.fillStyle = '#1e7a46'; g.fillRect(0, 0, 256, 14);
+  g.strokeStyle = '#d6dbe1'; g.lineWidth = 1;
+  for (let r = 0; r < 10; r++) { g.beginPath(); g.moveTo(0, 22 + r * 13); g.lineTo(150, 22 + r * 13); g.stroke(); }
+  for (let c = 0; c < 5; c++) { g.beginPath(); g.moveTo(c * 30, 14); g.lineTo(c * 30, 152); g.stroke(); }
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 4; c++) { g.fillStyle = (r + c) % 5 ? '#6b7380' : '#1e7a46'; g.fillRect(4 + c * 30, 26 + r * 13, 10 + ((r * 7 + c * 5) % 14), 4); }
+  ['#2f6fd6', '#3fd394', '#ffb02e', '#e04848', '#7a4ab0'].forEach((c, i) => { g.fillStyle = c; g.fillRect(166 + i * 17, 140 - (25 + ((i * 29) % 60)), 12, 25 + ((i * 29) % 60)); });
+});
+sheet.repeat.set(1, 160 / 256); sheet.offset.set(0, 1 - 160 / 256);
 
 export function buildOffice() {
   // desk against the gable wall
@@ -11,6 +24,12 @@ export function buildOffice() {
   solid(0.05, 4.5, 0.82, 5.95);
   box(0.12, 5.1, 0.17, 5.75, 0.38, 0.86, mat('#1d1e22'), false);      // big monitor
   box(0.12, 5.78, 0.17, 5.93, 0.36, 0.86, mat('#1d1e22'), false);     // second monitor
+  // both monitors light up while Mum works (see the work job)
+  const mumScreen = group(0.175, 1.05, 0); mumScreen.visible = false;
+  [[5.425, 0.6], [5.855, 0.13]].forEach(([z, w]) => {
+    const page = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.34), new THREE.MeshBasicMaterial({ map: sheet }));
+    page.name = 'sheet'; page.position.z = z; page.rotation.y = Math.PI / 2; mumScreen.add(page);
+  });
   box(0.2, 5.38, 0.26, 5.46, 0.12, 0.76, mat('#2a2b30'), false);
   box(0.12, 4.6, 0.36, 4.98, 0.08, 0.76, mat('#c9ccd1'), false);      // laptop on its stand
   box(0.14, 4.62, 0.16, 4.96, 0.22, 0.84, mat('#2a2b30'), false);
@@ -41,7 +60,8 @@ export function buildOffice() {
   [0.4, 0.8].forEach(y => box(1.62, 4.38, 2.68, 4.41, 0.02, y, mat('#c9a66e'), false));
   ['#3a5d9a', '#e8e8e8', '#1d1e22', '#c03a2a'].forEach((c, i) => box(1.7 + i * 0.24, 4.38, 1.9 + i * 0.24, 4.41, 0.3, 0.05 + (i % 2) * 0.42, mat(c), false));
   cyl(1.85, 4.2, 0.18, 0.04, '#b87333', 1.2);                           // lamp shade
-  cyl(2.45, 4.22, 0.08, 0.22, '#f2f2f2', 1.2);
+  fbox(2.32, 4.1, 2.56, 4.24, 0.12, '#5a5f66', false, 1.2);           // radio
+  const mumNotes = musicNotes(2.44, 1.36, 4.17);
 
   // grey sofa along the hall wall
   const grey = '#a7abb0';
@@ -70,5 +90,5 @@ export function buildOffice() {
     m.position.set(1.025 + i * 0.07, 0.88 - h / 2, 6.2); airerClothes.add(m);
   });
   solid(0.95, 5.7, 1.75, 6.7);
-  return { airerClothes, sofaBed };
+  return { airerClothes, sofaBed, mumScreen, mumNotes };
 }

@@ -3,13 +3,16 @@
 // shower water); effects are groups in the world whose children bob upwards.
 // Moving the stick gets you up; progress is kept so you can come back later.
 // Steps that use the TV or the coffee machine (screen / power) pause during a power cut.
+// glow: 'dadScreen' lights up a computer screen while you sit (page: which of its screens to show).
+// fx: 'dadNotes' / 'mumNotes' plays the radio on that desk: music notes rise and a little tune loops.
 import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
+import { radio } from '../core/audio.js';
 
 export function createSitting(ctx) {
   const { player, world, board } = ctx;
-  const FX = { steam: world.steam, pot: world.potSteam, shower: world.showerWater };
-  const hideFx = () => Object.values(FX).forEach(g => { if (g) g.visible = false; });
+  const FX = { steam: world.steam, pot: world.potSteam, shower: world.showerWater, dadNotes: world.dadNotes, mumNotes: world.mumNotes };
+  const hideFx = () => { Object.values(FX).forEach(g => { if (g) g.visible = false; }); radio(false); };
   let lastDraw = 0;
 
   function sitDown(job, step) {
@@ -22,6 +25,8 @@ export function createSitting(ctx) {
   function standUp() {
     if (!S.sitting) return;
     player.group.position.set(S.sitting.back[0], S.level * LEVEL_HEIGHT, S.sitting.back[1]);
+    const glow = S.sitting.step.glow && world[S.sitting.step.glow];
+    if (glow) glow.visible = false;
     S.sitting = null;
     world.tv.draw('off');
     hideFx();
@@ -41,8 +46,17 @@ export function createSitting(ctx) {
     const fx = s.fx && FX[s.fx];
     if (fx) {
       fx.visible = ok;
+      radio(ok && s.fx.endsWith('Notes'));
       const fall = s.fx === 'shower';
       fx.children.forEach((p, i) => { const t = (time * (fall ? 2.2 : 0.6) + i / fx.children.length) % 1; p.position.y = fall ? 1.3 - t * 1.1 : t * 0.3; });
+    }
+    const glow = s.glow && world[s.glow];
+    if (glow) {
+      glow.visible = ok;
+      glow.children.forEach(c => {
+        c.visible = c.name === s.page;
+        if (c.visible && ok && c.userData.animate) c.userData.animate(Math.min(1, (s.prog || 0) / s.dur), time);   // e.g. code typing itself out
+      });
     }
     if (ok) {
       s.prog = (s.prog || 0) + dt;

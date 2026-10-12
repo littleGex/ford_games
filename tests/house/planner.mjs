@@ -42,12 +42,15 @@ for (const character of ['dad', 'mum', 'girl', 'boy']) for (const seed of [1, 7,
   // jobs for one of the family: Dad shaves every 2 days, P and Dude do homework on the 5 school days of every 7
   const schoolDays = Array.from({ length: 120 }, (_, i) => i + 1).filter(d => (d - 1) % 7 < 5);
   if (character === 'dad' || character === 'mum') {
-    if (character === 'dad') check(gapsOf('shave').every(g => g === 2), `${label}: shaving gaps ${[...new Set(gapsOf('shave'))]}, want 2`);
+    if (character === 'dad') {
+      check(gapsOf('shave').every(g => g === 2), `${label}: shaving gaps ${[...new Set(gapsOf('shave'))]}, want 2`);
+      check(String(history.dadWork) === String(schoolDays), `${label}: Dad's desk work on ${(history.dadWork || []).length} days, want the ${schoolDays.length} weekdays`);
+    }
     else check(!history.shave && String(history.work) === String(schoolDays), `${label}: Mum shaving, or work on ${(history.work || []).length} days`);
     check(!history.homework, `${label}: ${character} got homework`);
   } else {
     check(String(history.homework) === String(schoolDays), `${label}: homework on ${(history.homework || []).length} days, want the ${schoolDays.length} school days`);
-    check(!history.shave, `${label}: ${character} had to shave`);
+    check(!history.shave && !history.dadWork, `${label}: ${character} got Dad's shave or desk work`);
   }
 
   // bins come back in exactly the day after they went out
