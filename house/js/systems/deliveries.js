@@ -82,49 +82,56 @@ export function createDeliveries({ stage, items, board, hud }) {
   });
   castShadows(foodVan);
   const foodDriver = walker(FOOD_DRIVER, stage.scene);
-  let food = 'gone';   // 'gone' | 'coming' | 'waiting' | 'leaving'
+  const orderCourier = walker(COURIER, stage.scene);
 
-  function foodAway() {
-    food = 'gone'; foodVan.visible = false; foodDriver.root.visible = false; foodDriver.path = [];
-    if (items.shopping.parent === foodDriver.root) { foodDriver.root.remove(items.shopping); items.shopping.visible = false; }
+  // Things that were ordered and come to the door when a 'wait' step with `delivery` is nearly over: the food
+  // shopping (the supermarket van, up the street) and the 3D printer filament (a parcel courier).
+  const pathTime = (from, path) => { let d = 0, p = from; for (const q of path) { d += Math.hypot(q[0] - p[0], q[1] - p[1]); p = q; } return d / 1.6 + 0.5; };
+  const ORDERS = {
+    food: { item: 'shopping', who: foodDriver, van: foodVan, from: [FOOD_VAN[0] + 1.4, 13.6], path: FOOD_WALK, bye: 'Enjoy your food, bye!',
+            prep: it => { it.getObjectByName('food').visible = true; } },
+    filament: { item: 'filamentBox', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: [[3.7, 12.3], FOOD_DELIVERY.door], bye: 'Here you go, happy printing!' },
+  };
+  Object.values(ORDERS).forEach(o => { o.state = 'gone'; o.time = pathTime(o.from, o.path); });
+  const waitingFor = kind => board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === kind; });
+
+  function orderAway(o) {
+    o.state = 'gone'; o.van.visible = false; o.who.root.visible = false; o.who.path = [];
+    const it = items[o.item];
+    if (it.parent === o.who.root) { o.who.root.remove(it); it.visible = false; }
   }
+  const ordersAway = () => Object.values(ORDERS).forEach(orderAway);
 
-  /** Seconds the food driver takes from the van to our door. */
-  const foodWalkTime = (() => {
-    let d = 0, p = [FOOD_VAN[0] + 1.4, 13.6];
-    for (const q of FOOD_WALK) { d += Math.hypot(q[0] - p[0], q[1] - p[1]); p = q; }
-    return d / 1.6 + 0.5;
-  })();
-
-  function updateFood(dt) {
-    if (food === 'gone') {
-      // a food order is about to arrive: set off so the driver rings as the wait ends
-      const job = board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === 'food'; });
-      const s = job && board.step(job);
-      if (!s || (s.prog || 0) < s.dur - foodWalkTime) return;
-      food = 'coming'; foodVan.visible = true;
-      const r = foodDriver.root; r.visible = true; r.position.set(FOOD_VAN[0] + 1.4, 0, 13.6);
-      foodDriver.path = FOOD_WALK.map(p => [...p]);
-      const it = items.shopping; it.visible = true; it.getObjectByName('food').visible = true;
+  function updateOrder(kind, dt) {
+    const o = ORDERS[kind], r = o.who.root, it = items[o.item];
+    if (o.state === 'gone') {
+      // the order is about to arrive: set off so the driver rings as the wait ends
+      const job = waitingFor(kind), s = job && board.step(job);
+      if (!s || (s.prog || 0) < s.dur - o.time) return;
+      o.state = 'coming'; o.van.visible = true;
+      r.visible = true; r.position.set(o.from[0], 0, o.from[1]);
+      o.who.path = o.path.map(p => [...p]);
+      it.visible = true; if (o.prep) o.prep(it);
       r.add(it); it.position.set(0, 0.5, 0.3); it.rotation.set(0, 0, 0);
     }
     let walking = false;
-    if (food === 'coming') {
-      walking = foodDriver.walk(dt);
+    if (o.state === 'coming') {
+      walking = o.who.walk(dt);
       if (!walking) {
-        food = 'waiting'; foodDriver.root.rotation.y = Math.PI; dingDong();
-        const job = board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === 'food'; });
+        o.state = 'waiting'; r.rotation.y = Math.PI; dingDong();
+        const job = waitingFor(kind);
         if (job) { job.status = ''; board.advance(job, board.step(job).doneMessage); }
       }
-    } else if (food === 'waiting' && S.carrying === 'shopping') {
-      food = 'leaving'; hud.toast('Driver: "Enjoy your food, bye!"');
-      foodDriver.path = [[3.7, 12.3], [3.7, 13.0], [-2.0, 13.3], [FOOD_VAN[0] + 1.4, 13.6]];
-    } else if (food === 'leaving') {
-      walking = foodDriver.walk(dt);
-      if (!walking) { foodAway(); return; }
+    } else if (o.state === 'waiting' && S.carrying === o.item) {
+      o.state = 'leaving'; hud.toast(`Driver: "${o.bye}"`);
+      o.who.path = [...o.path.slice(0, -1)].reverse().map(p => [...p]).concat([[...o.from]]);
+    } else if (o.state === 'leaving') {
+      walking = o.who.walk(dt);
+      if (!walking) { orderAway(o); return; }
     }
-    foodDriver.animate(walking, dt, items.shopping.parent === foodDriver.root);
+    o.who.animate(walking, dt, it.parent === r);
   }
+  const updateOrders = dt => Object.keys(ORDERS).forEach(k => updateOrder(k, dt));
 
   let postAt = Infinity, postDone = false;
   // today's drivers, in the order they come: { at, item: 'parcel' | 'neighbourParcel', side?, comes? }
@@ -150,7 +157,7 @@ export function createDeliveries({ stage, items, board, hud }) {
 
   /** Start of a day: roll today's deliveries. */
   function reset(time) {
-    sendAway(); neighbourAway(); foodAway();
+    sendAway(); neighbourAway(); ordersAway();
     postDone = false; parcelJob = null;
     postAt = Math.random() < cfg.post.chancePerDay ? time + rand(...cfg.post.after) : Infinity;
     runs = [];
@@ -244,8 +251,9 @@ export function createDeliveries({ stage, items, board, hud }) {
   }
 
   function update(dt, time) {
-    if (S.dayOver) { if (state !== 'gone') sendAway(); if (nb) neighbourAway(); if (food !== 'gone') foodAway(); return; }
-    if (!S.started || S.mission) return;   // no post or parcels in the middle of a mission
+    if (S.dayOver) { if (state !== 'gone') sendAway(); if (nb) neighbourAway(); ordersAway(); return; }
+    if (S.mission) { updateOrders(dt); return; }   // no post or surprise parcels in the middle of a mission, only things ordered
+    if (!S.started) return;
     if (!postDone && time > postAt) {
       postDone = true; items.post.visible = true;
       board.add({ id: 'post', title: 'Empty the letterbox', event: true, steps: [
@@ -258,7 +266,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       else arrive(runs.shift());
     }
     updateNeighbour(dt);
-    updateFood(dt);
+    updateOrders(dt);
     if (state === 'gone') return;
 
     let walking = false;
@@ -308,7 +316,8 @@ export function createDeliveries({ stage, items, board, hud }) {
       if (S.courierWaiting) return run && run.item === 'neighbourParcel'
         ? `Ding-dong! A parcel for the neighbours · ${timeLeft}s` : `Ding-dong! Parcel at the front door · ${timeLeft}s`;
       if (nb && nb.state === 'waiting') return 'Ding-dong! The neighbours are at the front door';
-      if (food === 'waiting') return 'Ding-dong! The food delivery is at the front door';
+      if (ORDERS.food.state === 'waiting') return 'Ding-dong! The food delivery is at the front door';
+      if (ORDERS.filament.state === 'waiting') return 'Ding-dong! Your filament is at the front door';
       return null;
     },
     /** Send a driver with a parcel for the neighbours right now (tests, and trying it out). */

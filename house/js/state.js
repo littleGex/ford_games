@@ -3,6 +3,7 @@ export const S = {
   started: false,        // becomes true on the first stick / key input
   wiping: null,          // wiping a window: { job, step, ... } (systems/wiping.js)
   sorting: false,
+  laptop: false,   // the laptop close-up is open (3D printing)
   mission: null,          // a mission in progress: { id, who, clock, t, done } (missions/missions.js)
   menuOpen: true,         // the home screen is open (ui/home.js); the game is paused        // the sort-the-washing card is open (ui/sorting.js)
   level: 0,              // which floor the player is on: 0 Erdgeschoss, 1 Obergeschoss, 2 Dachgeschoss

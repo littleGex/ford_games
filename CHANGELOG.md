@@ -10,6 +10,17 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: a second mission, **3D printing**, for Dad (no clock, just for fun). Pick a design on a
+  close-up of the laptop at his desk (a dragon for P, a plant pot, a phone stand, a rocket for Dude), order
+  filament in a colour you choose, take the parcel from the courier, load the printer in the light-box
+  cupboard by the sofa, send the print from the laptop and watch it grow layer by layer, then put the model
+  where it belongs. The home screen lists everything you've made so far (#55).
+
+### Changed
+- Ford House: the little side table by the sofa is now the light-box cupboard with the 3D printer inside
+  (glass top and door, lit inside); the phone still rests on top.
+
 ## [4.5.8] - 2026-10-12
 
 ### Fixed

@@ -6,8 +6,15 @@
 // The school run (P or Dude): get out of bed, breakfast at the dining table, get dressed, pack your school
 // bag, put it on your bike on the terrace and cycle out of the back gate. The school clock starts at 7:30
 // and the bell rings at 8:00: before 7:50 is three stars, before the bell two, late one.
+//
+// 3D printing (Dad, no clock, just for fun): pick a design on the laptop, order a spool of filament, take the
+// parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
+// laptop, watch it grow, then take the model out and put it where it belongs.
 import { S } from '../state.js';
 import { resetItems } from '../items.js';
+import { FOOD_DELIVERY } from '../config.js';
+import { PRINTER } from '../world/rooms/wohnzimmer.js';
+import { DESIGNS, COLOURS } from '../systems/printing.js';
 
 const KEY = 'fordHouse.missions.v1';
 const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
@@ -21,6 +28,9 @@ export const KIDS = {
   boy:  { name: 'Dude', level: 2, start: [1.8, 2.45], facing: Math.PI, bed: [1.8, 2.75], bedHandle: 'dudeBed',
           wardrobe: { at: [0.35, 2.95], seat: [0.35, 0, 2.95, 0] }, desk: [4.62, 2.27], bag: [5.3, 0.76, 2.0] },
 };
+
+const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
+const DAD_DESK = [3.75, 0.5];   // Dad's desk in the dressing room, with the laptop
 
 export const MISSIONS = {
   schoolRun: {
@@ -49,6 +59,39 @@ export const MISSIONS = {
         { kind: 'drop', item: 'bike', at: [4.35, -16.7], place: [4.35, 0, -16.95], label: 'Ride out of the back gate to school' }] },
     ],
   },
+
+  print3d: {
+    title: '3D printing', who: ['dad'],
+    spot: () => ({ name: 'Dad', level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
+    intro: 'Pick something to print on the laptop at your desk',
+    setup(c) { c.printing.reset(); },
+    jobs: () => [
+      { title: 'Pick a design', steps: [
+        { kind: 'choose', choose: 'design', level: 1, at: DAD_DESK, label: 'Open the laptop and pick a design', message: o => `${o.label}: let's print it!` }] },
+      { title: 'Order some filament', steps: [
+        { kind: 'choose', choose: 'filament', level: 1, at: DAD_DESK, label: 'Order a spool of filament on the laptop', message: o => `${o.label} filament ordered` }] },
+      { title: 'Collect the delivery', steps: [
+        { kind: 'wait', delivery: 'filament', dur: 20, label: 'Wait for the courier', doneMessage: 'Ding-dong! Your filament is here' },
+        { kind: 'pick', item: 'filamentBox', at: FOOD_DELIVERY.door, label: 'Answer the door and take the parcel' }] },
+      { title: 'Load the printer', steps: [
+        { kind: 'drop', item: 'filamentBox', at: PRINTER.at, place: [PRINTER.at[0], 0, PRINTER.at[1]], label: 'Load the filament into the printer by the sofa',
+          onDone: c => { c.items.filamentBox.visible = false; c.printing.load(S.mission.choices.filament); } }] },
+      { title: 'Print it', steps: [
+        { kind: 'use', level: 1, at: DAD_DESK, label: 'Send the design to the printer from the laptop', onDone: c => c.printing.start(S.mission.choices.design) },
+        { kind: 'wait', print: true, dur: 35, label: 'The printer is printing: watch it by the sofa', doneMessage: 'Ding! The print is finished' }] },
+      (c, mission) => {
+        const d = DESIGNS.find(k => k.id === mission.choices.design) || DESIGNS[0];
+        return { title: `Put the ${d.name} where it belongs`, steps: [
+          { kind: 'pick', item: 'printModel', at: PRINTER.at, label: `Take the ${d.name} out of the printer` },
+          { kind: 'drop', item: 'printModel', ...d.goes }] };
+      },
+    ],
+    result(mission) {
+      const d = DESIGNS.find(k => k.id === mission.choices.design) || DESIGNS[0];
+      const c = COLOURS.find(k => k.id === mission.choices.filament) || COLOURS[0];
+      return { title: 'Printed!', stats: `You printed a ${c.label.toLowerCase()} ${d.name}.`, record: d.id };
+    },
+  },
 };
 
 export function createMissions(ctx) {
@@ -60,20 +103,22 @@ export function createMissions(ctx) {
 
   const now = () => S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute;
   function showClock(force) {
+    if (!S.mission.clock) { if (force) hud.setDayLabel(MISSIONS[S.mission.id].title); return; }
     const m = Math.floor(now());
     if (!force && m === shownMinute) return;
     shownMinute = m;
     hud.setDayLabel(`${MISSIONS[S.mission.id].title} · ${clockText(m)}`);
   }
 
-  /** Start a mission as one of the kids. */
+  /** Start a mission as one of the family (the school run: one of the kids; 3D printing: Dad). */
   function start(id, who) {
-    const m = MISSIONS[id], kid = KIDS[who];
+    const m = MISSIONS[id], kid = m && (m.spot ? m.spot(who) : KIDS[who]);
     if (!m || !kid) return;
     if (S.sitting) ctx.sitting.standUp();
+    if (S.laptop) ctx.laptop.close();
     if (ctx.home) ctx.home.close();
     el.box.hidden = true;
-    S.mission = { id, who, clock: m.clock, t: 0, done: false };
+    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {} };
     S.carrying = null; S.dayOver = false; S.wiping = null;
     hud.hideDayComplete();
     board.clear();
@@ -82,27 +127,36 @@ export function createMissions(ctx) {
     player.setCharacter(who);
     levels.show(kid.level);
     player.group.position.x = kid.start[0]; player.group.position.z = kid.start[1]; player.group.rotation.y = kid.facing;
-    jobs = m.jobs(kid).map((j, k) => ({ ...j, id: `${id}-${k}`, mission: true }));
+    jobs = m.jobs(kid);
     next = 0; shownMinute = -1;
-    board.add(jobs[next++]);
+    addNext();
     showClock(true);
-    hud.toast(`${m.title}: the bell rings at ${clockText(m.clock.end)}!`);
+    hud.toast(m.clock ? `${m.title}: the bell rings at ${clockText(m.clock.end)}!` : `${m.title}: ${m.intro}`);
+  }
+
+  /** The next step of the mission joins the list (a step can depend on choices made earlier). */
+  function addNext() {
+    const k = next++, j = typeof jobs[k] === 'function' ? jobs[k](ctx, S.mission) : jobs[k];
+    board.add({ ...j, id: `${S.mission.id}-${k}`, mission: true });
   }
 
   board.onFinished(job => {
     if (!S.mission || !job.mission || S.mission.done) return;
-    if (next < jobs.length) { board.add(jobs[next++]); return; }
+    if (next < jobs.length) { addNext(); return; }
     finish();
   });
 
   function finish() {
-    const mission = S.mission, m = MISSIONS[mission.id], arrived = now(), stars = m.stars(arrived);
+    const mission = S.mission, m = MISSIONS[mission.id];
+    if (!m.clock) return finishForFun(mission, m);
+    const arrived = now(), stars = m.stars(arrived);
+    el.stars.hidden = false; el.again.textContent = 'Try again';
     mission.done = true;
     const best = ((BEST[mission.id] ||= {})[mission.who]);
     const better = !best || stars > best.stars || (stars === best.stars && arrived < best.minutes);
     if (better) { BEST[mission.id][mission.who] = { stars, minutes: arrived }; saveBest(); }
     const late = arrived >= m.clock.end;
-    el.eyebrow.textContent = `${m.title} · ${KIDS[mission.who].name}`;
+    el.eyebrow.textContent = `${m.title} · ${NAMES[mission.who]}`;
     el.title.textContent = late ? 'Late for school!' : stars === 3 ? 'Early bird!' : 'Just in time!';
     el.stars.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
     el.stars.setAttribute('aria-label', `${stars} of 3 stars`);
@@ -113,10 +167,27 @@ export function createMissions(ctx) {
     el.again.focus();
   }
 
+  /** A mission with no clock: no stars, just what you made, and everything you've made so far. */
+  function finishForFun(mission, m) {
+    mission.done = true;
+    const r = m.result(mission), rec = ((BEST[mission.id] ||= {})[mission.who] ||= { made: [] });
+    if (!rec.made.includes(r.record)) { rec.made.push(r.record); saveBest(); }
+    el.eyebrow.textContent = `${m.title} · ${NAMES[mission.who]}`;
+    el.title.textContent = r.title;
+    el.stars.hidden = true;
+    el.stats.textContent = r.stats;
+    el.best.textContent = `Made so far: ${rec.made.map(id => (DESIGNS.find(d => d.id === id) || { name: id }).name).join(', ')}`;
+    el.again.textContent = 'Print something else';
+    el.box.hidden = false;
+    el.again.focus();
+  }
+
   /** Leave the mission and pick the day up again. */
   function end() {
     if (!S.mission) return;
     S.mission = null;
+    if (S.laptop) ctx.laptop.close();
+    if (ctx.printing) ctx.printing.reset();
     el.box.hidden = true;
     if (S.sitting) ctx.sitting.standUp();
     player.setCharacter(days.character);
@@ -133,7 +204,7 @@ export function createMissions(ctx) {
       S.mission.t += dt;
       showClock(false);
     },
-    /** The best result for a mission and kid: { stars, minutes } or undefined. */
+    /** The best result for a mission and player: { stars, minutes } (the school run), { made: [...] } (3D printing), or undefined. */
     best: (id, who) => BEST[id] && BEST[id][who],
     get active() { return S.mission; },
   };
