@@ -15,7 +15,7 @@ export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['bin
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
 
 // Where each of the kids does their homework: the floor, where to stand, the seat [x, seat height, z, facing].
-// P at the Kinderzimmer desk, Dude at his own desk in the attic.
+// P at the desk in her room, Dude at his own desk in the attic.
 const KINDERZIMMER_DESK = { level: 1, at: [2.3, 8.05], seat: [2.3, 0.48, 8.05, Math.PI / 2], label: 'Sit at the desk and do your homework' };
 const DUDES_DESK = { level: 2, at: [4.62, 2.27], seat: [4.62, 0.45, 2.27, Math.PI / 2], label: 'Sit at your desk and do your homework' };
 const HOMEWORK_SPOT = { girl: KINDERZIMMER_DESK, boy: DUDES_DESK };
@@ -206,6 +206,11 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     // Attic
     { id: 'music', title: 'Practise the keyboard', steps: [   // Dude only (see rules.js)
       { kind: 'sit', level: 2, at: [1.1, 2.12], seat: [1.1, 0.45, 2.12, -Math.PI / 2], dur: 25, what: 'Playing the keyboard', label: 'Sit down and play the keyboard' }] },
+    { id: 'clarinet', title: 'Practise the clarinet', steps: [   // Dude only
+      { kind: 'pick', item: 'clarinet', label: 'Take your clarinet off its stand' },
+      { kind: 'sit', stand: true, level: 2, at: [4.75, 1.38], seat: [4.75, 0, 1.38, Math.PI / 2], dur: 18, fx: 'clarinetNotes', sound: 'clarinet',
+        what: 'Playing the clarinet', label: 'Play your clarinet at the music stand' },
+      { kind: 'drop', item: 'clarinet', home: true, label: 'Put the clarinet back on its stand' }] },
     { id: 'tidyDude', title: 'Tidy your room', steps: [   // Dude only
       { kind: 'pick', item: 'lego', label: 'Pick up the Lego' },
       { kind: 'drop', item: 'lego', level: 2, at: [2.1, 1.95], place: [2.1, 0.2, 1.47], label: 'Put it in the Lego drawer' },

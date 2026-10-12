@@ -52,7 +52,7 @@ export function createPower({ stage, world, player, board, hud }) {
 
   function update(dt, time) {
     now = time;
-    if (S.powerOn && S.started && !S.dayOver && outages < cfg.maxPerDay && time > nextOutage) { outages++; cut(); }
+    if (S.powerOn && S.started && !S.dayOver && !S.mission && outages < cfg.maxPerDay && time > nextOutage) { outages++; cut(); }
     if (!S.powerOn) world.fuseLed.material.emissive.setRGB(0.5 + 0.5 * Math.sin(time * 8), 0, 0);
   }
 

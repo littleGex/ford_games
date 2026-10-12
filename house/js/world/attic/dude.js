@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { WALL_HEIGHT as WH } from '../../config.js';
 import { box, cyl, fbox, mat, solid } from '../../core/build.js';
 import { makeBed } from '../upstairs/elternzimmer.js';
+import { musicNotes } from '../upstairs/ankleide.js';
 import { canvasTex } from '../../core/textures.js';
 
 // white duvet with navy brush swirls
@@ -60,5 +61,13 @@ export function buildDudesZimmer() {
   box(3.0, 1.35, 3.3, 1.6, 0.14, 0.55, mat('#7fe0c4'), false);
   fbox(1.75, 1.22, 2.45, 1.72, 0.28, '#8a5a36');
   ['#f2d22e', '#e04848', '#48a0e0', '#6cc070'].forEach((c, i) => box(1.82 + i * 0.15, 1.3, 1.92 + i * 0.15, 1.42, 0.06, 0.28, mat(c), false));
-  return { dudeBed };
+  // his clarinet corner by the desk: a music stand with sheet music, and the clarinet's own little stand
+  box(5.28, 1.3, 5.31, 1.42, 1.0, 0, mat('#2a2b30'), false);                     // music stand pole
+  box(5.22, 1.18, 5.26, 1.52, 0.26, 1.0, mat('#2a2b30'), false);                 // its desk
+  box(5.215, 1.2, 5.22, 1.5, 0.22, 1.02, mat('#f4f0e6'), false);                 // sheet music
+  [0, 1, 2].forEach(k => box(5.21, 1.23, 5.214, 1.47, 0.006, 1.08 + k * 0.05, mat('#3a3d42'), false));
+  cyl(5.5, 1.3, 0.07, 0.05, '#2a2b30', 0);                                        // the clarinet's stand
+  solid(5.15, 1.15, 5.62, 1.5);
+  const clarinetNotes = musicNotes(4.95, 1.05, 1.4);                             // notes float up while he plays
+  return { dudeBed, clarinetNotes };
 }

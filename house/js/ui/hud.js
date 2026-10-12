@@ -52,6 +52,8 @@ export function createHud() {
   return {
     renderJobs,
     setDay(n) { el.dayLabel.textContent = `Day ${n}`; },
+    /** Something else in the day's place on the job list (a mission and its clock). */
+    setDayLabel(text) { el.dayLabel.textContent = text; },
     showDayComplete({ day, jobs, minutes, tomorrow, totals }) {
       el.dayDoneTitle.textContent = `Day ${day} complete`;
       el.dayDoneStats.textContent = minutes ? `${plural(jobs, 'job')} done in ${plural(minutes, 'minute')}` : `All ${plural(jobs, 'job')} done`;
@@ -100,7 +102,7 @@ export function createHud() {
     },
     hideHint() { el.hint.classList.add('gone'); },
     bindCharacterButtons(onPick) {
-      const buttons = document.querySelectorAll('.who button');
+      const buttons = document.querySelectorAll('.who button, .home-who button');   // the corner and the home screen
       const mark = k => buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === k)));
       buttons.forEach(b => b.addEventListener('click', () => { onPick(b.dataset.c); mark(b.dataset.c); }));
       return mark;

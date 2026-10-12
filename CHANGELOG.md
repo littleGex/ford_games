@@ -10,6 +10,26 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.5.5] - 2026-10-12
+
+### Added
+- Ford House: the first mission, **the school run**, for P or Dude, from the home screen: get up,
+  breakfast, get dressed, pack your school bag, then cycle out of the back gate before the bell at 8:00.
+  Stars for how early you get there, with your best kept for each of the kids (#44).
+- Ford House: Dude's clarinet, on its stand by his desk with a music stand. New job for Dude every few days:
+  practise the clarinet for 18 seconds, with a made-up clarinet tune and music notes floating up (#44).
+- Ford House: a home screen when the game opens and from the ☰ button: carry on with today, pick who's
+  playing, the missions to come, start over, and a way back to Game Zone. The game pauses while it's open (#41).
+
+### Changed
+- Ford House: the Kinderzimmer is called P's room; "Start over" moved from under the job list to the home screen (#41).
+
+### Fixed
+- Ford House: standing in a doorway (like the terrace door) no longer says you're in the garden (#41).
+- Ford House: two fingers on the screen (or a quick double tap) could zoom the whole page on a phone, with
+  no way to zoom back out. Page zoom is now turned off in the game, and if it happens anyway the page
+  snaps back to normal when you let go (#42).
+
 ## [4.5.4] - 2026-10-12
 
 ### Added
@@ -138,7 +158,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.4...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.5...HEAD
+[4.5.5]: https://github.com/littleGex/ford_games/compare/v4.5.4...v4.5.5
 [4.5.4]: https://github.com/littleGex/ford_games/compare/v4.5.3...v4.5.4
 [4.5.3]: https://github.com/littleGex/ford_games/compare/v4.5.2...v4.5.3
 [4.5.2]: https://github.com/littleGex/ford_games/compare/v4.5.0...v4.5.2

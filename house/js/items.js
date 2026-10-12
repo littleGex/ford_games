@@ -187,6 +187,27 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.08, 0.09, 0.18, 12), mat('#4f9a6a'), [0, 0.09, 0]);
       add(g, new THREE.CylinderGeometry(0.015, 0.02, 0.2, 6), mat('#4f9a6a'), [0.12, 0.14, 0], null, [0, 0, -0.9]);
     }, [3.35, 0, 7.45], { level: 2 }),
+    // the school run mission: a school bag (put on the kid's desk when the mission starts) and P's bike on the terrace
+    schoolBag: item(g => {
+      add(g, new THREE.BoxGeometry(0.28, 0.32, 0.14), mat('#2f6fd6'), [0, 0.16, 0]);
+      add(g, new THREE.BoxGeometry(0.29, 0.12, 0.15), mat('#f2c84a'), [0, 0.26, 0]);
+      [-0.08, 0.08].forEach(x => add(g, new THREE.BoxGeometry(0.03, 0.26, 0.02), mat('#1d1e22'), [x, 0.18, -0.08]));
+    }, [2.85, 0.73, 7.9], { level: 1, hidden: true }),
+    bike: item(g => {
+      [-0.32, 0.32].forEach(z => add(g, new THREE.TorusGeometry(0.21, 0.022, 8, 22), mat('#151515'), [0, 0.23, z], null, [0, Math.PI / 2, 0]));
+      add(g, new THREE.BoxGeometry(0.035, 0.035, 0.62), mat('#e86a8a'), [0, 0.38, 0], null, [0.12, 0, 0]);
+      add(g, new THREE.BoxGeometry(0.035, 0.3, 0.035), mat('#e86a8a'), [0, 0.38, -0.1]);
+      add(g, new THREE.BoxGeometry(0.1, 0.035, 0.16), mat('#1d1e22'), [0, 0.54, -0.12]);                // saddle
+      add(g, new THREE.BoxGeometry(0.34, 0.03, 0.03), mat('#1d1e22'), [0, 0.6, 0.28]);                  // handlebar
+      add(g, new THREE.BoxGeometry(0.22, 0.14, 0.18), mat('#f4f4f4'), [0, 0.55, 0.42]);                // basket
+    }, [4.1, 0, -2.6], { rotY: 0, userData: { carry: [0, 0, 0.05], carryRot: [0, 0, 0], wheel: true } }),
+    // Dude's clarinet, standing on its stand by his desk
+    clarinet: item(g => {
+      add(g, new THREE.CylinderGeometry(0.016, 0.016, 0.5, 10), mat('#141416'), [0, 0.3, 0]);
+      add(g, new THREE.CylinderGeometry(0.045, 0.016, 0.08, 14), mat('#141416'), [0, 0.04, 0]);          // bell
+      add(g, new THREE.CylinderGeometry(0.01, 0.016, 0.07, 8), mat('#141416'), [0, 0.585, 0]);           // mouthpiece
+      [0.14, 0.22, 0.3, 0.38, 0.46].forEach(y => add(g, new THREE.TorusGeometry(0.018, 0.004, 4, 12), mat('#c9ccd1'), [0, y, 0], null, [Math.PI / 2, 0, 0]));
+    }, [5.5, 0.05, 1.3], { level: 2, userData: { carry: [0, 0.32, 0.26], carryRot: [-0.5, 0, 0] } }),
     // the box that goes up into the loft and comes back down (moved about by the loft jobs)
     box: item(g => {
       add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);

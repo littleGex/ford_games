@@ -34,6 +34,7 @@ export const POOL_RULES = [
   { id: 'homework', week: 5, who: ['girl', 'boy'] },
   { id: 'music', every: 3, who: ['boy'] },
   { id: 'tidyDude', every: 3, who: ['boy'] },
+  { id: 'clarinet', every: 3, who: ['boy'] },
   { id: 'toys', every: 3, who: ['girl'] },
   { id: 'cook', every: 1, who: ['dad', 'mum'] },
   { id: 'work', week: 5, who: ['mum'] },

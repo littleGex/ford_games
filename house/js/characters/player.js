@@ -37,7 +37,7 @@ export function createPlayer(scene, items) {
 
   function stepFromInput(axis, yaw, dt) {
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
-    const k = WALK_SPEED * dt;
+    const k = WALK_SPEED * dt * (S.carrying === 'bike' ? 1.8 : 1);   // faster on the bike
     return walk((rx * axis.x - fx * axis.y) * k, (rz * axis.x - fz * axis.y) * k, dt);
   }
 

@@ -24,6 +24,9 @@ import { createLoft } from './systems/loft.js';
 import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
+import { createHome } from './ui/home.js';
+import { createMissions } from './missions/missions.js';
+import { preventZoom } from './core/nozoom.js';
 import { createSweeping } from './systems/sweeping.js';
 import { createSeasonal } from './systems/seasonal.js';
 import { currentSeason } from './seasons.js';
@@ -63,9 +66,10 @@ ctx.days = createDays(ctx);
 const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.seasonal];
 
 // controls
+preventZoom();
 const turnView = () => { yawTarget += Math.PI / 2; };
 const doAction = () => {
-  if (S.dayOver || S.sorting) return;
+  if (S.dayOver || S.sorting || S.menuOpen) return;
   if (S.wiping) { ctx.wiping.stop(); return; }
   board.act(nearest);
 };
@@ -76,12 +80,22 @@ const input = createInput({
 });
 hud.onAction(doAction);
 document.getElementById('rotBtn').addEventListener('click', turnView);
-const markCharacter = hud.bindCharacterButtons(key => { player.setCharacter(key); ctx.days.setCharacter(key); });
+const markCharacter = hud.bindCharacterButtons(key => {
+  if (S.mission) return;   // a mission is played as one of the kids
+  player.setCharacter(key); ctx.days.setCharacter(key);
+});
 player.setCharacter(ctx.days.character);
 markCharacter(ctx.days.character);
 ctx.days.start();
+ctx.home = createHome(ctx);
+ctx.missions = createMissions(ctx);
+systems.push(ctx.missions);
+ctx.home.open();   // the game opens on the home screen
 
+let drawn = false, room = null;
 function frame() {
+  if (S.menuOpen && drawn) { requestAnimationFrame(frame); return; }   // paused behind the home screen (after drawing the house once)
+  drawn = true;
   const dt = Math.min(clock.getDelta(), 0.05), time = clock.elapsedTime;
   const axis = input.axis();
   yaw += (yawTarget - yaw) * Math.min(1, dt * (S.reduceMotion ? 60 : 8));
@@ -97,7 +111,8 @@ function frame() {
   for (const sys of systems) sys.update(dt, time);
 
   const pos = player.group.position;
-  hud.setRoom(roomAt(pos.x, pos.z, S.level));
+  room = roomAt(pos.x, pos.z, S.level, room);
+  hud.setRoom(room);
   nearest = S.dayOver || S.sorting || S.wiping ? null : board.nearestAction(pos);
   hud.setAction(S.wiping ? 'Stop wiping' : nearest ? nearest.step.label : null);
   hud.banner(S.dayOver ? null : ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
