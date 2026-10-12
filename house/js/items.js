@@ -128,6 +128,12 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.BoxGeometry(0.36, 0.26, 0.3), mat('#c49a62'), [0, 0.13, 0]);
       add(g, new THREE.BoxGeometry(0.37, 0.005, 0.07), mat('#e8d9a8'), [0, 0.262, 0]);
     }, [0, 0, 0], { hidden: true }),
+    // a parcel for the neighbours: a long white box with red "fragile" tape, so it's not mixed up with ours
+    neighbourParcel: item(g => {
+      add(g, new THREE.BoxGeometry(0.44, 0.18, 0.26), mat('#eeeae2'), [0, 0.09, 0]);
+      add(g, new THREE.BoxGeometry(0.445, 0.005, 0.06), mat('#d6453a'), [0, 0.182, 0]);
+      add(g, new THREE.BoxGeometry(0.12, 0.004, 0.08), mat('#ffffff'), [0.12, 0.185, 0.07]);
+    }, [0, 0, 0], { hidden: true }),
 
     // upstairs
     dirtyClothes: item(g => {

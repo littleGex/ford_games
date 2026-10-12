@@ -22,7 +22,9 @@ export const ROOMS = [
   { name: 'Terrasse', area: 'under the glass roof', r: [-0.3, -3.42, 5.76, -0.375] },
   { name: 'Garten', area: 'back garden', r: [-0.4, -17.5, 5.76, -3.42] },
   { name: 'Vorgarten', area: 'front garden', r: [-2.5, 9.255, 5.76, 12.6] },
-  { name: 'Gehweg', area: 'by the street', r: [-2.5, 12.6, 5.76, 13.7] },
+  { name: 'Gehweg', area: 'by the street', r: [-6.2, 12.6, 11.6, 13.7] },
+  { name: 'Nachbarn', area: 'next door, on the right', r: [5.76, 9.3, 11.6, 12.6] },
+  { name: 'Nachbarn', area: 'next door, on the left', r: [-6.2, 9.3, -2.5, 12.6] },
 ];
 const OUTSIDE = { name: 'Garten', area: 'outside', level: 0 };
 
