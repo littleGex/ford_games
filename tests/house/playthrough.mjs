@@ -40,7 +40,7 @@ console.log('boot ok, jobs:', G.board.jobs.length, 'renders:', G.stage.renderer.
 
 // --- reachability: flood-fill the walkable space on each floor, from the front path downstairs and
 // from the top of the stairs upstairs
-const RES = 0.05, X0 = -2.25, Z0 = -17.3, NX = Math.round(7.75 / RES), NZ = Math.round(30.7 / RES);
+const RES = 0.05, X0 = -6.25, Z0 = -17.3, NX = Math.round(18 / RES), NZ = Math.round(30.7 / RES);
 const idx = (i, k) => k * NX + i;
 function walkable(level, sx, sz) {
   const seen = new Uint8Array(NX * NZ), out = [];
@@ -303,6 +303,30 @@ G.days.plan(['washing', 'hands']);
   if (G.world.washingLine.hasWashing()) errors.push('rain: washing still on the line');
 }
 G.days.next();
+
+// --- a parcel for the neighbours, all four ways: left or right, taken round or they come for it
+for (const [side, comes] of [['left', false], ['right', false], ['left', true], ['right', true]]) {
+  G.days.plan(['hands']);
+  const label = `neighbours' parcel (${side}, ${comes ? 'they come round' : 'taken round'})`;
+  G.deliveries.neighbourParcelNow(G.clock.elapsedTime, side, comes);
+  let job = null;
+  for (let k = 0; k < 600 && !(job = G.board.find('neighbourParcel')); k++) frame();
+  if (!job) { errors.push(`${label}: the driver never rang`); continue; }
+  if (!/parcel for the neighbours/.test(G.deliveries.banner() || '')) errors.push(`${label}: no banner while the driver waits`);
+  if (!job.title.includes(side)) errors.push(`${label}: the job doesn't say which neighbours (${job.title})`);
+  playDay(label);
+  if (job.i < job.steps.length) errors.push(`${label}: never finished`);
+  if (G.items.neighbourParcel.visible && G.items.neighbourParcel.parent === G.stage.scene) errors.push(`${label}: the parcel was left lying about`);
+  G.days.next();
+}
+{ // too slow: the driver takes it to another neighbour and the job goes away
+  G.days.plan(['hands']);
+  G.deliveries.neighbourParcelNow(G.clock.elapsedTime, 'right', true);
+  for (let k = 0; k < 600 && !G.board.find('neighbourParcel'); k++) frame();
+  for (let k = 0; k < 3000 && G.board.find('neighbourParcel'); k++) frame();
+  if (G.board.find('neighbourParcel')) errors.push("neighbours' parcel: still on the list after the driver gave up");
+  G.days.next();
+}
 
 // --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day
 for (const who of ['girl', 'boy']) {

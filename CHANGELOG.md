@@ -10,6 +10,12 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: parcels for the neighbours. Some days the driver brings one for the neighbours on the left
+  or the right: take it in, keep it in the hall till they're home, then take it round to their front door,
+  or they come round, ring the bell, and you say hello and hand it over. The neighbours' houses now have
+  fronts (our house mirrored, with light grey doors and window frames) and you can walk to their doors.
+
 ## [4.5.5] - 2026-10-12
 
 ### Added

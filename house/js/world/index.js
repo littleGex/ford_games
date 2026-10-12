@@ -10,6 +10,7 @@ import { buildFlur } from './rooms/flur.js';
 import { buildWindfang } from './rooms/windfang.js';
 import { buildWc } from './rooms/wc.js';
 import { buildFront } from './outside/front.js';
+import { buildNeighbours } from './outside/neighbours.js';
 import { buildTerrace } from './outside/terrace.js';
 import { buildGarden } from './outside/garden.js';
 import { buildUpstairs } from './upstairs/index.js';
@@ -20,6 +21,6 @@ export function buildWorld(scene) {
   const structure = buildStructure();
   return Object.assign({}, structure,
     buildWohnzimmer(), buildEsszimmer(), buildKueche(), buildFlur(), buildWindfang(), buildWc(),
-    buildFront(), buildTerrace(), buildGarden(),
+    buildFront(), buildNeighbours(), buildTerrace(), buildGarden(),
     buildUpstairs(scene), buildAttic(scene));
 }

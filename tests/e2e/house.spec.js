@@ -273,6 +273,21 @@ test("the page can't be pinch- or double-tap-zoomed", async ({ page }) => {
   expect(zoom.list).toBe('pan-y');
 });
 
+test('a parcel for the neighbours: take it in, then the neighbour comes round for it', async ({ page }) => {
+  await openHouse(page);
+  await page.evaluate(() => { const h = window.house; h.S.started = true; h.deliveries.neighbourParcelNow(h.clock.elapsedTime, 'right', true); });
+  await expect(page.locator('#taskList')).toContainText('Parcel for the neighbours on the right', { timeout: 20000 });
+  await page.evaluate(() => window.house.player.group.position.set(3.92, 0, 10.2));
+  await expect(page.locator('#actBtn')).toHaveText("Take the neighbours' parcel");
+  await page.locator('#actBtn').click();
+  await page.evaluate(() => window.house.player.group.position.set(3.7, 0, 4.9));
+  await expect(page.locator('#actBtn')).toHaveText('Keep it safe in the hall');
+  await page.locator('#actBtn').click();
+  // skip most of the wait: the neighbour walks round and rings
+  await page.evaluate(() => { const j = window.house.board.find('neighbourParcel'); j.steps[j.i].prog = j.steps[j.i].dur - 0.5; });
+  await expect(page.locator('#alert')).toContainText('The neighbours are at the front door', { timeout: 30000 });
+});
+
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
   await openHouse(page);
   const day = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
