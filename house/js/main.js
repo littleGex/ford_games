@@ -25,6 +25,7 @@ import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
 import { createHome } from './ui/home.js';
+import { preventZoom } from './core/nozoom.js';
 import { createSweeping } from './systems/sweeping.js';
 import { createSeasonal } from './systems/seasonal.js';
 import { currentSeason } from './seasons.js';
@@ -64,6 +65,7 @@ ctx.days = createDays(ctx);
 const systems = [ctx.power, ctx.deliveries, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.seasonal];
 
 // controls
+preventZoom();
 const turnView = () => { yawTarget += Math.PI / 2; };
 const doAction = () => {
   if (S.dayOver || S.sorting || S.menuOpen) return;
