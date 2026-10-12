@@ -113,6 +113,13 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.2, 0.18, 0.4, 14), mat('#3f7a3a'), [0, 0.2, 0]);
       ['#2f5b2e', '#4f8a3a', '#3b6b36'].forEach((c, i) => add(g, new THREE.SphereGeometry(0.08, 8, 6), mat(c), [-0.07 + i * 0.07, 0.41, (i % 2) * 0.05], [1, 0.6, 1]));
     }, [2.4, 0, -14.2], { hidden: true }),
+    // the 3D printing mission: the box of filament the courier brings, and the finished model
+    // (its layers are moved in from the printer when the print is done, see systems/printing.js)
+    filamentBox: item(g => {
+      add(g, new THREE.BoxGeometry(0.24, 0.1, 0.24), mat('#c49a62'), [0, 0.05, 0]);
+      add(g, new THREE.BoxGeometry(0.245, 0.005, 0.06), mat('#2f6fd6'), [0, 0.102, 0]);
+    }, [0, 0, 0], { hidden: true }),
+    printModel: item(() => {}, [0.86, 0.09, 3.68], { hidden: true, userData: { carry: [0.1, 0.62, 0.26] } }),
     // a garden bag of raked leaves (shows up once the lawn is raked)
     leafBag: item(g => {
       add(g, new THREE.CylinderGeometry(0.2, 0.18, 0.4, 14), mat('#3f7a3a'), [0, 0.2, 0]);

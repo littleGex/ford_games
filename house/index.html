@@ -53,6 +53,8 @@
       <ul class="missions">
         <li class="mission" id="missionSchoolRun"><span class="mission-icon" aria-hidden="true">🚲</span><span><b>The school run</b><small>Get up, breakfast, dressed, bag packed, then cycle to school before the bell at 8:00</small><small class="mission-best" data-best="schoolRun"></small></span>
           <span class="mission-play" role="group" aria-label="Play the school run as"><button data-mission="schoolRun" data-kid="girl">P</button><button data-mission="schoolRun" data-kid="boy">Dude</button></span></li>
+        <li class="mission" id="missionPrint3d"><span class="mission-icon" aria-hidden="true">🖨️</span><span><b>3D printing</b><small>Dad: pick a design on the laptop, order filament, load the printer by the sofa, print it and put it where it belongs</small><small class="mission-best" data-best="print3d"></small></span>
+          <span class="mission-play" role="group" aria-label="Play 3D printing as"><button data-mission="print3d" data-kid="dad">Dad</button></span></li>
         <li class="mission soon"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small>Mum or Dad: kids upstairs, showered, teeth brushed, a story, lights out</small></span><em>Coming soon</em></li>
       </ul>
 
@@ -118,6 +120,19 @@
       </div>
       <p class="sort-feedback" id="sortFeedback" role="status"></p>
       <button class="linkbtn" id="sortLater">Do it later</button>
+    </div>
+  </div>
+
+  <div class="laptop" id="laptop" role="dialog" aria-modal="true" aria-labelledby="laptopTitle" hidden>
+    <div class="laptop-body">
+      <div class="laptop-screen">
+        <p class="laptop-bar"><span></span><span></span><span></span><b id="laptopApp">Printables</b></p>
+        <h1 id="laptopTitle">Pick something to print</h1>
+        <div class="laptop-tiles" id="laptopTiles"></div>
+        <p class="laptop-note" id="laptopNote"></p>
+      </div>
+      <div class="laptop-deck"><span class="laptop-pad"></span></div>
+      <button class="linkbtn" id="laptopLater">Close the laptop</button>
     </div>
   </div>
 

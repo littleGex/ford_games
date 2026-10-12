@@ -7,6 +7,7 @@
 //   use    do something on the spot (onDone runs)
 //   sit    sit or stand at a spot for `dur` seconds (handled by systems/sitting.js)
 //   sort   sort the washing by colour on a little card (ui/sorting.js)
+//   choose pick from tiles on the laptop close-up (ui/laptop.js), choose: 'design' | 'filament'
 //   wipe   wipe a window by moving the stick in circles (systems/wiping.js); dirt: which window
 //   mow / hoover / rake / shovel / trim / charge / wait   progress handled by their own systems; no button, no marker
 // Steps happen on the ground floor unless they say level: 1 (pick steps use the item's floor).
@@ -72,6 +73,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (PASSIVE.has(s.kind)) return false;
     if (s.kind === 'sit') return !S.sitting;
     if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe') return true;
+    if (s.kind === 'choose') return !S.carrying;
     if (s.kind === 'pick') return !S.carrying;
     if (s.kind === 'drop') return S.carrying === s.item;
     return false;
@@ -170,6 +172,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     const { job, step: s } = choice;
     if (s.kind === 'sit') { ctx.sitting.sitDown(job, s); return; }
     if (s.kind === 'sort') { ctx.sorting.open(job, s); return; }
+    if (s.kind === 'choose') { ctx.laptop.open(job, s); return; }
     if (s.kind === 'wipe') { ctx.wiping.start(job, s); return; }
     if (s.kind === 'pick') S.carrying = s.item;
     if (s.kind === 'drop') { place(s); S.carrying = null; }

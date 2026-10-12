@@ -26,6 +26,8 @@ import { createLoft } from './systems/loft.js';
 import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
+import { createLaptop } from './ui/laptop.js';
+import { createPrinting } from './systems/printing.js';
 import { createHome } from './ui/home.js';
 import { createMissions } from './missions/missions.js';
 import { preventZoom } from './core/nozoom.js';
@@ -62,18 +64,20 @@ ctx.loft = createLoft(ctx);
 ctx.weather = createWeather(ctx);
 ctx.wiping = createWiping(ctx);
 ctx.sorting = createSorting(ctx);
+ctx.laptop = createLaptop(ctx);
+ctx.printing = createPrinting(ctx);
 ctx.sweeping = createSweeping(ctx);
 ctx.seasonal = createSeasonal(ctx, ctx.season);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.seasonal];
+const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal];
 
 // controls
 preventZoom();
 const turnView = () => { yawTarget += Math.PI / 2; };
 const doAction = () => {
-  if (S.dayOver || S.sorting || S.menuOpen) return;
+  if (S.dayOver || S.sorting || S.laptop || S.menuOpen) return;
   if (S.wiping) { ctx.wiping.stop(); return; }
   board.act(nearest);
 };
@@ -107,7 +111,7 @@ function frame() {
   let walking = false;
   if (S.dayOver) { /* the Day complete screen is up */ }
   else if (S.sitting) { if (axis.len > 0.3) ctx.sitting.standUp(); }
-  else if (S.wiping || S.sorting) { /* wiping a window uses the stick; sorting has its own card */ }
+  else if (S.wiping || S.sorting || S.laptop) { /* wiping a window uses the stick; sorting has its own card */ }
   else if (axis.len > 0.08) walking = player.stepFromInput(axis, yaw, dt);
   player.animate(dt, walking);
   if (S.wiping) ctx.wiping.feed(axis, dt);
@@ -117,7 +121,7 @@ function frame() {
   const pos = player.group.position;
   room = roomAt(pos.x, pos.z, S.level, room);
   hud.setRoom(room);
-  nearest = S.dayOver || S.sorting || S.wiping ? null : board.nearestAction(pos);
+  nearest = S.dayOver || S.sorting || S.laptop || S.wiping ? null : board.nearestAction(pos);
   hud.setAction(S.wiping ? 'Stop wiping' : nearest ? nearest.step.label : null);
   hud.banner(S.dayOver ? null : ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
   board.updateMarkers(time);

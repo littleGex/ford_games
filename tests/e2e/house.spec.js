@@ -224,7 +224,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(2);
+  await expect(page.locator('.mission')).toHaveCount(3);   // the school run, 3D printing, bedtime (coming soon)
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
@@ -340,6 +340,28 @@ test('the solar panels: check the reading, then brush the panels on the shed', a
   await act(3.4, -14.6, 'Get the long brush from the shed');
   await act(4.35, -16.1, 'Brush the panels on the shed roof in circles');
   await expect(page.locator('#alert')).toContainText('Wipe in circles');
+});
+
+test('the 3D printing mission: pick a design on the laptop close-up', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="print3d"][data-kid="dad"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('3D printing');
+  await page.evaluate(() => window.house.player.group.position.set(3.95, 2.3, 0.6));
+  await expect(page.locator('#actBtn')).toHaveText('Open the laptop and pick a design');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#laptop')).toBeVisible();
+  await expect(page.locator('#laptopTiles button')).toHaveCount(4);
+  await page.locator('[data-choice="rocket"]').click();
+  await expect(page.locator('#laptop')).toBeHidden();
+  await expect(page.locator('#taskList')).toContainText('Order some filament');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#laptopTitle')).toHaveText('Order a spool of filament');
+  await page.keyboard.press('2');   // blue
+  await expect(page.locator('#taskList')).toContainText('Collect the delivery');
+  expect(await page.evaluate(() => window.house.S.mission.choices)).toEqual({ design: 'rocket', filament: 'blue' });
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
