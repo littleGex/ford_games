@@ -31,6 +31,7 @@ const { blocked } = await import(new URL('../../house/js/core/collision.js', imp
 const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
 const { DAY_JOBS } = await import(new URL('../../house/js/days/planner.js', import.meta.url));
 const { SWEEPS } = await import(new URL('../../house/js/systems/sweeping.js', import.meta.url));
+const { TRIM_SPOTS } = await import(new URL('../../house/js/systems/trimming.js', import.meta.url));
 const { HOOVER_SPOTS } = await import(new URL('../../house/js/systems/hoovering.js', import.meta.url));
 const { BOX_SPOTS } = await import(new URL('../../house/js/jobs/jobs.js', import.meta.url));
 const G = globalThis.house, S = G.S;
@@ -144,6 +145,14 @@ function doStep(job) {
       G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
     }
     return job.steps[job.i] !== s || `${s.kind === 'rake' ? 'leaves' : 'snow'} left behind`;
+  }
+  if (s.kind === 'trim') {   // walk round the shaggy bushes with the hedge trimmer, facing each one
+    travel(0);
+    for (const [x, z] of TRIM_SPOTS) {
+      const { cell } = standNear([x + (x > 3 ? -0.75 : 0.75), z]); goTo(cell);
+      G.player.group.rotation.y = Math.atan2(x - cell[0], z - cell[1]); frame();
+    }
+    return job.steps[job.i] !== s || 'bushes left shaggy';
   }
   if (s.kind === 'charge' || s.kind === 'wait') { for (let n = 0; n < 2500 && job.steps[job.i] === s; n++) { if (!S.powerOn) fixPower(); frame(); } return job.steps[job.i] !== s || 'never finished running'; }
 
@@ -281,6 +290,18 @@ if (G.world.dragonMess.visible || G.world.crickets.visible) errors.push('dragon:
   if (G.items.dragon.parent !== G.world.upstairs || p.x < 1.0 || p.x > 1.95 || p.z < 5.72 || p.z > 6.15) errors.push('dragon: not back in its terrarium');
   if (b.x < 1.0 || b.x > 1.95 || b.z < 5.72 || b.z > 6.15) errors.push("dragon: the water bowl isn't back in the terrarium"); }
 G.days.setCharacter('dad');
+G.days.next();
+
+// --- a day at the shed as Dad: fix P's bike, clean the solar panels, trim the bushes
+G.days.plan(['fixBike', 'solar', 'trim']);
+if (!G.world.dirt[3].visible || !G.world.overgrown.every(g => g.visible)) errors.push("shed: panels not dusty or bushes not shaggy on the day they're on the list");
+if (G.world.dirt.slice(0, 3).some(d => d.visible)) errors.push('shed: the terrace windows are dirty without the window job');
+playDay('shed day');
+if (G.world.dirt[3].visible) errors.push('shed: solar panels still dusty');
+if (G.world.overgrown.some(g => g.visible)) errors.push('shed: bushes still shaggy');
+if (G.items.clippingsBag.visible) errors.push("shed: the clippings didn't go in the brown bin");
+{ const b = G.items.bike.position, h = G.items.bike.userData.home.pos;
+  if (Math.hypot(b.x - h[0], b.z - h[2]) > 0.01) errors.push("shed: P's bike isn't back on the terrace"); }
 G.days.next();
 
 // --- a day as Mum: work in the office, make up the sofa bed, cook dinner

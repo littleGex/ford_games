@@ -8,14 +8,14 @@
 //   sit    sit or stand at a spot for `dur` seconds (handled by systems/sitting.js)
 //   sort   sort the washing by colour on a little card (ui/sorting.js)
 //   wipe   wipe a window by moving the stick in circles (systems/wiping.js); dirt: which window
-//   mow / hoover / rake / shovel / charge / wait   progress handled by their own systems; no button, no marker
+//   mow / hoover / rake / shovel / trim / charge / wait   progress handled by their own systems; no button, no marker
 // Steps happen on the ground floor unless they say level: 1 (pick steps use the item's floor).
 import * as THREE from 'three';
 import { REACH, COLORS, LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
 import { sendHome } from '../items.js';
 
-const PASSIVE = new Set(['mow', 'hoover', 'rake', 'shovel', 'charge', 'wait']);
+const PASSIVE = new Set(['mow', 'hoover', 'rake', 'shovel', 'trim', 'charge', 'wait']);
 const FIXED_REACH = 0.6;
 
 function makeMarker(scene) {

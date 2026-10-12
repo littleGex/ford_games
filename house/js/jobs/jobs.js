@@ -141,6 +141,27 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'leafBag', label: 'Pick up the bag of leaves' },
       { kind: 'drop', item: 'leafBag', at: [4.3, 9.65], place: [4.85, 0.95, 9.65], label: 'Tip the leaves into the brown bin', onDone: c => { c.items.leafBag.visible = false; } }],
       setup: c => c.sweeping.reset('rake', true), tidy: c => c.sweeping.reset('rake', false) },
+    // the shed: trimming the bushes (anyone), fixing a bike and the solar panels (Dad)
+    { id: 'trim', title: 'Trim the bushes', steps: [
+      { kind: 'pick', item: 'shears', label: 'Get the hedge trimmer from the shed' },
+      { kind: 'trim' },
+      { kind: 'drop', item: 'shears', home: true, label: 'Put the hedge trimmer back by the shed' },
+      { kind: 'pick', item: 'clippingsBag', label: 'Pick up the bag of clippings' },
+      { kind: 'drop', item: 'clippingsBag', at: [4.3, 9.65], place: [4.85, 0.95, 9.65], label: 'Tip the clippings into the brown bin', onDone: c => { c.items.clippingsBag.visible = false; } }],
+      setup: c => c.trimming.reset(true), tidy: c => c.trimming.reset(false) },
+    { id: 'fixBike', title: "Fix P's bike", steps: [
+      { kind: 'pick', item: 'bike', label: "Wheel P's bike off the terrace" },
+      { kind: 'drop', item: 'bike', at: [0.75, -15.55], place: [0.75, 0, -16.0], rot: Math.PI / 2, label: 'Put it on the stand by your workbench' },
+      { kind: 'sit', stand: true, at: [0.85, -15.5], seat: [0.85, 0, -15.6, Math.PI], dur: 18, what: 'Fixing the bike',
+        label: 'Fix the puncture and oil the chain', onDone: c => c.hud.toast('New inner tube, chain oiled, brakes checked') },
+      { kind: 'pick', item: 'bike', label: 'Take the bike off the stand' },
+      { kind: 'drop', item: 'bike', home: true, label: 'Wheel it back to the terrace' }] },
+    { id: 'solar', title: 'Check the solar panels', steps: [
+      { kind: 'use', at: [5.0, 4.4], label: 'Check the solar reading on the cabinet', onDone: c => c.hud.toast('Not much power today: the panels on the shed need a clean') },
+      { kind: 'pick', item: 'panelBrush', label: 'Get the long brush from the shed' },
+      { kind: 'wipe', dirt: 3, at: [4.3, -16.2], label: 'Brush the panels on the shed roof in circles' },
+      { kind: 'drop', item: 'panelBrush', home: true, label: 'Put the brush back by the shed' }],
+      setup: c => { c.world.dirt[3].visible = true; c.world.dirt[3].material.opacity = 1; }, tidy: c => { c.world.dirt[3].visible = false; } },
     { id: 'snow', title: 'Clear the snow off the path', steps: [
       { kind: 'pick', item: 'shovel', label: 'Grab the snow shovel' },
       { kind: 'shovel' },
@@ -182,7 +203,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'wipe', at: [2.5, -3.0], dirt: 1, label: 'Wipe this window' },
       { kind: 'wipe', at: [0.9, -3.0], dirt: 0, label: 'Wipe this window' },
       { kind: 'drop', item: 'bucket', home: true, label: 'Put the bucket away' }],
-      setup: c => c.world.dirt.forEach(d => { d.visible = true; d.material.opacity = 1; }), tidy: c => c.world.dirt.forEach(d => { d.visible = false; }) },
+      setup: c => c.world.dirt.slice(0, 3).forEach(d => { d.visible = true; d.material.opacity = 1; }), tidy: c => c.world.dirt.slice(0, 3).forEach(d => { d.visible = false; }) },   // dirt[3] is the solar panels
 
     // Obergeschoss (level: 1 on everything that happens upstairs; pick steps follow the item)
     { id: 'beds', title: 'Make the beds', steps: [

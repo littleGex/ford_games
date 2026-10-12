@@ -21,6 +21,17 @@ export function dingDong() {
   } catch (e) { /* ignore */ }
 }
 
+/** A short buzz: the hedge trimmer snipping through a bush. */
+export function buzz() {
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(110, now); o.frequency.linearRampToValueAtTime(140, now + 0.35);
+    g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(0.06, now + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+    o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + 0.42);
+  } catch (e) { /* ignore */ }
+}
+
 // Music while someone sits and plays or works: the radio on a desk, Dude's clarinet. Made-up tunes, made with
 // the browser's own sound (no recordings). music('radio') / music('clarinet') starts one, music(null) stops.
 const SONGS = {
