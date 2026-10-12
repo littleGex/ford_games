@@ -15,6 +15,12 @@ pull request; at release time that section becomes the new version (see "Releasi
   or the right: take it in, keep it in the hall till they're home, then take it round to their front door,
   or they come round, ring the bell, and you say hello and hand it over. The neighbours' houses now have
   fronts (our house mirrored, with light grey doors and window frames) and you can walk to their doors.
+- Ford House: the food shopping is ordered and delivered. Mum and Dad check the fridge, order on the phone
+  from the sofa, and a while later a small white delivery van pulls up and the driver rings with the bag;
+  answer the door and put the food away. P and Dude skip the ordering and just answer the door.
+
+### Changed
+- Ford House: the shopping bag no longer just appears in the hall; it comes with the food delivery.
 
 ## [4.5.5] - 2026-10-12
 

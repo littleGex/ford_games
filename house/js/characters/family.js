@@ -67,6 +67,17 @@ export const FAMILY = {
   },
 };
 
+// The food delivery driver: red jacket and cap, dark trousers (a supermarket delivery, no logos).
+export const FOOD_DRIVER = {
+  scale: 0.96, skin: '#e6b08c', pants: '#24272e', shoes: '#f2f2f2', brow: '#4a3222', topMat: M('#d92a23'), sleeveMat: M('#d92a23'),
+  extras: t => add(t, new THREE.CylinderGeometry(0.192, 0.196, 0.04, 22), M('#f4f4f4'), [0, 0.3, 0]),   // white band
+  hair: h => {
+    const cap = M('#d92a23');
+    add(h, new THREE.SphereGeometry(0.226, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.4), cap, [0, 0.015, 0], [1, 1.08, 1]);
+    add(h, new THREE.BoxGeometry(0.26, 0.02, 0.15), M('#f4f4f4'), [0, 0.105, 0.22]);
+  },
+};
+
 export const COURIER = {
   scale: 0.95, skin: '#c98d68', pants: '#2b2f36', shoes: '#151515', brow: '#2a1f18', topMat: M('#3b6fb0'),
   extras: t => add(t, new THREE.CylinderGeometry(0.192, 0.196, 0.045, 22), M('#d8e04a'), [0, 0.12, 0]),
