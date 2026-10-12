@@ -10,6 +10,15 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.5.4] - 2026-10-12
+
+### Added
+- Ford House: Dad's desk in the dressing room has a monitor, a laptop and a chair. On weekdays Dad has
+  "Work at your desk": four 20-second tasks (emails, a video call, a report, writing code), each with its
+  own screen lighting up; the code types itself out on the monitor as he works (#38).
+- Ford House: Mum's office monitors light up while she works, and the radio on each desk plays a little
+  tune (with music notes floating up) during desk work (#38).
+
 ## [4.5.3] - 2026-10-11
 
 ### Added
@@ -129,7 +138,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.3...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.5.4...HEAD
+[4.5.4]: https://github.com/littleGex/ford_games/compare/v4.5.3...v4.5.4
 [4.5.3]: https://github.com/littleGex/ford_games/compare/v4.5.2...v4.5.3
 [4.5.2]: https://github.com/littleGex/ford_games/compare/v4.5.0...v4.5.2
 [4.5.1]: https://github.com/littleGex/ford_games/pull/29

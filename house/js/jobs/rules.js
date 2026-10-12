@@ -30,6 +30,7 @@ export const POOL_RULES = [
   { id: 'call', every: 2 },
   // only for some of the family
   { id: 'shave', every: 2, who: ['dad'] },
+  { id: 'dadWork', week: 5, who: ['dad'] },
   { id: 'homework', week: 5, who: ['girl', 'boy'] },
   { id: 'music', every: 3, who: ['boy'] },
   { id: 'tidyDude', every: 3, who: ['boy'] },

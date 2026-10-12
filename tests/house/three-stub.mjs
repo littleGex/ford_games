@@ -29,7 +29,7 @@ export class TorusGeometry extends Geo {} export class PlaneGeometry extends Geo
 export class RingGeometry extends Geo {} export class OctahedronGeometry extends Geo {} export class ConeGeometry extends Geo {} export class CircleGeometry extends Geo {}
 class Mat { constructor(o = {}) { Object.assign(this, o); this.color = new Color(o.color); this.emissive = new Color(o.emissive); } }
 export class MeshStandardMaterial extends Mat {} export class MeshBasicMaterial extends Mat {}
-export class CanvasTexture { constructor() { this.repeat = { set() {} }; } clone() { return new CanvasTexture(); } }
+export class CanvasTexture { constructor() { this.repeat = { set() {} }; this.offset = { set() {} }; } clone() { return new CanvasTexture(); } }
 class Light extends Object3D { constructor(c, i = 1) { super(); this.intensity = i; this.target = new Object3D(); this.shadow = any; } }
 export class HemisphereLight extends Light { constructor(a, b, i) { super(a, i); } }
 export class DirectionalLight extends Light {} export class PointLight extends Light {} export class SpotLight extends Light {}
