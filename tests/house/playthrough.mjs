@@ -226,7 +226,7 @@ for (let n = 1; n <= 12; n++) {
   if (has('binsIn') !== binIds.some(kerb)) errors.push(`${label}: bins at the kerb ${binIds.some(kerb)} but bins-in on the list ${has('binsIn')}`);
   if (has('jacket') !== (G.items.jacket.position.z < 3)) errors.push(`${label}: jacket on the sofa doesn't match the list`);
   if (has('windows') !== G.world.dirt[0].visible) errors.push(`${label}: dirty windows don't match the list`);
-  if (has('shopping') !== G.items.shopping.visible) errors.push(`${label}: shopping bag doesn't match the list`);
+  if (G.items.shopping.visible) errors.push(`${label}: the shopping is in the house before it's been delivered`);
   if (n > 1) {
     const yesterday = dayLog[n - 2];
     if (yesterday.includes('binsOut') && !has('binsIn')) errors.push(`${label}: bins went out yesterday but aren't coming back in`);
@@ -325,6 +325,24 @@ for (const [side, comes] of [['left', false], ['right', false], ['left', true], 
   for (let k = 0; k < 600 && !G.board.find('neighbourParcel'); k++) frame();
   for (let k = 0; k < 3000 && G.board.find('neighbourParcel'); k++) frame();
   if (G.board.find('neighbourParcel')) errors.push("neighbours' parcel: still on the list after the driver gave up");
+  G.days.next();
+}
+
+// --- the food shopping: Dad checks the fridge and orders on his phone, P just waits; either way the
+// delivery driver brings it to the door and rings
+for (const who of ['dad', 'girl']) {
+  G.days.setCharacter(who);
+  G.days.plan(['shopping']);
+  const job = G.board.find('shopping');
+  const first = job.steps[0].label;
+  if ((who === 'dad') !== /fridge/.test(first)) errors.push(`food shopping (${who}): starts with "${first}"`);
+  while (job.i < job.steps.length && job.steps[job.i].kind !== 'wait') { const r = doStep(job); if (r !== true) { errors.push(`food shopping (${who}): ${r}`); break; } }
+  for (let k = 0; k < 4000 && job.steps[job.i].kind === 'wait'; k++) frame();
+  for (let k = 0; k < 400 && !/food delivery is at the front door/.test(G.deliveries.banner() || ''); k++) frame();
+  if (!/food delivery is at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): the driver never rang`);
+  playDay(`food shopping (${who})`);
+  if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
+  G.days.setCharacter('dad');
   G.days.next();
 }
 

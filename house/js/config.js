@@ -38,4 +38,7 @@ export const EVENTS = {
   rain:   { chancePerDay: 0.6, after: [15, 45], bringIn: 40 },
 };
 
+// the food delivery: where the driver stands at the front door, and how long after ordering it comes
+export const FOOD_DELIVERY = { door: [3.7, 9.95], afterOrder: 45, kidsWait: 75 };
+
 export const DAY_COMPLETE_DELAY = 1.5;   // seconds between the last job and the "Day complete" screen

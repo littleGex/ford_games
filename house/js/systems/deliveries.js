@@ -5,13 +5,15 @@
 // - Some days the driver brings a parcel for one of the neighbours instead (or as well). Take it in and keep
 //   it in the hall till they're home; then either take it round to their front door, or they come round,
 //   ring the bell, and you say hello, fetch it from the hall and hand it over.
+// - The food shopping (jobs.js) is ordered on the phone; when its wait is nearly over a small white electric
+//   delivery van pulls up and the driver brings the bag to the door and waits till you take it.
 import * as THREE from 'three';
-import { EVENTS } from '../config.js';
+import { EVENTS, FOOD_DELIVERY } from '../config.js';
 import { S, rand } from '../state.js';
 import { add, castShadows, group, mat } from '../core/build.js';
 import { dingDong } from '../core/audio.js';
 import { makeCharacter } from '../characters/character.js';
-import { COURIER, NEIGHBOURS } from '../characters/family.js';
+import { COURIER, FOOD_DRIVER, NEIGHBOURS } from '../characters/family.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
 
 const VAN_SPOT = new THREE.Vector3(4.6, 0, 13.3);
@@ -20,7 +22,9 @@ const LETTERBOX = [3.02, 9.33];
 const HALL_SHELF = [3.7, 4.6];          // where the neighbours' parcel waits (ours goes by the stairs)
 const OPEN_DOOR = [3.92, 9.3];          // standing in the open front door, to talk to a neighbour on the step
 const STREET_Z = 12.1;                  // the neighbours walk round by the pavement
-const GAP = 70;                         // seconds between two drivers on the same day
+const GAP = 70;
+const FOOD_VAN = [-3.4, 15.0];          // the food van parks up the street, past our car
+const FOOD_WALK = [[-2.0, 13.3], [3.7, 13.0], [3.7, 12.3], FOOD_DELIVERY.door];                         // seconds between two drivers on the same day
 
 /** A figure that walks between points: the driver, the neighbours. */
 function walker(spec, scene) {
@@ -64,6 +68,64 @@ export function createDeliveries({ stage, items, board, hud }) {
   [[-1.5, 0.95], [1.5, 0.95], [-1.5, -0.95], [1.5, -0.95]].forEach(([x, z]) => add(van, new THREE.CylinderGeometry(0.33, 0.33, 0.22, 18), mat('#1a1a1c'), [x, 0.33, z], null, [Math.PI / 2, 0, 0]));
   castShadows(van);
 
+  // the food delivery: a small, tall, rounded white electric van with a red stripe, and its driver
+  const foodVan = group(FOOD_VAN[0], 0, FOOD_VAN[1]); foodVan.visible = false;
+  add(foodVan, new THREE.BoxGeometry(2.3, 1.55, 1.35), mat('#f6f6f4'), [0.2, 1.0, 0]);
+  add(foodVan, new THREE.BoxGeometry(0.7, 1.15, 1.33), mat('#f6f6f4'), [-1.25, 0.8, 0]);          // short bonnet-less cab
+  add(foodVan, new THREE.BoxGeometry(0.06, 0.55, 1.2), mat('#2a3340'), [-1.6, 1.05, 0]);           // windscreen
+  add(foodVan, new THREE.BoxGeometry(0.62, 0.4, 1.36), mat('#2a3340'), [-1.25, 1.12, 0]);           // side windows
+  add(foodVan, new THREE.BoxGeometry(3.02, 0.14, 1.37), mat('#d92a23'), [-0.15, 0.5, 0]);          // red stripe
+  [-0.62, 0.62].forEach(z => add(foodVan, new THREE.BoxGeometry(2.3, 0.05, 0.1), mat('#d92a23'), [0.2, 1.79, z]));   // red roof edges
+  [[-1.1, 0.68], [0.9, 0.68], [-1.1, -0.68], [0.9, -0.68]].forEach(([x, z]) => {
+    add(foodVan, new THREE.CylinderGeometry(0.27, 0.27, 0.2, 18), mat('#1a1a1c'), [x, 0.27, z], null, [Math.PI / 2, 0, 0]);
+    add(foodVan, new THREE.CylinderGeometry(0.13, 0.13, 0.21, 12), mat('#d92a23'), [x, 0.27, z], null, [Math.PI / 2, 0, 0]);
+  });
+  castShadows(foodVan);
+  const foodDriver = walker(FOOD_DRIVER, stage.scene);
+  let food = 'gone';   // 'gone' | 'coming' | 'waiting' | 'leaving'
+
+  function foodAway() {
+    food = 'gone'; foodVan.visible = false; foodDriver.root.visible = false; foodDriver.path = [];
+    if (items.shopping.parent === foodDriver.root) { foodDriver.root.remove(items.shopping); items.shopping.visible = false; }
+  }
+
+  /** Seconds the food driver takes from the van to our door. */
+  const foodWalkTime = (() => {
+    let d = 0, p = [FOOD_VAN[0] + 1.4, 13.6];
+    for (const q of FOOD_WALK) { d += Math.hypot(q[0] - p[0], q[1] - p[1]); p = q; }
+    return d / 1.6 + 0.5;
+  })();
+
+  function updateFood(dt) {
+    if (food === 'gone') {
+      // a food order is about to arrive: set off so the driver rings as the wait ends
+      const job = board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === 'food'; });
+      const s = job && board.step(job);
+      if (!s || (s.prog || 0) < s.dur - foodWalkTime) return;
+      food = 'coming'; foodVan.visible = true;
+      const r = foodDriver.root; r.visible = true; r.position.set(FOOD_VAN[0] + 1.4, 0, 13.6);
+      foodDriver.path = FOOD_WALK.map(p => [...p]);
+      const it = items.shopping; it.visible = true; it.getObjectByName('food').visible = true;
+      r.add(it); it.position.set(0, 0.5, 0.3); it.rotation.set(0, 0, 0);
+    }
+    let walking = false;
+    if (food === 'coming') {
+      walking = foodDriver.walk(dt);
+      if (!walking) {
+        food = 'waiting'; foodDriver.root.rotation.y = Math.PI; dingDong();
+        const job = board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === 'food'; });
+        if (job) { job.status = ''; board.advance(job, board.step(job).doneMessage); }
+      }
+    } else if (food === 'waiting' && S.carrying === 'shopping') {
+      food = 'leaving'; hud.toast('Driver: "Enjoy your food, bye!"');
+      foodDriver.path = [[3.7, 12.3], [3.7, 13.0], [-2.0, 13.3], [FOOD_VAN[0] + 1.4, 13.6]];
+    } else if (food === 'leaving') {
+      walking = foodDriver.walk(dt);
+      if (!walking) { foodAway(); return; }
+    }
+    foodDriver.animate(walking, dt, items.shopping.parent === foodDriver.root);
+  }
+
   let postAt = Infinity, postDone = false;
   // today's drivers, in the order they come: { at, item: 'parcel' | 'neighbourParcel', side?, comes? }
   let runs = [], run = null;
@@ -88,7 +150,7 @@ export function createDeliveries({ stage, items, board, hud }) {
 
   /** Start of a day: roll today's deliveries. */
   function reset(time) {
-    sendAway(); neighbourAway();
+    sendAway(); neighbourAway(); foodAway();
     postDone = false; parcelJob = null;
     postAt = Math.random() < cfg.post.chancePerDay ? time + rand(...cfg.post.after) : Infinity;
     runs = [];
@@ -182,7 +244,7 @@ export function createDeliveries({ stage, items, board, hud }) {
   }
 
   function update(dt, time) {
-    if (S.dayOver) { if (state !== 'gone') sendAway(); if (nb) neighbourAway(); return; }
+    if (S.dayOver) { if (state !== 'gone') sendAway(); if (nb) neighbourAway(); if (food !== 'gone') foodAway(); return; }
     if (!S.started || S.mission) return;   // no post or parcels in the middle of a mission
     if (!postDone && time > postAt) {
       postDone = true; items.post.visible = true;
@@ -196,6 +258,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       else arrive(runs.shift());
     }
     updateNeighbour(dt);
+    updateFood(dt);
     if (state === 'gone') return;
 
     let walking = false;
@@ -245,6 +308,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       if (S.courierWaiting) return run && run.item === 'neighbourParcel'
         ? `Ding-dong! A parcel for the neighbours · ${timeLeft}s` : `Ding-dong! Parcel at the front door · ${timeLeft}s`;
       if (nb && nb.state === 'waiting') return 'Ding-dong! The neighbours are at the front door';
+      if (food === 'waiting') return 'Ding-dong! The food delivery is at the front door';
       return null;
     },
     /** Send a driver with a parcel for the neighbours right now (tests, and trying it out). */
