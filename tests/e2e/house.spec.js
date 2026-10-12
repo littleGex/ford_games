@@ -307,6 +307,26 @@ test('the food shopping: check the fridge, order on the phone, the driver brings
   await act(3.7, 10.4, 'Answer the door and take the shopping');
 });
 
+test("P's bearded dragon: feed it from the box on her desk", async ({ page }) => {
+  await openHouse(page);
+  await page.locator('.who [data-c="girl"]').click();
+  await planToday(page, ['feedDragon']);
+  await page.evaluate(() => window.house.levels.go(1));
+  const act = async (x, z, label) => {
+    await page.evaluate(([px, pz]) => window.house.player.group.position.set(px, window.house.S.level * 2.3, pz), [x, z]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(2.6, 8.2, 'Get the box of crickets from your desk');
+  await act(2.3, 6.4, 'Put the crickets and greens in the terrarium');
+  await expect(page.locator('#alert')).toContainText('Feeding the dragon');
+  expect(await page.evaluate(() => window.house.world.crickets.visible)).toBe(true);
+  await page.evaluate(() => { window.house.S.sitting.step.prog = 99; });
+  await expect(page.locator('#alert')).toBeHidden();   // fed: P stands up again
+  await act(2.6, 8.2, 'Put the box back on your desk');
+  await expect(page.locator('#taskCount')).toHaveText('1/1');
+});
+
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
   await openHouse(page);
   const day = await page.evaluate(() => window.house.board.jobs.map(j => j.id));

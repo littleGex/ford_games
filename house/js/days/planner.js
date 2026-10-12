@@ -6,12 +6,13 @@
 //                         and then stays on the list until it is done.
 //   must: true            always on the list when due (bin days, bringing bins back in).
 //   week: N               due on the first N days of every 7 (homework: 5 school days, then the weekend off).
-//   who: [...]            only for these characters, and always on their list when due (Dad's shave, homework).
+//   who: [...]            only for these characters. Daily ones and homework are always on their list when due;
+//                         ones every 2+ days go in after the daily routine while the day has room.
 //   season: [...]         only in these seasons (raking leaves in autumn, clearing snow in winter).
 //
 // A day gets between DAY_JOBS.min and DAY_JOBS.max jobs:
-//   1. jobs that must happen today, and the jobs just for whoever is playing,
-//   2. daily jobs,
+//   1. jobs that must happen today, and the daily jobs and homework just for whoever is playing,
+//   2. daily jobs, then the playing character's other jobs that are due (up to DAY_JOBS.max),
 //   3. due appointments (jobs that come round every 3+ days), the most overdue first, up to DAY_JOBS.max.
 //      One that doesn't fit is a day late, and goes first the next day; appointments are never early,
 //   4. other due jobs, the most overdue first,
@@ -56,8 +57,12 @@ export function planDay(pool, state, rng = Math.random, limits = DAY_JOBS) {
 
   const appointment = job => job.every >= 3;
   const fixed = job => !!(job.must || job.who);
+  // a character's own jobs that come round every few days (P's dragon, Dude's music...) go in after the
+  // must jobs and the daily routine, as long as the day has room; homework and daily ones always go in
+  const flexible = job => !job.must && job.who && !job.week && job.every >= 2;
   const scored = pool.filter(job => isFor(job, state.character) && inSeason(job, state.season)).map(job => ({ job, score: overdue(job, state) }));
-  const must = scored.filter(s => s.score > 0 && fixed(s.job)).map(s => s.job);
+  const must = scored.filter(s => s.score > 0 && fixed(s.job) && !flexible(s.job)).map(s => s.job);
+  const personal = scored.filter(s => s.score > 0 && flexible(s.job)).sort(byUrgency).map(s => s.job);
   const appointments = scored.filter(s => s.score > 0 && !fixed(s.job) && appointment(s.job)).sort(byUrgency).map(s => s.job);
   const daily = scored.filter(s => s.score > 0 && !fixed(s.job) && s.job.every === 1).sort(byUrgency).map(s => s.job);
   const due = scored.filter(s => s.score > 0 && !fixed(s.job) && !appointment(s.job) && s.job.every !== 1).sort(byUrgency).map(s => s.job);
@@ -65,6 +70,7 @@ export function planDay(pool, state, rng = Math.random, limits = DAY_JOBS) {
     .sort((a, b) => jitter.get(a.job.id) - jitter.get(b.job.id)).map(s => s.job);
 
   const picked = [...must, ...daily];
+  for (const job of personal) { if (picked.length >= limits.max) break; picked.push(job); }
   for (const job of appointments) { if (picked.length >= limits.max) break; picked.push(job); }
   for (const job of [...due, ...extra]) { if (picked.length >= target) break; picked.push(job); }
   const ids = new Set(picked.map(j => j.id));

@@ -36,6 +36,9 @@ export const POOL_RULES = [
   { id: 'tidyDude', every: 3, who: ['boy'] },
   { id: 'clarinet', every: 3, who: ['boy'] },
   { id: 'toys', every: 3, who: ['girl'] },
+  { id: 'feedDragon', every: 1, who: ['girl'] },   // P's bearded dragon
+  { id: 'playDragon', every: 2, who: ['girl'] },
+  { id: 'cleanDragon', every: 3, who: ['girl'] },
   { id: 'cook', every: 1, who: ['dad', 'mum'] },
   { id: 'work', week: 5, who: ['mum'] },
   { id: 'sofabed', every: 3, who: ['mum'] },

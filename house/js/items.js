@@ -165,6 +165,33 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.12, 0.12, 0.02, 18), mat('#d98a3a'), [0, 0.13, 0]);
       [-1, 1].forEach(s => add(g, new THREE.BoxGeometry(0.06, 0.02, 0.03), mat('#1d1e22'), [s * 0.16, 0.11, 0]));
     }, [5.34, 0.91, 1.65], { hidden: true }),
+    // P's bearded dragon: sandy body with a spiky beard and side spikes, long tail; parts are named so
+    // systems/dragon.js can bob its head, swish its tail and warm up its colour when it's happy
+    dragon: item(g => {
+      const skin = new THREE.MeshStandardMaterial({ color: '#c9a46a', roughness: 0.8 }); skin.name = 'dragonSkin';
+      const body = add(g, new THREE.SphereGeometry(0.05, 14, 10), skin, [0, 0.03, 0], [0.85, 0.45, 1.45]); body.name = 'body';
+      const head = new THREE.Group(); head.name = 'head'; head.position.set(0, 0.04, 0.075); g.add(head);
+      add(head, new THREE.SphereGeometry(0.03, 12, 8), skin, [0, 0, 0.012], [1.05, 0.7, 1.25]);
+      add(head, new THREE.ConeGeometry(0.034, 0.03, 8, 1, true), mat('#9c7c4c'), [0, -0.014, 0.005], [1, 1, 0.8], [Math.PI, 0, 0]);   // the beard
+      [-1, 1].forEach(sd => add(head, new THREE.SphereGeometry(0.006, 6, 4), mat('#1a1a1a'), [sd * 0.021, 0.008, 0.02]));
+      const tail = new THREE.Group(); tail.name = 'tail'; tail.position.set(0, 0.025, -0.065); g.add(tail);
+      add(tail, new THREE.ConeGeometry(0.02, 0.15, 8), skin, [0, 0, -0.072], null, [-Math.PI / 2, 0, 0]);
+      [[-1, 0.04], [1, 0.04], [-1, -0.04], [1, -0.04]].forEach(([sd, z]) => add(g, new THREE.CylinderGeometry(0.008, 0.007, 0.04, 6), skin, [sd * 0.045, 0.012, z], null, [0, 0, sd * 1.1]));
+      for (let i = -2; i <= 2; i++) [-1, 1].forEach(sd => add(g, new THREE.ConeGeometry(0.005, 0.014, 4), mat('#a88956'), [sd * 0.04, 0.035, i * 0.022], null, [0, 0, -sd * 0.9]));
+      g.scale.setScalar(1.7);   // about 40 cm nose to tail
+    }, [1.68, 0.49, 5.92], { level: 1, rotY: 0.5, userData: { carry: [0.12, 0.58, 0.26], carryRot: [0, -0.4, 0] } }),
+    // its water bowl, in the terrarium
+    dragonBowl: item(g => {
+      add(g, new THREE.CylinderGeometry(0.055, 0.045, 0.025, 14), mat('#7c8a8f'), [0, 0.0125, 0]);
+      add(g, new THREE.CylinderGeometry(0.045, 0.045, 0.004, 14), new THREE.MeshStandardMaterial({ color: '#7fc4e8', transparent: true, opacity: 0.8 }), [0, 0.022, 0]);
+    }, [1.12, 0.49, 5.86], { level: 1 }),
+    // the box of crickets (and greens) on P's desk
+    cricketBox: item(g => {
+      add(g, new THREE.BoxGeometry(0.12, 0.08, 0.09), new THREE.MeshStandardMaterial({ color: '#e8e8e2', transparent: true, opacity: 0.75 }), [0, 0.04, 0]);
+      add(g, new THREE.BoxGeometry(0.125, 0.012, 0.095), mat('#5fae3d'), [0, 0.085, 0]);
+      add(g, new THREE.BoxGeometry(0.07, 0.01, 0.05), mat('#4a3a22'), [0, 0.012, 0]);
+    }, [2.9, 0.73, 8.55], { level: 1, rotY: 0.2 }),
+
     // P's crayons and drawing pad, left on the floor
     crayons: item(g => {
       add(g, new THREE.BoxGeometry(0.3, 0.01, 0.22), mat('#ffffff'), [0, 0.005, 0]);
