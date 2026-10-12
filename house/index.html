@@ -18,28 +18,55 @@
   <canvas id="scene" aria-label="3D view of the ground floor"></canvas>
 
   <div class="hud top">
-    <div class="chip room" aria-live="polite">
-      <div class="label" id="floorName">Erdgeschoss</div>
-      <div class="name" id="roomName">Vorgarten</div>
-      <div class="area" id="roomArea">front garden</div>
+    <div class="topleft">
+      <button class="chip menubtn" id="menuBtn" aria-label="Home screen" aria-haspopup="dialog">☰</button>
+      <div class="chip room" aria-live="polite">
+        <div class="label" id="floorName">Erdgeschoss</div>
+        <div class="name" id="roomName">Vorgarten</div>
+        <div class="area" id="roomArea">front garden</div>
+      </div>
     </div>
     <div class="chip tasks" id="taskPanel">
       <h2><button id="taskToggle" aria-expanded="true"><span id="dayLabel">Day 1</span> <b class="caret">▾</b></button><span id="taskCount">0/0</span></h2>
       <div class="next"><div id="nextTitle"></div><div id="nextStep"></div></div>
       <ul id="taskList"></ul>
-      <div class="tasks-restart">
-        <button class="linkbtn" id="gameRestart">Start over from day 1</button>
-        <span id="gameRestartConfirm" hidden>Lose all progress?
-          <button class="linkbtn danger" id="gameRestartYes">Yes, start over</button>
-          <button class="linkbtn" id="gameRestartNo">No</button>
-        </span>
-      </div>
     </div>
   </div>
 
   <div class="hint" id="hint">Drag the stick to walk · keyboard: WASD, E to act</div>
   <div class="toast" id="toast" role="status"></div>
   <div class="alert" id="alert" role="status" hidden></div>
+
+  <div class="home" id="home" role="dialog" aria-modal="true" aria-labelledby="homeTitle">
+    <div class="home-card">
+      <p class="daydone-eyebrow">Game Zone</p>
+      <h1 id="homeTitle">Ford House</h1>
+      <p class="home-sub" id="homeSub"></p>
+      <button class="btn home-play" id="homePlay">Play</button>
+
+      <h2>Who's playing?</h2>
+      <div class="home-who" role="group" aria-label="Choose who to play">
+        <button data-c="dad" aria-pressed="true">Dad</button><button data-c="mum" aria-pressed="false">Mum</button><button data-c="girl" aria-pressed="false">P</button><button data-c="boy" aria-pressed="false">Dude</button>
+      </div>
+
+      <h2>Missions</h2>
+      <ul class="missions">
+        <li class="mission soon"><span class="mission-icon" aria-hidden="true">🚲</span><span><b>The school run</b><small>P or Dude: get up, breakfast, dressed, bag packed, then cycle to school before the bell</small></span><em>Coming soon</em></li>
+        <li class="mission soon"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small>Mum or Dad: kids upstairs, showered, teeth brushed, a story, lights out</small></span><em>Coming soon</em></li>
+      </ul>
+
+      <div class="home-foot">
+        <div class="tasks-restart">
+          <button class="linkbtn" id="gameRestart">Start over from day 1</button>
+          <span id="gameRestartConfirm" hidden>Lose all progress?
+            <button class="linkbtn danger" id="gameRestartYes">Yes, start over</button>
+            <button class="linkbtn" id="gameRestartNo">No</button>
+          </span>
+        </div>
+        <a class="linkbtn" href="../" id="homeBack">← Back to Game Zone</a>
+      </div>
+    </div>
+  </div>
 
   <div class="daydone" id="dayDone" role="dialog" aria-modal="true" aria-labelledby="dayDoneTitle" hidden>
     <div class="daydone-card">

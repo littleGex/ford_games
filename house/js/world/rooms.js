@@ -8,7 +8,7 @@ export const ROOMS = [
   // Obergeschoss
   { level: 1, name: 'Elternzimmer', area: '16,90 m²', r: [0, 0, 3.2, 5.6] },
   { level: 1, name: 'Ankleide', area: '10,24 m²', r: [3.2, 0, 5.64, 3.95] },
-  { level: 1, name: 'Kinderzimmer', area: '10,64 m²', r: [0, 5.65, 3.26, 8.88] },
+  { level: 1, name: "P's room", area: '10,64 m²', r: [0, 5.65, 3.26, 8.88] },
   { level: 1, name: 'Bad', area: '4,63 m²', r: [3.32, 6.9, 5.64, 8.88] },
   { level: 1, name: 'Flur', area: '3,17 m²', r: [3.2, 3.95, 5.64, 6.9] },
   // Erdgeschoss and outside
@@ -26,6 +26,17 @@ export const ROOMS = [
 ];
 const OUTSIDE = { name: 'Garten', area: 'outside', level: 0 };
 
-export function roomAt(x, z, level = 0) {
-  return ROOMS.find(({ r, ...room }) => (room.level || 0) === level && x >= r[0] && x <= r[2] && z >= r[1] && z <= r[3]) || OUTSIDE;
+/**
+ * The room at (x, z). Doorways sit in the walls between rooms, which belong to no room: standing in one
+ * (say the terrace door) keeps the room you came from, as long as you're within half a metre of it.
+ */
+export function roomAt(x, z, level = 0, previous = null) {
+  const inside = ({ r, ...room }) => (room.level || 0) === level && x >= r[0] && x <= r[2] && z >= r[1] && z <= r[3];
+  const found = ROOMS.find(inside);
+  if (found) return found;
+  if (previous && previous.r && (previous.level || 0) === level) {
+    const [x1, z1, x2, z2] = previous.r, dx = Math.max(x1 - x, 0, x - x2), dz = Math.max(z1 - z, 0, z - z2);
+    if (Math.hypot(dx, dz) <= 0.5) return previous;
+  }
+  return OUTSIDE;
 }

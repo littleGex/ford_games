@@ -6,9 +6,15 @@ on phones and computers, no build step.
 
 Play: open `house/` on the site (e.g. `littlegex.github.io/ford_games/house/`).
 
+## Home screen
+
+The game opens on a home screen (`js/ui/home.js`): carry on with today's day, pick who's playing, see the
+missions (coming soon: the school run and bedtime), start over from day 1, or go back to Game Zone. The
+☰ button in the top corner (or Escape) brings it back. The game is paused while it's open.
+
 ## Floors
 
-The first floor (Elternzimmer, Ankleide, Kinderzimmer, Bad and the landing) is built in its own group,
+The first floor (Elternzimmer, Ankleide, P's room, Bad and the landing) is built in its own group,
 raised by `LEVEL_HEIGHT` in `config.js`. Stand at the foot of the stairs in the hall, or at the top on
 the landing, and the action button offers "Go upstairs" / "Go downstairs". While you're downstairs the
 first floor is hidden so you can see in.
@@ -34,7 +40,7 @@ emails, a video call, a report, writing code that types itself out on the monito
 Dude practises the keyboard and tidies his room every few days, P tidies her toys, and Dad or Mum cooks
 dinner every day (45 seconds at the hob, then served at the dining table).
 Changing who you play swaps those jobs on the list straight away. Each of the kids has their own
-homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the Kinderzimmer desk, Dude at his desk in
+homework spot (`HOMEWORK_SPOT` in `js/jobs/jobs.js`): P at the desk in her room, Dude at his desk in
 the attic. Once a week there's a loft job: a box somewhere in the house goes up into the loft (stand
 under the hatch in the attic hall, where the ladder comes down), and a week later one comes back down
 to a room (`BOX_SPOTS`). Each floor has its own hoovering job; the hoover lives under the stairs, so it
