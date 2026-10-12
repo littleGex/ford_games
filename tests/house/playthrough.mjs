@@ -17,6 +17,7 @@ globalThis.addEventListener = (t, f) => { (listeners[t] ||= []).push(f); };
 globalThis.matchMedia = () => ({ matches: false });
 globalThis.location = { search: '?season=autumn' };   // the same season whatever month the test runs in (snow is played on the extra day)
 globalThis.document = {
+  addEventListener() {}, querySelector: () => null,
   getElementById: () => el(), querySelectorAll: () => [ { ...el(), dataset: { c: 'dad' } }, { ...el(), dataset: { c: 'girl' } } ],
   createElement: tag => tag === 'canvas' ? { width: 0, height: 0, getContext: () => ctx2d } : el(),
 };

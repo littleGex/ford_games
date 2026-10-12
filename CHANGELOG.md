@@ -19,6 +19,9 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ### Fixed
 - Ford House: standing in a doorway (like the terrace door) no longer says you're in the garden.
+- Ford House: two fingers on the screen (or a quick double tap) could zoom the whole page on a phone, with
+  no way to zoom back out. Page zoom is now turned off in the game, and if it happens anyway the page
+  snaps back to normal when you let go.
 
 ## [4.5.4] - 2026-10-12
 

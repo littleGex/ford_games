@@ -254,6 +254,25 @@ test("standing in the terrace door still counts as the living room", async ({ pa
   await expect(page.locator('#roomName')).toHaveText('Wohnzimmer');
 });
 
+test('the page can't be pinch- or double-tap-zoomed', async ({ page }) => {
+  await openHouse(page);
+  const zoom = await page.evaluate(() => {
+    const gesture = new Event('gesturestart', { cancelable: true });   // Safari's pinch gesture
+    document.dispatchEvent(gesture);
+    return {
+      meta: document.querySelector('meta[name="viewport"]').content,
+      gestureCancelled: gesture.defaultPrevented,
+      body: getComputedStyle(document.body).touchAction,
+      list: getComputedStyle(document.getElementById('taskList')).touchAction,   // the job list can still scroll
+    };
+  });
+  expect(zoom.meta).toContain('maximum-scale=1');
+  expect(zoom.meta).toContain('user-scalable=no');
+  expect(zoom.gestureCancelled).toBe(true);
+  expect(zoom.body).toBe('none');
+  expect(zoom.list).toBe('pan-y');
+});
+
 test('the stairs take you up to the first floor and back down', async ({ page }) => {
   await openHouse(page);
   await planToday(page, ['teeth', 'hands']);
