@@ -10,6 +10,13 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Fixed
+- Ford House: P couldn't get or put back the box of crickets when her homework was on the list too, because
+  the button at her desk always offered the homework. The box now lives on the windowsill, and whatever
+  you're carrying can always be put down first when you're at the spot it goes.
+- Ford House: the little craft table in P's room was so close to her bed and the terrarium that you could
+  only walk past it on two sides. It's a bit smaller and further into the room, so you can walk all the way round.
+
 ## [4.5.7] - 2026-10-12
 
 ### Added

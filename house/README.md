@@ -71,8 +71,8 @@ of the row to their doors. The food shopping is ordered and delivered: Mum and D
 and order on the phone from the sofa, then a delivery van pulls up and the driver brings the bag to the
 door; P and Dude just answer the door and put the food away.
 
-P has a bearded dragon in a terrarium in her room. She feeds it crickets and greens from the box on her
-desk, plays with it (it sits on her hand while she sits on her bed) and cleans out the terrarium (scoop the
+P has a bearded dragon in a terrarium in her room. She feeds it crickets and greens from the box on the
+windowsill, plays with it (it sits on her hand while she sits on her bed) and cleans out the terrarium (scoop the
 mess, rinse and refill the water bowl at the bathroom basin). Once it's been fed and played with it's
 happy: its colours warm up and it bobs its head.
 

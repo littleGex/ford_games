@@ -68,6 +68,14 @@ for (const [room, x, z, axis] of [['dressing room', 3.85, 3.95, 'z'], ['bathroom
     if (blocked(px, pz, 1)) { errors.push(`upstairs: the ${room} doorway is blocked at (${px.toFixed(2)}, ${pz.toFixed(2)})`); break; }
   }
 }
+// P's room: you can walk all the way round her little craft table (between it and the bed, the terrarium
+// and the wardrobe), not just past one side
+{
+  const { CRAFT_TABLE: t } = await import(new URL('../../house/js/world/upstairs/kinderzimmer.js', import.meta.url));
+  const gap = 0.24, cx = (t.x1 + t.x2) / 2, cz = (t.z1 + t.z2) / 2;
+  for (const [side, x, z] of [['bed', t.x1 - gap, cz], ['wardrobe', t.x2 + gap, cz], ['terrarium', cx, t.z1 - gap], ['desk', cx, t.z2 + gap]])
+    if (!cellsOn[1].some(c => Math.hypot(c[0] - x, c[1] - z) < 0.04)) errors.push(`P's room: can't walk round the craft table on the ${side} side (${x.toFixed(2)}, ${z.toFixed(2)})`);
+}
 // the attic: every doorway can be walked through and every room reached from the top of the stairs
 for (const [room, x, z, axis] of [["Dude's room", 4.15, 3.94, 'z'], ['office', 3.025, 4.7, 'x']]) {
   for (let d = -0.5; d <= 0.5; d += 0.1) {
@@ -277,6 +285,25 @@ G.days.plan(['homework', 'music', 'tidyDude', 'clarinet']);
 if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
 playDay("Dude's day");
 G.days.next();
+
+// --- carrying something wins: by P's desk and window with the cricket box, the button puts the box
+// back rather than offering her homework at her desk nearby
+G.days.setCharacter('girl');
+G.days.plan(['feedDragon', 'homework']);
+{
+  const feed = G.board.find('feedDragon');
+  for (let k = 0; k < 2 && feed.i < 2; k++) { const r = doStep(feed); if (r !== true) errors.push('dragon box: ' + r); }
+  const s = feed.steps[feed.i];
+  if (s.kind !== 'drop' || S.carrying !== 'cricketBox') errors.push(`dragon box: expected to be carrying the box back, at step "${s.label}"`);
+  else {
+    const home = G.items.cricketBox.userData.home.pos;
+    const spots = cellsOn[1].filter(c => Math.hypot(c[0] - home[0], c[1] - home[2]) < REACH - 0.05);
+    const wrong = spots.filter(c => { goTo(c); const n = G.board.nearestAction(G.player.group.position); return !n || n.step !== s; });
+    if (wrong.length) errors.push(`dragon box: from ${wrong.length} of ${spots.length} spots by the desk the button isn't "${s.label}"`);
+  }
+  G.days.setCharacter('dad');
+  G.days.next();
+}
 
 // --- a day as P with her bearded dragon: feed it, play with it, clean out the terrarium
 G.days.setCharacter('girl');

@@ -50,8 +50,9 @@ export function buildKinderzimmer() {
   [6.92, 6.98].forEach(z => box(2.58, z - 0.01, 2.6, z + 0.01, 0.3, 0.6, mat('#c9ccd1'), false));
 
   // little wooden craft table covered in paper, toy box under the window
-  fbox(1.35, 6.55, 2.0, 7.15, 0.55, '#d9b07a');
-  ['#f07a2a', '#f2f2f2', '#e86a8a', '#7ad3c9'].forEach((c, i) => box(1.4 + i * 0.12, 6.6 + i * 0.1, 1.65 + i * 0.1, 6.85 + i * 0.1, 0.01, 0.55 + i * 0.004, mat(c), false));
+  { const t = CRAFT_TABLE;
+    fbox(t.x1, t.z1, t.x2, t.z2, 0.55, '#d9b07a');
+    ['#f07a2a', '#f2f2f2', '#e86a8a', '#7ad3c9'].forEach((c, i) => box(t.x1 + 0.05 + i * 0.12, t.z1 + 0.05 + i * 0.1, t.x1 + 0.3 + i * 0.1, t.z1 + 0.3 + i * 0.1, 0.01, 0.55 + i * 0.004, mat(c), false)); }
   const toyBox = new THREE.MeshStandardMaterial({ color: '#dfe8ee', transparent: true, opacity: 0.6 });
   box(0.55, 8.35, 1.05, 8.8, 0.35, 0, toyBox);
   fbox(0.55, 8.35, 1.05, 8.8, 0.01, '#dfe8ee');
@@ -89,6 +90,9 @@ export function buildKinderzimmer() {
   crickets.visible = false;
   return { daybed, dragonMess, crickets };
 }
+
+// P's little craft table in the middle of her room
+export const CRAFT_TABLE = { x1: 1.52, z1: 6.78, x2: 2.07, z2: 7.28 };   // room to walk round it on every side
 
 // P's terrarium on the wall to the big bedroom, next to the head of her bed. bask: under the lamp;
 // food: where the crickets go; at: where you stand to look after the dragon.

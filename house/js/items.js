@@ -202,12 +202,12 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.055, 0.045, 0.025, 14), mat('#7c8a8f'), [0, 0.0125, 0]);
       add(g, new THREE.CylinderGeometry(0.045, 0.045, 0.004, 14), new THREE.MeshStandardMaterial({ color: '#7fc4e8', transparent: true, opacity: 0.8 }), [0, 0.022, 0]);
     }, [1.12, 0.49, 5.86], { level: 1 }),
-    // the box of crickets (and greens) on P's desk
+    // the box of crickets (and greens) on the windowsill in P's room, above the radiator
     cricketBox: item(g => {
       add(g, new THREE.BoxGeometry(0.12, 0.08, 0.09), new THREE.MeshStandardMaterial({ color: '#e8e8e2', transparent: true, opacity: 0.75 }), [0, 0.04, 0]);
       add(g, new THREE.BoxGeometry(0.125, 0.012, 0.095), mat('#5fae3d'), [0, 0.085, 0]);
       add(g, new THREE.BoxGeometry(0.07, 0.01, 0.05), mat('#4a3a22'), [0, 0.012, 0]);
-    }, [2.9, 0.73, 8.55], { level: 1, rotY: 0.2 }),
+    }, [1.55, 0.66, 8.8], { level: 1, rotY: 0.1 }),
 
     // P's crayons and drawing pad, left on the floor
     crayons: item(g => {

@@ -124,14 +124,18 @@ export function createJobBoard({ scene, items, hud, levels }) {
   /** Nearest step (or fixed action, like the stairs) the player could do right now, within reach. */
   function nearestAction(pos) {
     if (S.sitting) return null;
-    let best = null, bd = REACH;
+    let best = null, bd = REACH, held = null, hd = REACH;
     for (const job of jobs) {
       const s = step(job);
       if (!s || !canDo(s) || levelOf(s) !== S.level) continue;
       const p = at(s); if (!p) continue;
       const d = Math.hypot(pos.x - p[0], pos.z - p[1]);
       if (d < bd) { bd = d; best = { job, step: s }; }
+      if (s.kind === 'drop' && d < hd) { hd = d; held = { job, step: s }; }   // canDo: it's what you're carrying
     }
+    // putting down what's in your hands wins over anything else close by (P's homework at the same desk
+    // the cricket box goes back to)
+    if (held) { best = held; bd = hd; }
     // fixed actions (the stairs) only when standing right there, and closer to them than to any job step,
     // so a job just behind a wall can't hide the stairs and the stairs can't hide a job you're standing at
     for (const f of fixed) {

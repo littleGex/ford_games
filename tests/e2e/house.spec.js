@@ -307,7 +307,7 @@ test('the food shopping: check the fridge, order on the phone, the driver brings
   await act(3.7, 10.4, 'Answer the door and take the shopping');
 });
 
-test("P's bearded dragon: feed it from the box on her desk", async ({ page }) => {
+test("P's bearded dragon: feed it from the box on the windowsill", async ({ page }) => {
   await openHouse(page);
   await page.locator('.who [data-c="girl"]').click();
   await planToday(page, ['feedDragon']);
@@ -317,13 +317,13 @@ test("P's bearded dragon: feed it from the box on her desk", async ({ page }) =>
     await expect(page.locator('#actBtn')).toHaveText(label);
     await page.locator('#actBtn').click();
   };
-  await act(2.6, 8.2, 'Get the box of crickets from your desk');
+  await act(1.55, 8.45, 'Get the box of crickets from the windowsill');
   await act(2.3, 6.4, 'Put the crickets and greens in the terrarium');
   await expect(page.locator('#alert')).toContainText('Feeding the dragon');
   expect(await page.evaluate(() => window.house.world.crickets.visible)).toBe(true);
   await page.evaluate(() => { window.house.S.sitting.step.prog = 99; });
   await expect(page.locator('#alert')).toBeHidden();   // fed: P stands up again
-  await act(2.6, 8.2, 'Put the box back on your desk');
+  await act(1.55, 8.45, 'Put the box back on the windowsill');
   await expect(page.locator('#taskCount')).toHaveText('1/1');
 });
 
