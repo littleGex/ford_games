@@ -254,7 +254,7 @@ test("standing in the terrace door still counts as the living room", async ({ pa
   await expect(page.locator('#roomName')).toHaveText('Wohnzimmer');
 });
 
-test('the page can't be pinch- or double-tap-zoomed', async ({ page }) => {
+test("the page can't be pinch- or double-tap-zoomed", async ({ page }) => {
   await openHouse(page);
   const zoom = await page.evaluate(() => {
     const gesture = new Event('gesturestart', { cancelable: true });   // Safari's pinch gesture
