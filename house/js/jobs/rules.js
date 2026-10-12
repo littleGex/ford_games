@@ -42,6 +42,9 @@ export const POOL_RULES = [
   { id: 'cook', every: 1, who: ['dad', 'mum'] },
   { id: 'work', week: 5, who: ['mum'] },
   { id: 'sofabed', every: 3, who: ['mum'] },
+  { id: 'fixBike', every: 6, who: ['dad'] },     // the shed
+  { id: 'solar', every: 5, who: ['dad'] },
+  { id: 'trim', every: 5, who: ['dad', 'mum'], season: ['spring', 'summer', 'autumn'] },
   // appointments
   { id: 'hoover', every: 3 },
   { id: 'shopping', every: 3 },

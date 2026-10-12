@@ -1,8 +1,10 @@
 // Back garden: lawn (made of tufts that can be mowed), slate path along the tall fence, planting beds,
 // rotary washing line, grey shed with the cream door, neighbour's pink shed, back gate, kids' picnic bench.
+// Solar panels on the shed roof, Dad's workbench and bike stand beside the shed, and the bushes that grow
+// shaggy until they're trimmed.
 import * as THREE from 'three';
 import { WALL_HEIGHT as WH } from '../../config.js';
-import { TEX } from '../../core/textures.js';
+import { TEX, canvasTex } from '../../core/textures.js';
 import { M, add, ball, box, bush, castShadows, cyl, fbox, fence, floor, group, mat, put, solid } from '../../core/build.js';
 
 /** Lawn as a grid of tufts. cut(i) shortens one tuft and gives it a mown stripe colour. */
@@ -95,9 +97,57 @@ export function buildGarden() {
   box(-2.6, -17.4, -0.45, -15.6, WH, 0, mat('#e7b6b8'));
   box(3.95, -17.42, 4.75, -17.36, 1.25, 0, M.frame, false);
 
+  // two solar panels on the shed roof, tilted towards the house, and the dust that builds up on them
+  const cellTex = canvasTex(g => {
+    g.fillStyle = '#1d2a4a'; g.fillRect(0, 0, 256, 256);
+    g.strokeStyle = '#8a97b3'; g.lineWidth = 3;
+    for (let i = 0; i <= 6; i++) { g.beginPath(); g.moveTo(i * 256 / 6, 0); g.lineTo(i * 256 / 6, 256); g.stroke(); }
+    for (let i = 0; i <= 10; i++) { g.beginPath(); g.moveTo(0, i * 25.6); g.lineTo(256, i * 25.6); g.stroke(); }
+  });
+  const panelMat = new THREE.MeshStandardMaterial({ map: cellTex, roughness: 0.35, metalness: 0.2 });
+  const PANEL_TILT = -0.35, panelY = WH + 0.2;
+  [1.95, 3.35].forEach(x => {
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.04, 1.85), panelMat);
+    panel.position.set(x, panelY, -16.3); panel.rotation.x = PANEL_TILT; panel.castShadow = true; put(panel);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.29, 0.03, 1.89), mat('#c9ccd1'));
+    frame.position.set(x, panelY - 0.02, -16.3); frame.rotation.x = PANEL_TILT; put(frame);
+    [-0.7, 0.7].forEach(dz => cyl(x, -16.3 + dz, 0.025, 0.2 + dz * 0.25, '#9aa1a8', WH));   // mounting legs
+  });
+  const dustTex = canvasTex(g => {
+    for (let i = 0; i < 90; i++) {
+      g.fillStyle = `rgba(${150 + Math.random() * 50 | 0},${130 + Math.random() * 40 | 0},90,${(0.3 + Math.random() * 0.4).toFixed(2)})`;
+      g.beginPath(); g.arc(Math.random() * 256, Math.random() * 256, 5 + Math.random() * 18, 0, 7); g.fill();
+    }
+    for (let i = 0; i < 14; i++) { g.fillStyle = ['#d9822b', '#7a8a3a', '#c4472b'][i % 3]; g.fillRect(Math.random() * 240, Math.random() * 240, 14, 8); }   // leaves
+  });
+  const panelDirt = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 1.85), new THREE.MeshBasicMaterial({ map: dustTex, transparent: true, depthWrite: false }));
+  panelDirt.position.set(2.65, panelY + 0.03, -16.3); panelDirt.rotation.x = -Math.PI / 2 + PANEL_TILT; put(panelDirt);
+  panelDirt.visible = false;
+
+  // Dad's workbench against the side of the shed, with a vice and tools, and a wall-mounted bike stand
+  fbox(0.05, -17.35, 1.35, -16.8, 0.82, '#a87b4f');
+  box(0.05, -17.35, 1.35, -16.8, 0.05, 0.82, mat('#c99a6b'), false);
+  box(1.0, -17.2, 1.2, -16.95, 0.1, 0.87, mat('#4a5a6a'), false);                                   // vice
+  [['#d92a23', 0.25], ['#2f6fd6', 0.45], ['#f2c81c', 0.62]].forEach(([c, x]) => box(x, -17.1, x + 0.12, -17.05, 0.02, 0.87, mat(c), false));   // spanners
+  box(0.05, -17.4, 1.35, -17.35, 0.5, 0.95, mat('#8a6844'), false);                                 // tool board
+  [0.2, 0.42, 0.66, 0.9, 1.15].forEach((x, i) => box(x, -17.35, x + 0.05, -17.33, 0.22, 1.05 + (i % 2) * 0.1, mat('#5a5f67'), false));
+  box(0.15, -16.2, 0.25, -16.1, 1.1, 0, mat('#2b2d31'), false);                                     // bike stand post
+  box(0.15, -16.25, 0.55, -16.05, 0.04, 1.05, mat('#2b2d31'), false);
+
+  // overgrown bits on the garden bushes, cleared by trimming
+  const shaggy = (x, z, r, c) => {
+    const g = group(x, 0, z);
+    for (let k = 0; k < 7; k++) {
+      const a = k * 0.9, h = r * (0.8 + (k % 3) * 0.25);
+      add(g, new THREE.SphereGeometry(r * 0.35, 8, 6), mat(c), [Math.cos(a) * r * 0.85, h, Math.sin(a) * r * 0.85], [1, 1.4, 1]);
+    }
+    add(g, new THREE.SphereGeometry(r * 0.4, 8, 6), mat(c), [0, r * 1.45, 0], [1, 1.5, 1]);
+    g.visible = false; return g;
+  };
+  const overgrown = TRIM_SPOTS.map(([x, z, r, c]) => shaggy(x, z, r, c));
+
   // planting and garden bits
-  [[0.35, -7.2, 0.55], [0.4, -9.3, 0.5]].forEach(([x, z, r]) => bush(x, z, r, '#3b6b36'));
-  [[5.2, -5.0, 0.5, '#8d3b3b'], [5.25, -7.0, 0.55, '#b6b043'], [5.2, -9.4, 0.5, '#a54a4a'], [5.25, -11.0, 0.45, '#9b8f3a']].forEach(([x, z, r, c]) => bush(x, z, r, c));
+  TRIM_SPOTS.forEach(([x, z, r, c]) => bush(x, z, r, c));
   cyl(0.35, -4.4, 0.07, 1.1, '#7a6a5a'); ball(0.35, 1.35, -4.4, 0.55, '#8fa540');
   fbox(0.0, -12.8, 0.8, -11.8, 0.45, '#b9a98f');                         // kids' picnic bench
   box(0.1, -12.6, 0.7, -12.0, 0.18, 0.45, mat('#cfe6f2'), false);       // tub on it
@@ -106,5 +156,9 @@ export function buildGarden() {
   cyl(5.1, -11.9, 0.14, 0.9, '#8a6a4c', 0.14).rotation.x = Math.PI / 2; // log
   cyl(5.2, -3.9, 0.3, 0.85, '#4f8a3a', 0, true);                        // rain barrel
 
-  return { lawn, washingLine };
+  return { lawn, washingLine, panelDirt, overgrown };
 }
+
+// the garden bushes [x, z, radius, colour]: they get shaggy and need trimming every so often
+export const TRIM_SPOTS = [[0.35, -7.2, 0.55, '#3b6b36'], [0.4, -9.3, 0.5, '#3b6b36'],
+  [5.2, -5.0, 0.5, '#8d3b3b'], [5.25, -7.0, 0.55, '#b6b043'], [5.2, -9.4, 0.5, '#a54a4a'], [5.25, -11.0, 0.45, '#9b8f3a']];

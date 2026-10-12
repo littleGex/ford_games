@@ -18,6 +18,7 @@ import { createHoovering } from './systems/hoovering.js';
 import { createCharging } from './systems/charging.js';
 import { createDeliveries } from './systems/deliveries.js';
 import { createDragon } from './systems/dragon.js';
+import { createTrimming } from './systems/trimming.js';
 import { createPlant } from './systems/plant.js';
 import { createDays } from './days/days.js';
 import { createLevels } from './systems/levels.js';
@@ -52,6 +53,7 @@ ctx.sitting = createSitting(ctx);
 ctx.charging = createCharging(ctx);
 ctx.deliveries = createDeliveries(ctx);
 ctx.dragon = createDragon(ctx);
+ctx.trimming = createTrimming(ctx);
 ctx.plant = createPlant(ctx);
 ctx.mowing = createMowing(ctx);
 ctx.hoovering = createHoovering(ctx);
@@ -65,7 +67,7 @@ ctx.seasonal = createSeasonal(ctx, ctx.season);
 ctx.waiting = createWaiting(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.seasonal];
+const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.seasonal];
 
 // controls
 preventZoom();

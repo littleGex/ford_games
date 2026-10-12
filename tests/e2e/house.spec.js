@@ -327,6 +327,21 @@ test("P's bearded dragon: feed it from the box on her desk", async ({ page }) =>
   await expect(page.locator('#taskCount')).toHaveText('1/1');
 });
 
+test('the solar panels: check the reading, then brush the panels on the shed', async ({ page }) => {
+  await openHouse(page);
+  await planToday(page, ['solar']);
+  expect(await page.evaluate(() => window.house.world.dirt[3].visible)).toBe(true);
+  const act = async (x, z, label) => {
+    await page.evaluate(([px, pz]) => window.house.player.group.position.set(px, 0, pz), [x, z]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(5.05, 4.45, 'Check the solar reading on the cabinet');
+  await act(3.4, -14.6, 'Get the long brush from the shed');
+  await act(2.65, -14.7, 'Brush the panels on the shed roof in circles');
+  await expect(page.locator('#alert')).toContainText('Wipe in circles');
+});
+
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
   await openHouse(page);
   const day = await page.evaluate(() => window.house.board.jobs.map(j => j.id));

@@ -19,8 +19,10 @@ import { buildAttic } from './attic/index.js';
 export function buildWorld(scene) {
   setBuildTarget(scene, 0);
   const structure = buildStructure();
-  return Object.assign({}, structure,
+  const world = Object.assign({}, structure,
     buildWohnzimmer(), buildEsszimmer(), buildKueche(), buildFlur(), buildWindfang(), buildWc(),
     buildFront(), buildNeighbours(), buildTerrace(), buildGarden(),
     buildUpstairs(scene), buildAttic(scene));
+  world.dirt.push(world.panelDirt);   // dirt[3]: the solar panels on the shed (wiped like the terrace windows)
+  return world;
 }
