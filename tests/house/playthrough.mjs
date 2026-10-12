@@ -361,6 +361,11 @@ for (const who of ['dad', 'girl']) {
 }
 
 // --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day
+const { KIDS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+for (const [who, kid] of Object.entries(KIDS)) {   // each kid starts on open floor, not inside the furniture
+  if (blocked(kid.start[0], kid.start[1], kid.level)) errors.push(`school run (${who}): starts inside something at (${kid.start})`);
+  if (!cellsOn[kid.level].some(c => Math.hypot(c[0] - kid.start[0], c[1] - kid.start[1]) < 0.06)) errors.push(`school run (${who}): can't walk out of the start spot (${kid.start})`);
+}
 for (const who of ['girl', 'boy']) {
   const dayBefore = G.days.day, planBefore = G.board.jobs.map(j => j.id).join();
   G.missions.start('schoolRun', who);

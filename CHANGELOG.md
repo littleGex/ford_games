@@ -20,6 +20,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 - Ford House: a character's own jobs that come round every few days (P's dragon jobs, Dude's music) wait a
   day when the day is already full, so a day still has 12-14 jobs.
 
+### Fixed
+- Ford House: on the school run P started inside the craft table in her room and couldn't move; she now
+  starts next to her bed.
+
 ## [4.5.5] - 2026-10-12
 
 ### Added
