@@ -4,6 +4,7 @@
 import { S } from '../state.js';
 import { FAMILY } from '../characters/family.js';
 import { clockText } from '../missions/missions.js';
+import { DESIGNS } from '../systems/printing.js';
 
 export function createHome(ctx) {
   const { board, clock, days } = ctx;
@@ -13,13 +14,15 @@ export function createHome(ctx) {
   function render() {
     // the best result for each mission, under its card
     document.querySelectorAll('.mission-best').forEach(b => {
-      const id = b.dataset && b.dataset.best, kids = [['girl', 'P'], ['boy', 'Dude']];
+      const id = b.dataset && b.dataset.best, who = [['girl', 'P'], ['boy', 'Dude'], ['dad', 'Dad']];
       if (!id) return;
-      const best = ctx.missions ? kids.map(([k, name]) => [name, ctx.missions.best(id, k)]).filter(([, r]) => r) : [];
-      b.textContent = best.map(([name, r]) => `${name} ${'★'.repeat(r.stars)} ${clockText(r.minutes)}`).join(' · ');
+      const best = ctx.missions ? who.map(([k, name]) => [name, ctx.missions.best(id, k)]).filter(([, r]) => r) : [];
+      b.textContent = best.map(([name, r]) => r.made
+        ? `Made so far: ${r.made.map(d => (DESIGNS.find(x => x.id === d) || { name: d }).name).join(', ')}`   // 3D printing
+        : `${name} ${'★'.repeat(r.stars)} ${clockText(r.minutes)}`).join(' · ');
     });
     if (S.mission && !S.mission.done) {
-      el.play.textContent = 'Back to the school run';
+      el.play.textContent = `Back to ${S.mission.id === 'print3d' ? '3D printing' : 'the school run'}`;
       el.sub.textContent = 'On a mission · today\'s jobs are waiting';
       return;
     }

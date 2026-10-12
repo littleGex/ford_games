@@ -15,14 +15,19 @@ missions, start over from day 1, or go back to Game Zone. The
 ## Missions
 
 Missions are one-off storylines, started from the home screen (`js/missions/missions.js`). A mission puts
-the day's list aside and gives you its own steps one after another, with its own clock; at the end a card
-shows your stars, time and best (saved per kid in `localStorage`, key `fordHouse.missions.v1`), then
-"Back to the day" carries on with the day.
+the day's list aside and gives you its own steps one after another (some with a clock); at the end a card
+shows how you did (saved in `localStorage`, key `fordHouse.missions.v1`), then "Back to the day" carries on
+with the day.
 
 - **The school run** (P or Dude): get out of bed, breakfast at the dining table, get dressed at your
   wardrobe, pack your school bag at your desk, put it in the basket of the bike on the terrace and cycle
   out of the back gate (you're faster on the bike). The school clock starts at 7:30 and the bell rings at
   8:00: before 7:50 is three stars, before the bell two, late one.
+- **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
+  for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
+  pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the
+  sofa, send the print from the laptop and watch the model grow layer by layer, then take it out and put
+  it where it belongs. The card lists everything you've made so far.
 - Bedtime (Mum or Dad) is next.
 
 ## Floors

@@ -178,6 +178,12 @@ function doStep(job) {
     frame();
     return job.steps[job.i] !== s || 'sorting never finished';
   }
+  if (s.kind === 'choose') {   // the laptop close-up: pick tile number `laptopPick` (1 = first)
+    if (!S.laptop) return 'the laptop never opened';
+    G.laptop.choose(Math.min(laptopPick, G.laptop.options().length));
+    frame();
+    return job.steps[job.i] !== s || 'nothing was chosen on the laptop';
+  }
   if (s.kind === 'wipe') {   // circles with the stick
     for (let k = 0; k < 400 && S.wiping; k++) G.wiping.feed({ x: Math.cos(k * 0.4), y: Math.sin(k * 0.4), len: 1 });
     frame();
@@ -205,6 +211,7 @@ const stepAt = s => s.at || (s.kind === 'drop' && s.home
   ? [G.items[s.item].userData.home.pos[0], G.items[s.item].userData.home.pos[2]]
   : (() => { const v = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }; G.items[s.item].getWorldPosition(v); return [v.x, v.z]; })());
 
+let laptopPick = 1;
 /** Play every job on today's list (and any that pop up) until the Day complete screen shows. */
 const events = {};
 function playDay(label) {
@@ -433,6 +440,45 @@ for (const who of ['girl', 'boy']) {
   if (G.days.save.today.done.some(id => id.startsWith('schoolRun'))) errors.push('school run: mission steps got saved as day jobs');
   G.missions.end();
   if (S.mission || G.days.day !== dayBefore || G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`school run (${who}): the day didn't come back as it was`);
+}
+
+// --- 3D printing as Dad, once with each design (and a different colour each time): pick it on the laptop,
+// order filament, take the courier's parcel, load the printer, print, and put the model where it belongs
+{
+  const { MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  const { DESIGNS } = await import(new URL('../../house/js/systems/printing.js', import.meta.url));
+  const spot = MISSIONS.print3d.spot('dad');
+  if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push('3D printing: Dad starts inside something');
+  for (let k = 1; k <= DESIGNS.length; k++) {
+    const d = DESIGNS[k - 1], planBefore = G.board.jobs.map(j => j.id).join();
+    laptopPick = k;
+    G.missions.start('print3d', 'dad');
+    let rang = false;
+    for (let round = 0; round < 30 && !S.mission.done; round++) {
+      for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+        let guard = 0;
+        while (job.i < job.steps.length && guard++ < 10) {
+          const before = job.i, r = doStep(job);
+          if (/filament is at the front door/.test(G.deliveries.banner() || '')) rang = true;
+          if (r !== true) { errors.push(`3D printing (${d.id}) "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; break; }
+        }
+      }
+      frame();
+    }
+    if (!S.mission.done) { errors.push(`3D printing (${d.id}): never finished`); G.missions.end(); continue; }
+    if (S.mission.choices.design !== d.id) errors.push(`3D printing: picked ${S.mission.choices.design}, wanted ${d.id}`);
+    if (!rang) errors.push(`3D printing (${d.id}): the courier never rang with the filament`);
+    const m = G.items.printModel, floor = [G.stage.scene, G.world.upstairs, G.world.attic][d.goes.level];
+    if (m.parent !== floor || Math.hypot(m.position.x - d.goes.place[0], m.position.z - d.goes.place[2]) > 0.01 || m.children.length !== 16)
+      errors.push(`3D printing (${d.id}): the model isn't where it belongs`);
+    G.missions.end();
+    if (G.world.printer.spool.visible || G.items.printModel.visible) errors.push('3D printing: the printer or the model still shows after going back to the day');
+    if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push('3D printing: the day didn\'t come back as it was');
+  }
+  const made = G.missions.best('print3d', 'dad');
+  if (!made || made.made.length !== DESIGNS.length) errors.push(`3D printing: made so far ${made && made.made}`);
+  else console.log('3D printing: made', made.made.join(', '));
+  G.player.setCharacter(G.days.character);
 }
 
 // --- up to the attic and back down by the stairs
