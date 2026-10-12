@@ -10,6 +10,16 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: P's bearded dragon, in a terrarium in her room with a basking lamp, a branch and a rock. It
+  potters about and basks under the lamp. Three new jobs for P: feed it (crickets and greens), play with it
+  (it sits on her hand on her bed) and clean out the terrarium (scoop the mess, fresh water in its bowl).
+  Fed and played with, it's happy: warmer colours and a head-bob every so often (#43).
+
+### Changed
+- Ford House: a character's own jobs that come round every few days (P's dragon jobs, Dude's music) wait a
+  day when the day is already full, so a day still has 12-14 jobs.
+
 ## [4.5.5] - 2026-10-12
 
 ### Added

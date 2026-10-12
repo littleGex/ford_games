@@ -11,6 +11,7 @@
 // Pick steps don't need `at` - they use wherever the item currently is.
 import { rulesFor } from './rules.js';
 import { FOOD_DELIVERY } from '../config.js';
+import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -215,6 +216,24 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'toys', level: 1, at: [0.8, 8.0], place: [0.8, 0.1, 8.57], label: 'Put them in the toy box' },
       { kind: 'pick', item: 'crayons', label: 'Pick up the crayons' },
       { kind: 'drop', item: 'crayons', level: 1, at: [2.3, 7.6], place: [2.85, 0.73, 7.6], label: 'Put them on the desk' }] },
+    // P's bearded dragon (P only, see rules.js): feed it, play with it, clean out its terrarium
+    { id: 'feedDragon', title: 'Feed your bearded dragon', steps: [
+      { kind: 'pick', item: 'cricketBox', label: 'Get the box of crickets from your desk' },
+      { kind: 'sit', stand: true, level: 1, at: TERRARIUM.at, seat: [TERRARIUM.at[0], 0, TERRARIUM.at[1], -Math.PI / 2 - 0.4], dur: 8, dragon: 'feed',
+        what: 'Feeding the dragon', label: 'Put the crickets and greens in the terrarium', onDone: c => { c.world.crickets.visible = false; } },
+      { kind: 'drop', item: 'cricketBox', home: true, label: 'Put the box back on your desk' }] },
+    { id: 'playDragon', title: 'Play with your bearded dragon', steps: [
+      { kind: 'pick', item: 'dragon', level: 1, at: TERRARIUM.at, label: 'Lift the dragon out of the terrarium' },
+      { kind: 'sit', level: 1, at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2], dur: 15, dragon: 'cuddle',
+        what: 'Cuddling the dragon', label: 'Sit on your bed and let it sit on your hand' },
+      { kind: 'drop', item: 'dragon', level: 1, at: TERRARIUM.at, place: [TERRARIUM.bask[0], TERRARIUM.floor, TERRARIUM.bask[1]], label: 'Put it back under its lamp' }] },
+    { id: 'cleanDragon', title: "Clean out the dragon's terrarium", steps: [
+      { kind: 'use', level: 1, at: TERRARIUM.at, label: 'Scoop out the mess', onDone: c => { c.world.dragonMess.visible = false; } },
+      { kind: 'pick', item: 'dragonBowl', level: 1, at: TERRARIUM.at, label: 'Take out the water bowl' },
+      { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 5, what: 'Rinsing and filling the bowl', label: 'Rinse it and fill it with fresh water at the basin' },
+      { kind: 'drop', item: 'dragonBowl', level: 1, at: TERRARIUM.at, place: [1.12, TERRARIUM.floor, 5.86], label: 'Put the water bowl back in' }],
+      setup: c => { c.world.dragonMess.visible = true; }, tidy: c => { c.world.dragonMess.visible = false; } },
+
     // Attic
     { id: 'music', title: 'Practise the keyboard', steps: [   // Dude only (see rules.js)
       { kind: 'sit', level: 2, at: [1.1, 2.12], seat: [1.1, 0.45, 2.12, -Math.PI / 2], dur: 25, what: 'Playing the keyboard', label: 'Sit down and play the keyboard' }] },

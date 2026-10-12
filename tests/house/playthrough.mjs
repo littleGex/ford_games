@@ -269,6 +269,20 @@ if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework 
 playDay("Dude's day");
 G.days.next();
 
+// --- a day as P with her bearded dragon: feed it, play with it, clean out the terrarium
+G.days.setCharacter('girl');
+G.days.plan(['feedDragon', 'playDragon', 'cleanDragon']);
+if (!G.world.dragonMess.visible) errors.push("dragon: no mess in the terrarium on cleaning day");
+if (G.dragon.happy()) errors.push('dragon: happy before it has been fed and played with');
+playDay("P's dragon day");
+if (!G.dragon.happy()) errors.push("dragon: not happy after it's been fed and played with");
+if (G.world.dragonMess.visible || G.world.crickets.visible) errors.push('dragon: mess or crickets left in the terrarium');
+{ const p = G.items.dragon.position, b = G.items.dragonBowl.position;
+  if (G.items.dragon.parent !== G.world.upstairs || p.x < 1.0 || p.x > 1.95 || p.z < 5.72 || p.z > 6.15) errors.push('dragon: not back in its terrarium');
+  if (b.x < 1.0 || b.x > 1.95 || b.z < 5.72 || b.z > 6.15) errors.push("dragon: the water bowl isn't back in the terrarium"); }
+G.days.setCharacter('dad');
+G.days.next();
+
 // --- a day as Mum: work in the office, make up the sofa bed, cook dinner
 G.days.setCharacter('mum');
 G.days.plan(['work', 'sofabed', 'cook']);

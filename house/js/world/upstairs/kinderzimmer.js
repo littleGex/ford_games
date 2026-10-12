@@ -1,10 +1,11 @@
 // P's room (Kinderzimmer on the plan; the smaller bedroom, front left): pink quilted daybed along the gable wall with paintings
 // and a football-shirt bunting above it, pine bookshelf in the corner by the window, white desk with the
 // blue chair, grey-green wardrobe by the door, a little wooden craft table and a toy box.
+// P's bearded dragon lives in a terrarium on a low cabinet against the wall to the big bedroom.
 import * as THREE from 'three';
 import { WALL_HEIGHT as WH } from '../../config.js';
 import { canvasTex } from '../../core/textures.js';
-import { add, box, cyl, fbox, group, mat } from '../../core/build.js';
+import { M, add, ball, box, cyl, fbox, group, mat, put } from '../../core/build.js';
 import { makeBed } from './elternzimmer.js';
 
 const patchwork = canvasTex(g => {
@@ -55,5 +56,40 @@ export function buildKinderzimmer() {
   box(0.55, 8.35, 1.05, 8.8, 0.35, 0, toyBox);
   fbox(0.55, 8.35, 1.05, 8.8, 0.01, '#dfe8ee');
   box(1.05, 8.78, 2.05, 8.86, 0.5, 0.15, mat('#f2f2f2'), false);   // radiator under the window
-  return { daybed };
+
+  // the terrarium: white cabinet, sandy floor, rocky back wall, a branch and a rock to climb, glass front
+  // and sides, black frame, and the basking lamp on top glowing warm over the rock
+  const T = TERRARIUM, y0 = 0.45, h = 0.42;
+  fbox(T.x1, T.z1, T.x2, T.z2, y0, '#ece8e0');
+  box(T.x1 + 0.03, T.z1 + 0.03, T.x2 - 0.03, T.z2 - 0.03, 0.04, y0, mat('#d9b57a'), false);                    // sand
+  box(T.x1 + 0.02, T.z1 + 0.02, T.x2 - 0.02, T.z1 + 0.04, h, y0, mat('#8a6b4c'), false);                        // rocky back
+  box(T.x1, T.z2 - 0.015, T.x2, T.z2, h, y0, M.glass, false);                                                  // front glass
+  [T.x1, T.x2 - 0.015].forEach(x => box(x, T.z1, x + 0.015, T.z2, h, y0, M.glass, false));                     // side glass
+  const frame = mat('#1d1e22');
+  [[T.x1, T.z2 - 0.02, T.x2, T.z2], [T.x1, T.z1, T.x2, T.z1 + 0.02]].forEach(([a, b, c, d]) => {
+    box(a, b, c, d, 0.02, y0 + h - 0.02, frame, false); box(a, b, c, d, 0.04, y0, frame, false);
+  });
+  [T.x1, T.x2 - 0.02].forEach(x => [T.z1, T.z2 - 0.02].forEach(z => box(x, z, x + 0.02, z + 0.02, h, y0, frame, false)));
+  const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 0.55, 8), mat('#6b4a2e'));
+  branch.position.set(T.x1 + 0.35, y0 + 0.17, T.z1 + 0.15); branch.rotation.set(0.2, 0, -1.05); put(branch);
+  ball(T.bask[0], y0 + 0.06, T.bask[1] - 0.04, 0.09, '#8f8a82', [1.3, 0.55, 1]);                                 // basking rock
+  const lamp = group(T.bask[0], y0 + h, T.bask[1]);
+  add(lamp, new THREE.CylinderGeometry(0.06, 0.09, 0.07, 16), mat('#2b2d31'), [0, 0.035, 0]);
+  add(lamp, new THREE.CircleGeometry(0.075, 16), new THREE.MeshBasicMaterial({ color: '#ffd27a' }), [0, -0.001, 0], null, [Math.PI / 2, 0, 0]);
+  const warm = new THREE.Mesh(new THREE.CircleGeometry(0.14, 20), new THREE.MeshBasicMaterial({ color: '#ffcf6b', transparent: true, opacity: 0.35, depthWrite: false }));
+  warm.rotation.x = -Math.PI / 2; warm.position.set(T.bask[0], y0 + 0.045, T.bask[1]); put(warm);              // warm spot on the sand
+
+  // its mess (cleaning day) and a few crickets while it's being fed
+  const dragonMess = group(T.x1 + 0.55, y0 + 0.045, T.z2 - 0.1);
+  [[0, 0], [0.04, 0.02], [-0.03, 0.03]].forEach(([x, z]) => add(dragonMess, new THREE.SphereGeometry(0.014, 8, 6), mat('#5a4330'), [x, 0.008, z], [1.4, 0.7, 1]));
+  dragonMess.visible = false;
+  const crickets = group(T.food[0], y0 + 0.05, T.food[1]);
+  [[0, 0], [0.05, 0.02], [-0.04, 0.03], [0.02, -0.04], [0.06, -0.02]].forEach(([x, z]) => add(crickets, new THREE.BoxGeometry(0.022, 0.01, 0.008), mat('#4a3a22'), [x, 0.005, z], null, [0, x * 20, 0]));
+  [[0.0, 0.05], [-0.05, -0.02]].forEach(([x, z]) => add(crickets, new THREE.BoxGeometry(0.03, 0.004, 0.02), mat('#5fae3d'), [x, 0.002, z]));   // greens
+  crickets.visible = false;
+  return { daybed, dragonMess, crickets };
 }
+
+// P's terrarium on the wall to the big bedroom, next to the head of her bed. bask: under the lamp;
+// food: where the crickets go; at: where you stand to look after the dragon.
+export const TERRARIUM = { x1: 1.0, z1: 5.72, x2: 1.95, z2: 6.15, bask: [1.68, 5.92], food: [1.28, 6.02], at: [2.3, 6.35], floor: 0.49 };

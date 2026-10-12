@@ -71,6 +71,11 @@ of the row to their doors. The food shopping is ordered and delivered: Mum and D
 and order on the phone from the sofa, then a delivery van pulls up and the driver brings the bag to the
 door; P and Dude just answer the door and put the food away.
 
+P has a bearded dragon in a terrarium in her room. She feeds it crickets and greens from the box on her
+desk, plays with it (it sits on her hand while she sits on her bed) and cleans out the terrarium (scoop the
+mess, rinse and refill the water bowl at the bathroom basin). Once it's been fed and played with it's
+happy: its colours warm up and it bobs its head.
+
 The garden follows the real seasons (`js/seasons.js`). In autumn (September to November) the trees and
 bushes turn orange, red and yellow, leaves lie about and drift down, and every few days the leaves on the
 back lawn need raking up and tipping into the brown bin. In winter (December and January) there's snow
