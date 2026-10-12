@@ -62,7 +62,14 @@ card: whites, colours, darks), load the machine, wait for it, then carry the wet
 in the office; the next day it's folded and each pile goes to the right wardrobe (Dude's, P's, and Mum
 and Dad's in the dressing room). Washing the terrace windows means wiping each one in circles with the
 stick. Surprise events (post, a parcel at the door, a power cut, and rain while the washing is out on
-the line: get it in before the countdown runs out) turn up on some days.
+the line: get it in before the countdown runs out) turn up on some days. Sometimes the driver brings a
+parcel for one of the neighbours (left or right, as you look at the house from the street): take it in,
+keep it in the hall till they're home, then either carry it round to their front door, or they come
+round and ring, and you say hello, fetch it and hand it over. The neighbours' houses either side are
+our house mirrored, with light grey front doors and window frames, and you can walk along the front
+of the row to their doors. The food shopping is ordered and delivered: Mum and Dad check the fridge
+and order on the phone from the sofa, then a delivery van pulls up and the driver brings the bag to the
+door; P and Dude just answer the door and put the food away.
 
 The garden follows the real seasons (`js/seasons.js`). In autumn (September to November) the trees and
 bushes turn orange, red and yellow, leaves lie about and drift down, and every few days the leaves on the

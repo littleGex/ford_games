@@ -59,7 +59,12 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.BoxGeometry(0.12, 0.12, 0.005), mat('#f2c81c'), [0, 0.22, 0.102]);
       const food = new THREE.Group(); food.name = 'food'; g.add(food);
       [['#e74c3c', -0.08], ['#f39c12', 0], ['#3a9d5d', 0.08]].forEach(([c, x]) => add(food, new THREE.SphereGeometry(0.06, 10, 8), mat(c), [x, 0.4, 0]));
-    }, [3.95, 0, 7.75]),
+    }, [3.95, 0, 7.75], { hidden: true }),   // comes with the food delivery (systems/deliveries.js)
+    // Mum's and Dad's phone, on the side table by the sofa, screen lit up
+    phone: item(g => {
+      add(g, new THREE.BoxGeometry(0.075, 0.01, 0.15), mat('#1c1d21'), [0, 0.005, 0]);
+      add(g, new THREE.BoxGeometry(0.066, 0.002, 0.135), new THREE.MeshStandardMaterial({ color: '#7fc4ff', emissive: '#3d8fd6' }), [0, 0.011, 0]);
+    }, [0.85, 0.555, 3.68], { rotY: 0.3, userData: { carry: [0.05, 0.78, 0.24], carryRot: [-1.1, 0, 0] } }),
     binBrown: item(bin('#7a4a28'), [4.85, 0, 9.65], { rotY: Math.PI, userData: { wheel: true } }),
     binYellow: item(bin('#f2c81c'), [5.42, 0, 9.65], { rotY: Math.PI, userData: { wheel: true } }),
     binBlack: item(bin('#2b2d31'), [4.85, 0, 10.25], { rotY: Math.PI, userData: { wheel: true } }),
@@ -127,6 +132,12 @@ export function createItems(scene, upstairs, attic) {
     parcel: item(g => {
       add(g, new THREE.BoxGeometry(0.36, 0.26, 0.3), mat('#c49a62'), [0, 0.13, 0]);
       add(g, new THREE.BoxGeometry(0.37, 0.005, 0.07), mat('#e8d9a8'), [0, 0.262, 0]);
+    }, [0, 0, 0], { hidden: true }),
+    // a parcel for the neighbours: a long white box with red "fragile" tape, so it's not mixed up with ours
+    neighbourParcel: item(g => {
+      add(g, new THREE.BoxGeometry(0.44, 0.18, 0.26), mat('#eeeae2'), [0, 0.09, 0]);
+      add(g, new THREE.BoxGeometry(0.445, 0.005, 0.06), mat('#d6453a'), [0, 0.182, 0]);
+      add(g, new THREE.BoxGeometry(0.12, 0.004, 0.08), mat('#ffffff'), [0.12, 0.185, 0.07]);
     }, [0, 0, 0], { hidden: true }),
 
     // upstairs

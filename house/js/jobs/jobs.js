@@ -10,6 +10,7 @@
 // Adding a job: copy one below with a new id, add its rule to rules.js, point its steps at things in the house.
 // Pick steps don't need `at` - they use wherever the item currently is.
 import { rulesFor } from './rules.js';
+import { FOOD_DELIVERY } from '../config.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -38,6 +39,7 @@ const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic ha
  * @param character who is playing ('dad', 'mum', 'girl', 'boy'); some jobs happen somewhere different for each of them
  */
 export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1 } = {}) {
+  const grownUp = character === 'dad' || character === 'mum';
   const boxSpot = BOX_SPOTS[Math.floor(day / 7) % BOX_SPOTS.length];
   const showBox = (c, level, x, z) => {
     const box = c.items.box, floor = [c.stage.scene, c.world.upstairs, c.world.attic][level];
@@ -85,8 +87,18 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'dinner', label: 'Take the pot off the hob' },
       { kind: 'drop', item: 'dinner', at: [1.9, 6.7], place: [1.5, 0.76, 6.7], label: 'Serve dinner at the dining table' }],
       tidy: c => { c.items.dinner.visible = false; } },
-    { id: 'shopping', title: 'Put the shopping away', steps: [
-      { kind: 'pick', item: 'shopping', label: 'Pick up the shopping bag' },
+    // The food shopping is ordered on the phone and delivered to the door. Mum and Dad check the fridge and
+    // order it; for P and Dude it's already ordered, they just answer the door when it comes.
+    { id: 'shopping', title: grownUp ? 'Order the food shopping' : 'The food delivery', steps: [
+      ...(grownUp ? [
+        { kind: 'use', at: [3.95, 3.4], label: "Check what's in the fridge", onDone: c => c.hud.toast('Running low on milk, fruit and veg') },
+        { kind: 'pick', item: 'phone', label: 'Pick up your phone' },
+        { kind: 'sit', at: [0.6, 3.0], seat: [0.55, 0.42, 3.0, Math.PI / 2], dur: 10, what: 'Ordering the food', label: 'Sit on the sofa and order the food' },
+        { kind: 'drop', item: 'phone', home: true, label: 'Put your phone back on the side table' },
+      ] : []),
+      { kind: 'wait', delivery: 'food', dur: grownUp ? FOOD_DELIVERY.afterOrder : FOOD_DELIVERY.kidsWait, label: 'Wait for the food delivery',
+        doneMessage: 'Ding-dong! The food delivery is here' },
+      { kind: 'pick', item: 'shopping', at: FOOD_DELIVERY.door, label: 'Answer the door and take the shopping' },
       { kind: 'drop', item: 'shopping', at: [3.95, 3.4], place: [4.2, 0, 3.05], label: 'Put it down by the fridge' },
       { kind: 'use', at: [3.95, 3.4], label: 'Put the food in the fridge', onDone: c => { c.items.shopping.getObjectByName('food').visible = false; } }],
       tidy: c => { c.items.shopping.visible = false; } },

@@ -67,6 +67,17 @@ export const FAMILY = {
   },
 };
 
+// The food delivery driver: red jacket and cap, dark trousers (a supermarket delivery, no logos).
+export const FOOD_DRIVER = {
+  scale: 0.96, skin: '#e6b08c', pants: '#24272e', shoes: '#f2f2f2', brow: '#4a3222', topMat: M('#d92a23'), sleeveMat: M('#d92a23'),
+  extras: t => add(t, new THREE.CylinderGeometry(0.192, 0.196, 0.04, 22), M('#f4f4f4'), [0, 0.3, 0]),   // white band
+  hair: h => {
+    const cap = M('#d92a23');
+    add(h, new THREE.SphereGeometry(0.226, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.4), cap, [0, 0.015, 0], [1, 1.08, 1]);
+    add(h, new THREE.BoxGeometry(0.26, 0.02, 0.15), M('#f4f4f4'), [0, 0.105, 0.22]);
+  },
+};
+
 export const COURIER = {
   scale: 0.95, skin: '#c98d68', pants: '#2b2f36', shoes: '#151515', brow: '#2a1f18', topMat: M('#3b6fb0'),
   extras: t => add(t, new THREE.CylinderGeometry(0.192, 0.196, 0.045, 22), M('#d8e04a'), [0, 0.12, 0]),
@@ -74,5 +85,29 @@ export const COURIER = {
     const cap = M('#24476f');
     add(h, new THREE.SphereGeometry(0.226, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.4), cap, [0, 0.015, 0], [1, 1.08, 1]);
     add(h, new THREE.BoxGeometry(0.26, 0.02, 0.15), cap, [0, 0.105, 0.22]);
+  },
+};
+
+// The neighbours either side (made-up looks): on the right, by our front door, a grey-haired man in a
+// green jumper; on the left, a woman with her dark hair in a bun and a mustard cardigan.
+export const NEIGHBOURS = {
+  right: {
+    scale: 0.97, skin: '#e3b796', pants: '#b8a88a', shoes: '#4a3a2c', brow: '#a9a9a9', topMat: M('#4f7a4a'),
+    extras: t => add(t, new THREE.TorusGeometry(0.17, 0.014, 6, 28), M('#3f6a3b'), [0, 0.41, 0], [1, 1, 0.9], [Math.PI / 2, 0, 0]),
+    hair: h => {
+      const hm = M('#c4c4c2');
+      add(h, new THREE.SphereGeometry(0.226, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.3), hm, [0, 0.0, -0.015], [1, 1.04, 1]);
+      add(h, new THREE.SphereGeometry(0.226, 28, 16, Math.PI * 1.5 - 1.6, 3.2, 0, Math.PI * 0.55), hm, [0, 0.0, -0.015], [1, 1.04, 1]);
+    },
+  },
+  left: {
+    scale: 0.93, skin: '#c99a78', pants: '#2c3548', shoes: '#1e1e22', brow: '#2a1c14', blush: true, topMat: M('#d9a43a'),
+    extras: t => add(t, new THREE.BoxGeometry(0.02, 0.38, 0.012), M('#b8862a'), [0, 0.2, 0.192], null, [0.07, 0, 0]),
+    hair: h => {
+      const hm = M('#2e211a');
+      add(h, new THREE.SphereGeometry(0.228, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.36), hm, [0, 0.01, -0.005], [1, 1.08, 1]);
+      add(h, new THREE.SphereGeometry(0.228, 28, 16, Math.PI * 1.5 - 1.8, 3.6, 0, Math.PI * 0.58), hm, [0, 0.01, -0.005], [1, 1.08, 1]);
+      add(h, new THREE.SphereGeometry(0.1, 16, 12), hm, [0, 0.17, -0.17]);   // bun
+    },
   },
 };

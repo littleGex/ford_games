@@ -273,6 +273,40 @@ test("the page can't be pinch- or double-tap-zoomed", async ({ page }) => {
   expect(zoom.list).toBe('pan-y');
 });
 
+test('a parcel for the neighbours: take it in, then the neighbour comes round for it', async ({ page }) => {
+  await openHouse(page);
+  await page.evaluate(() => { const h = window.house; h.S.started = true; h.deliveries.neighbourParcelNow(h.clock.elapsedTime, 'right', true); });
+  await expect(page.locator('#taskList')).toContainText('Parcel for the neighbours on the right', { timeout: 20000 });
+  await page.evaluate(() => window.house.player.group.position.set(3.92, 0, 10.2));
+  await expect(page.locator('#actBtn')).toHaveText("Take the neighbours' parcel");
+  await page.locator('#actBtn').click();
+  await page.evaluate(() => window.house.player.group.position.set(3.7, 0, 4.9));
+  await expect(page.locator('#actBtn')).toHaveText('Keep it safe in the hall');
+  await page.locator('#actBtn').click();
+  // skip most of the wait: the neighbour walks round and rings
+  await page.evaluate(() => { const j = window.house.board.find('neighbourParcel'); j.steps[j.i].prog = j.steps[j.i].dur - 0.5; });
+  await expect(page.locator('#alert')).toContainText('The neighbours are at the front door', { timeout: 30000 });
+});
+
+test('the food shopping: check the fridge, order on the phone, the driver brings it to the door', async ({ page }) => {
+  await openHouse(page);
+  await page.evaluate(() => { window.house.S.started = true; });
+  await planToday(page, ['shopping']);
+  const act = async (x, z, label) => {
+    await page.evaluate(([px, pz]) => window.house.player.group.position.set(px, 0, pz), [x, z]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(4.25, 3.4, "Check what's in the fridge");
+  await act(1.3, 3.5, 'Pick up your phone');
+  await act(1.25, 3.0, 'Sit on the sofa and order the food');
+  await page.evaluate(() => { const j = window.house.board.find('shopping'); j.steps[j.i].prog = j.steps[j.i].dur; });
+  await act(1.3, 3.5, 'Put your phone back on the side table');
+  await page.evaluate(() => { const j = window.house.board.find('shopping'); j.steps[j.i].prog = j.steps[j.i].dur; });
+  await expect(page.locator('#alert')).toContainText('The food delivery is at the front door', { timeout: 30000 });
+  await act(3.7, 10.4, 'Answer the door and take the shopping');
+});
+
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
   await openHouse(page);
   const day = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
