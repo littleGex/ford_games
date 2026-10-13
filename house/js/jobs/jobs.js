@@ -83,7 +83,13 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 10, what: 'Making coffee', label: 'Make a coffee at the machine',
         onDone: c => { c.items.mug.visible = true; } },
       { kind: 'pick', item: 'mug', label: 'Take the coffee' },
-      { kind: 'drop', item: 'mug', at: [1.75, 7.3], place: [1.65, 0.76, 7.3], label: 'Bring it to the dining table' }],
+      // Mum and Dad drink it themselves at the dining table, then the mug goes in the sink; P and Dude take it to the table for them
+      ...(grownUp ? [
+        { kind: 'sit', at: [2.55, 7.2], seat: [2.15, 0.48, 7.2, -Math.PI / 2], dur: 12, what: 'Drinking your coffee', label: 'Sit at the dining table and drink your coffee' },
+        { kind: 'drop', item: 'mug', at: [5.32, 0.9], y: 0.9, label: 'Put the empty mug in the sink', onDone: c => { c.items.mug.visible = false; } },
+      ] : [
+        { kind: 'drop', item: 'mug', at: [1.75, 7.3], place: [1.65, 0.76, 7.3], label: 'Bring it to the dining table' },
+      ])],
       tidy: () => {} },   // no mug sitting about
     { id: 'cook', title: 'Cook dinner', steps: [   // Dad and Mum only
       { kind: 'sit', stand: true, power: true, fx: 'pot', at: [5.0, 1.65], seat: [4.78, 0, 1.65, Math.PI / 2], dur: 45, what: 'Cooking', label: 'Cook dinner on the hob',

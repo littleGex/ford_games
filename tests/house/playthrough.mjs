@@ -322,10 +322,11 @@ if (missing.length) {
 
 // --- a day as Dude: his homework at his own desk, keyboard practice and tidying his room
 G.days.setCharacter('boy');
-G.days.plan(['homework', 'music', 'tidyDude', 'clarinet']);
+G.days.plan(['homework', 'music', 'tidyDude', 'clarinet', 'coffee']);   // Dude takes the coffee to the table
 // (P's toys and Dad's cooking come up in the 12 days or the extra day)
 if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
 playDay("Dude's day");
+{ const m = G.items.mug.position; if (!G.items.mug.visible || Math.hypot(m.x - 1.65, m.z - 7.3) > 0.01) errors.push("coffee: Dude didn't put the coffee on the dining table"); }
 G.days.next();
 
 // --- carrying something wins: by P's desk and window with the cricket box, the button puts the box
@@ -375,8 +376,10 @@ G.days.next();
 
 // --- a day as Mum: work in the office, make up the sofa bed, cook dinner
 G.days.setCharacter('mum');
-G.days.plan(['work', 'sofabed', 'cook']);
+G.days.plan(['work', 'sofabed', 'cook', 'coffee']);
+if (!G.board.find('coffee').steps.some(st => st.what === 'Drinking your coffee')) errors.push("coffee: Mum doesn't get to drink hers");
 playDay("Mum's day");
+if (G.items.mug.visible) errors.push('coffee: the mug is still about after Mum drank her coffee');
 G.days.next();
 G.days.setCharacter('dad');
 

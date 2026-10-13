@@ -10,6 +10,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Changed
+- Ford House: Mum and Dad drink their coffee themselves: sit at the dining table with it, then put the
+  empty mug in the sink. P and Dude still take it to the table for them.
+
 ## [4.8.0] - 2026-10-13
 
 ### Added
