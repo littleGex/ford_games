@@ -41,7 +41,7 @@ export const MUM = {
   lift: LIFT, stairs: STAIRS,
   assembly: [X(10.2), 13.6],                       // the assembly point in the garden
   // floor 1
-  desk: { at: [X(20.1), 13.3], seat: [X(20.1), 0.45, 12.98, Math.PI] },
+  desk: { at: [X(20.1), 10.5], seat: [X(20.1), 0.45, 10.82, 0] },   // the north side of her desk pair
   meeting: { at: [X(21.6), 18.3], seat: [X(21.6), 0.45, 19.55, 0] },
   fridge: [X(23.0), 15.55], sink: [X(23.0), 12.9],
   coffee: { at: [X(23.0), 14.0], seat: [X(22.9), 0, 14.0, -Math.PI / 2] },
@@ -217,13 +217,13 @@ function buildFloor(scene) {
   run('z', kz1 + 0.1, kz2 - 0.1, kx2 - 0.1, kx2, [[13.2, 14.2, 'door']]);
 
   // the open-plan office: Mum's desk pair under the windows, two more pairs, a single desk; colleagues
-  deskPair(X(19.6), 11.1, X(20.6), 12.7);                                            // Mum's: she sits at the south end
+  deskPair(X(19.6), 11.1, X(20.6), 12.7);                                            // Mum's: she sits at the north end, a colleague opposite
   deskPair(X(19.6), 7.7, X(20.6), 9.5);
   deskPair(X(19.6), 4.9, X(20.6), 6.4);
   desk(X(18.6), 14.3, X(20.1), 15.2, -1);
-  const screen = officeScreen(X(20.1), 11.98); screen.rotation.y = 0;
+  const screen = officeScreen(X(20.1), 11.775); screen.rotation.y = Math.PI;
   const P = OFFICE_PEOPLE;
-  seated(P.colleagueB, X(20.1), 10.85, 0); seated(P.colleagueA, X(20.1), 9.75, Math.PI); seated(P.colleagueC, X(20.1), 4.65, 0);
+  seated(P.colleagueB, X(20.1), 12.95, Math.PI); seated(P.colleagueA, X(20.1), 9.75, Math.PI); seated(P.colleagueC, X(20.1), 4.65, 0);
   // the meeting room: a table with chairs, a screen
   fbox(X(19.4), 19.85, X(23.0), 20.8, 0.72, '#e9e6df');
   [19.9, 20.8, 21.6, 22.5].forEach(x => { chair(X(x), 19.55, 0); chair(X(x), 21.1, Math.PI); });

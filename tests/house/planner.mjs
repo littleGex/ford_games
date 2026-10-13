@@ -9,7 +9,7 @@ const check = (ok, msg) => { if (!ok) fail.push(msg); };
 for (const character of ['dad', 'mum', 'girl', 'boy']) for (const seed of [1, 7, 42, 2026]) {
   const rng = seededRandom(seed);
   const state = { day: 1, lastDone: {}, character };
-  const mine = POOL_RULES.filter(j => !j.who || j.who.includes(character));
+  const mine = POOL_RULES.filter(j => (!j.who || j.who.includes(character)) && !j.holiday);   // no special days in this run
   const history = {};   // jobId -> [days]
   const sizes = [];
   for (let day = 1; day <= 120; day++) {
@@ -69,6 +69,23 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   }
   for (const rule of POOL_RULES.filter(r => r.season && (!r.who || r.who.includes('dad'))))
     check(seen.has(rule.id) === rule.season.includes(season), `${season}: ${rule.id} ${seen.has(rule.id) ? 'came up' : "didn't come up"}`);
+}
+
+// special days: the Halloween jobs are on every day that's Halloween, and never on any other day
+{
+  const holidayJobs = POOL_RULES.filter(r => r.holiday === 'halloween').map(r => r.id);
+  check(holidayJobs.length === 3, `Halloween: ${holidayJobs.length} jobs, want 3`);
+  for (const character of ['dad', 'girl']) {
+    const rng = seededRandom(5), state = { day: 1, lastDone: {}, character, season: 'autumn' };
+    for (let day = 1; day <= 20; day++) {
+      state.day = day; state.holiday = day % 5 === 0 ? 'halloween' : null;
+      const ids = planDay(POOL_RULES, state, rng);
+      const has = holidayJobs.filter(id => ids.includes(id));
+      check(has.length === (state.holiday ? 3 : 0), `${character} day ${day} (${state.holiday || 'ordinary'}): Halloween jobs ${has.join(', ') || 'none'}`);
+      if (state.holiday) check(ids.length >= DAY_JOBS.min && ids.length <= DAY_JOBS.max + 3, `${character} Halloween day: ${ids.length} jobs`);
+      for (const id of ids) state.lastDone[id] = day;
+    }
+  }
 }
 
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');

@@ -6,6 +6,7 @@ import { S } from '../state.js';
 import { blocked } from '../core/collision.js';
 import { makeCharacter, animateWalk } from './character.js';
 import { FAMILY } from './family.js';
+import { dressUp, undress } from './costumes.js';
 
 export function createPlayer(scene, items) {
   const group = new THREE.Group();
@@ -73,6 +74,12 @@ export function createPlayer(scene, items) {
     group,
     get character() { return cur; },
     setCharacter, stepFromInput, animate, handPosition, reset,
+    /** Put on a Halloween costume (characters/costumes.js), or null to take it off. */
+    dressUp(id) { if (id) dressUp(cur, id); else undress(cur); },
+    /** The costume being worn, if any. */
+    get costume() { return cur && cur.costume ? cur.costume.id : null; },
+    /** Start of a day: everyone back in their own clothes. */
+    undressAll() { Object.values(looks).forEach(undress); },
     /** The right arm (wiping windows moves it). */
     arms: () => cur && cur.arms[1],
     /** Point just in front of the player (e.g. where the mower deck or hoover head is). */
