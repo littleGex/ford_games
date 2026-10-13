@@ -40,11 +40,15 @@ with the day.
   day the fire alarm goes off: out through the fire door to the assembly point and wait 30 seconds for
   the all-clear, with nothing else allowed meanwhile. Then shut down, clock out, cycle home and put the
   bike back on the terrace. Stars: on time for the meetings, home by 17:30, a break.
-- **Work at the office, Mum** (so far): drive to the office (the car leaves the house and turns up in
-  the car park of Mum's office site, `js/world/mumoffice.js`), cross the road on the zebra crossing, show
-  your badge at the security window so the barrier lifts, then clock in just inside the entrance (a
-  coffee from the ground-floor café if you like) and go up the stairs, by 8:30 for three stars. The office
-  floor upstairs is still to come (#73).
+- **Work at the office, Mum**, 7:00 until home by 17:30, at her office site (`js/world/mumoffice.js`,
+  from her sketches): drive there (the car leaves the house and turns up in her car park), cross the road
+  on the zebra crossing, badge through the security turnstiles, clock in just inside the office building
+  (a coffee at the café in the garden if she likes), then the lift or the stairs up to her office floor.
+  The working day up there, in any order: the team meeting at 10:00 and a meeting with her manager at
+  14:00 in the meeting room, emails, spreadsheets and a report at her desk, lunch from the kitchen fridge,
+  water; coffee, a snack and the WC whenever she likes. An urgent call, and a fire drill (take the stairs,
+  the lifts don't run, and go out to the assembly point in the garden). Then shut down, back down, clock
+  out, badge out and drive home.
 - **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
   for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
   pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the

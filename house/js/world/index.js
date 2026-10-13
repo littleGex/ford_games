@@ -24,7 +24,7 @@ export function buildWorld(scene) {
   const world = Object.assign({}, structure,
     buildWohnzimmer(), buildEsszimmer(), buildKueche(), buildFlur(), buildWindfang(), buildWc(),
     buildFront(), buildNeighbours(), buildTerrace(), buildGarden(),
-    buildUpstairs(scene), buildAttic(scene), buildOffice(), buildMumOffice());
+    buildUpstairs(scene), buildAttic(scene), buildOffice(), buildMumOffice(scene));
   world.dirt.push(world.panelDirt);   // dirt[3]: the solar panels on the shed (wiped like the terrace windows)
   return world;
 }
