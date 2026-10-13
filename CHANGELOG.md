@@ -13,6 +13,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 ### Changed
 - Ford House: Mum and Dad drink their coffee themselves: sit on the sofa with it, then put the empty mug
   in the sink. P and Dude still take it to the table for them.
+- Ford House: mowing the lawn means every tuft of long grass, not nine in ten. Near the end the list shows how
+  many tufts are left to find.
 
 ## [4.8.0] - 2026-10-13
 
