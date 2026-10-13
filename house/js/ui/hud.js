@@ -29,7 +29,7 @@ export function createHud() {
   const idleHint = { mow: 'Push the mower over the grass', hoover: 'Hoover up the dusty spots', charge: 'Charging, do other jobs meanwhile', wait: 'Running, do other jobs meanwhile' };
 
   function renderJobs(jobs) {
-    const open = jobs.filter(j => j.i < j.steps.length), done = jobs.filter(j => j.i >= j.steps.length);
+    const open = jobs.filter(j => j.i < j.steps.length).sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0)), done = jobs.filter(j => j.i >= j.steps.length);   // urgent ones (a fire drill) at the top
     el.list.replaceChildren(...open.concat(done).map(j => {
       const li = document.createElement('li');
       if (j.i >= j.steps.length) li.className = 'done';

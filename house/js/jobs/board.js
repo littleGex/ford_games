@@ -71,6 +71,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
 
   function canDo(s) {
     if (PASSIVE.has(s.kind)) return false;
+    if (S.mission && S.mission.drill && !s.drill) return false;   // a fire drill: nothing else until the all-clear
     if (s.notBefore && !(S.mission && S.mission.clock && S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute >= s.notBefore)) return false;   // a mission step that isn't open yet (lunch from 12:00)
     if (s.kind === 'sit') return !S.sitting;
     if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe') return true;

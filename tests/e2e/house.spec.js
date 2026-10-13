@@ -224,7 +224,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(4);   // the school run, work from home, 3D printing, bedtime (coming soon)
+  await expect(page.locator('.mission')).toHaveCount(5);   // the school run, work from home, the office, 3D printing, bedtime (coming soon)
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
@@ -361,6 +361,60 @@ test('work from home: the morning, then several jobs at once and a phone call', 
   await page.evaluate(() => { const H = window.house; H.S.mission.t = 95 * 0.5; H.S.mission.callAt = 0; });   // rings at 8:35, so it's due before the 9:00 meeting
   await expect(page.locator('#taskList')).toContainText('Urgent call by');
   await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and join the urgent call');
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
+test('work at the office: cycle there, clock in, and a fire drill stops everything else', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="office"][data-kid="dad"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Work at the office · 7:00');
+  await page.evaluate(() => { const H = window.house; for (let k = 0; k < 3; k++) H.board.advance(H.board.jobs.find(j => j.i < j.steps.length)); H.levels.show(0); });
+  const act = async (x, z, label) => {
+    await page.evaluate(([px, pz]) => window.house.player.group.position.set(px, 0, pz), [x, z]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(4.8, -2.8, 'Take your bike from the terrace');
+  await act(4.35, -16.3, 'Ride out of the back gate to work');
+  await expect(page.locator('#roomName')).toHaveText('Büro');   // arrived outside the office
+  await act(42.62, 13.1, 'Clock in at the machine by the door');
+  await expect(page.locator('#taskList')).toContainText('Meeting with the boss at 10:00');
+  // the fire alarm: only the drill can be done, and it goes to the top of the list
+  await page.evaluate(() => { window.house.S.mission.drillAt = 0; });
+  await expect(page.locator('#alert')).toContainText('Fire alarm!');
+  await expect(page.locator('#taskList li').first()).toContainText('Fire drill!');
+  await page.evaluate(() => window.house.player.group.position.set(44.9, 0, 8.95));   // at Dad's desk
+  await expect(page.locator('#actBtn')).toBeHidden();
+  await act(43.1, -2.0, 'Go out through the fire door to the assembly point');
+  await expect(page.locator('#alert')).toContainText('wait for the all-clear');
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
+test("Mum's office: drive there, zebra crossing, badge through the turnstiles, clock in, lift up to her desk", async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="officeMum"][data-kid="mum"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Work at the office · 7:00');
+  await page.evaluate(() => { const H = window.house; for (let k = 0; k < 3; k++) H.board.advance(H.board.jobs.find(j => j.i < j.steps.length)); H.levels.show(0); });
+  const act = async (x, z, label, level = 0) => {
+    await page.evaluate(([px, pz, l]) => window.house.player.group.position.set(px, l * 2.3, pz), [x, z, level]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(0.6, 13.0, 'Get in the car and drive to work');
+  await expect(page.locator('#roomName')).toHaveText('Parkplatz');
+  await act(97.5, 1.8, 'Cross the road on the zebra crossing');
+  await act(98.2, 2.95, 'Show your badge at the turnstiles');
+  await expect(page.locator('#taskList')).toContainText('Coffee at the café (if you like)');
+  await act(98.6, 8.1, 'Clock in at the machine inside the entrance');
+  await expect(page.locator('#taskList')).toContainText('Team meeting at 10:00');
+  await act(109.0, 16.9, 'Take the lift up');
+  await expect(page.locator('#roomName')).toHaveText('Aufzüge');
+  await page.evaluate(() => window.house.player.group.position.set(100.1, 2.3, 13.3));   // at Mum's desk
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and answer your emails');
   await page.evaluate(() => window.house.missions.end());
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
