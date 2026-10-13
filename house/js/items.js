@@ -263,6 +263,15 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.BoxGeometry(0.34, 0.03, 0.03), mat('#1d1e22'), [0, 0.6, 0.28]);                  // handlebar
       add(g, new THREE.BoxGeometry(0.22, 0.14, 0.18), mat('#f4f4f4'), [0, 0.55, 0.42]);                // basket
     }, [4.1, 0, -2.6], { rotY: 0, userData: { carry: [0, 0, 0.05], carryRot: [0, 0, 0], wheel: true } }),
+    // Dad's bike, dark grey, on the terrace next to P's (he cycles to the office on it)
+    dadBike: item(g => {
+      [-0.36, 0.36].forEach(z => add(g, new THREE.TorusGeometry(0.24, 0.024, 8, 22), mat('#151515'), [0, 0.26, z], null, [0, Math.PI / 2, 0]));
+      add(g, new THREE.BoxGeometry(0.038, 0.038, 0.7), mat('#3a3f47'), [0, 0.43, 0], null, [0.12, 0, 0]);
+      add(g, new THREE.BoxGeometry(0.038, 0.34, 0.038), mat('#3a3f47'), [0, 0.43, -0.12]);
+      add(g, new THREE.BoxGeometry(0.1, 0.035, 0.17), mat('#1d1e22'), [0, 0.61, -0.14]);                // saddle
+      add(g, new THREE.BoxGeometry(0.4, 0.03, 0.03), mat('#1d1e22'), [0, 0.68, 0.31]);                  // handlebar
+      add(g, new THREE.BoxGeometry(0.18, 0.03, 0.3), mat('#2b2d31'), [0, 0.5, -0.38]);                 // rack over the back wheel
+    }, [4.8, 0, -2.15], { rotY: 0, userData: { carry: [0, 0, 0.05], carryRot: [0, 0, 0], wheel: true } }),
     // Dude's clarinet, standing on its stand by his desk
     clarinet: item(g => {
       add(g, new THREE.CylinderGeometry(0.016, 0.016, 0.5, 10), mat('#141416'), [0, 0.3, 0]);

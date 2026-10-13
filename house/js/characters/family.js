@@ -111,3 +111,24 @@ export const NEIGHBOURS = {
     },
   },
 };
+
+// People at Dad's office (made-up looks): the boss in a navy suit, and colleagues at their desks.
+const shortHair = c => h => {
+  const hm = M(c);
+  add(h, new THREE.SphereGeometry(0.226, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.32), hm, [0, 0.005, -0.012], [1, 1.06, 1]);
+  add(h, new THREE.SphereGeometry(0.226, 28, 16, Math.PI * 1.5 - 1.6, 3.2, 0, Math.PI * 0.55), hm, [0, 0.005, -0.012], [1, 1.06, 1]);
+};
+const longHair = c => h => {
+  const hm = M(c);
+  add(h, new THREE.SphereGeometry(0.228, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.34), hm, [0, 0.01, -0.005], [1, 1.08, 1]);
+  add(h, new THREE.SphereGeometry(0.228, 28, 16, Math.PI * 1.5 - 1.9, 3.8, 0, Math.PI * 0.62), hm, [0, 0.01, -0.005], [1, 1.08, 1]);
+  add(h, new THREE.BoxGeometry(0.4, 0.38, 0.1), hm, [0, -0.13, -0.12]);
+};
+export const OFFICE_PEOPLE = {
+  boss: { scale: 1, skin: '#e0b090', pants: '#1f2a44', shoes: '#151515', brow: '#6a6a6a', topMat: M('#26324f'),
+          extras: t => add(t, new THREE.BoxGeometry(0.06, 0.26, 0.012), M('#c0392b'), [0, 0.24, 0.192], null, [0.07, 0, 0]), hair: shortHair('#8a8a88') },
+  colleagueA: { scale: 0.96, skin: '#c99a78', pants: '#2c3548', shoes: '#1e1e22', brow: '#2a1c14', blush: true, topMat: M('#6c8fc7'), hair: longHair('#2e211a') },
+  colleagueB: { scale: 0.98, skin: '#f1d1ba', pants: '#3a3d42', shoes: '#4a3a2c', brow: '#a88550', topMat: M('#7a9a6a'), hair: shortHair('#c9a660') },
+  colleagueC: { scale: 0.95, skin: '#8d5a3c', pants: '#24272e', shoes: '#151515', brow: '#1a1210', topMat: M('#d9a43a'), hair: shortHair('#1a1210') },
+  colleagueD: { scale: 0.94, skin: '#e8c0a0', pants: '#4a6a9c', shoes: '#f2f2f2', brow: '#7d5a3c', blush: true, topMat: M('#e86a8a'), hair: longHair('#9b7452') },
+};

@@ -10,6 +10,16 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: Dad's office, a new place built from his sketch: open-plan desks with colleagues, the boss's
+  office with a round meeting table, a meeting room, Dad's room with his desk, the kitchen, a bathroom, a
+  clock-in machine by the entrance and a bike rack outside, with a road on one side and a courtyard on the
+  other (#66).
+- Ford House: a new mission, **work at the office**, for Dad. Get ready, cycle to the office on his bike
+  (new, on the terrace), clock in, then meetings with the boss and the team, desk work, lunch, water, and
+  coffee, snacks and the bathroom whenever you like. An urgent phone call, and a fire drill: out through the
+  fire door and wait for the all-clear. Clock out and cycle home by 17:30 for three stars (#66).
+
 ## [4.6.0] - 2026-10-12
 
 ### Added

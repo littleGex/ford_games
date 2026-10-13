@@ -123,7 +123,7 @@ function frame() {
   hud.setRoom(room);
   nearest = S.dayOver || S.sorting || S.laptop || S.wiping ? null : board.nearestAction(pos);
   hud.setAction(S.wiping ? 'Stop wiping' : nearest ? nearest.step.label : null);
-  hud.banner(S.dayOver ? null : ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
+  hud.banner(S.dayOver ? null : ctx.missions.banner() || ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
   board.updateMarkers(time);
 
   shiftView(dt);

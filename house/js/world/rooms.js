@@ -26,6 +26,18 @@ export const ROOMS = [
   { name: 'Nachbarn', area: 'next door, on the right', r: [5.76, 9.3, 11.6, 12.6] },
   { name: 'Nachbarn', area: 'next door, on the left', r: [-6.2, 9.3, -2.5, 12.6] },
 ];
+// Dad's office (world/office.js, from x 40)
+const O = 40;
+ROOMS.push(
+  { name: 'Großraumbüro', area: 'open-plan office', r: [O, 0, O + 6.2, 6.0] },
+  { name: 'Chefbüro', area: "the boss's office", r: [O, 6.5, O + 2.25, 9.75] },
+  { name: 'Besprechungsraum', area: 'meeting room', r: [O, 9.85, O + 2.25, 13.7] },
+  { name: 'Flur', area: 'office corridor', r: [O + 2.25, 6.0, O + 2.95, 13.7] },
+  { name: 'Dads Büro', area: "Dad's office", r: [O + 3.05, 6.05, O + 6.2, 9.6] },
+  { name: 'Teeküche', area: 'office kitchen', r: [O + 3.05, 9.7, O + 6.2, 12.1] },
+  { name: 'WC', area: 'office bathroom', r: [O + 3.05, 12.2, O + 6.2, 13.7] },
+  { name: 'Büro', area: 'outside the office', r: [O - 14, -8, O + 15.2, 22] },
+);
 const OUTSIDE = { name: 'Garten', area: 'outside', level: 0 };
 
 /**
