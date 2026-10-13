@@ -10,22 +10,24 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.7.0] - 2026-10-13
+
 ### Added
 - Ford House: Dad's office, a new place built from his sketch: open-plan desks with colleagues, the boss's
   office with a round meeting table, a meeting room, Dad's room with his desk, the kitchen, a bathroom, a
   clock-in machine by the entrance and a bike rack outside, with a road on one side and a courtyard on the
-  other (#66).
+  other (#72, #66).
 - Ford House: a new mission, **work at the office**, for Dad. Get ready, cycle to the office on his bike
   (new, on the terrace), clock in, then meetings with the boss and the team, desk work, lunch, water, and
   coffee, snacks and the bathroom whenever you like. An urgent phone call, and a fire drill: out through the
-  fire door and wait for the all-clear. Clock out and cycle home by 17:30 for three stars (#66).
+  fire door and wait for the all-clear. Clock out and cycle home by 17:30 for three stars (#72, #66).
 - Ford House: Mum's office site, from her sketches: two car parks across the road, a zebra crossing to the
   security turnstiles and the vehicle gate with its security lounge, a garden, a café in its own little
   building, and the office building with the clock-in machine, lifts and stairs. Upstairs, Mum's office
-  floor: the open-plan office with her desk, a meeting room, the kitchen, the WC and a second office.
+  floor: the open-plan office with her desk, a meeting room, the kitchen, the WC and a second office (#79).
 - Ford House: Mum's version of **work at the office**: drive there, badge in, clock in, up to her floor by
   lift or stairs, meetings at 10:00 and 14:00, desk work, lunch, breaks, an urgent call and a fire drill
-  (stairs only), then clock out, badge out and drive home by 17:30 for three stars (#73).
+  (stairs only), then clock out, badge out and drive home by 17:30 for three stars (#79, #73).
 
 ## [4.6.0] - 2026-10-12
 
@@ -243,7 +245,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/littleGex/ford_games/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/littleGex/ford_games/compare/v4.5.9...v4.6.0
 [4.5.9]: https://github.com/littleGex/ford_games/compare/v4.5.8...v4.5.9
 [4.5.8]: https://github.com/littleGex/ford_games/compare/v4.5.7...v4.5.8
