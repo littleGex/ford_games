@@ -81,6 +81,10 @@ const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells), walkable
 for (const [room, x, z] of [['open plan', 42.6, 3.0], ["boss's office", 41.5, 8.4], ['meeting room', 41.9, 12.0], ["Dad's room", 44.0, 8.9], ['kitchen', 44.5, 10.9], ['bathroom', 44.5, 13.0], ['assembly point', 43.1, -2.4]])
   if (!officeCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`office: can't walk to the ${room} (${x}, ${z})`);
 console.log('walkable cells: downstairs', cellsOn[0].length, 'upstairs', cellsOn[1].length, 'attic', cellsOn[2].length);
+// every tuft of the lawn can be mowed: somewhere you can stand puts the mower deck (0.95 m ahead, cutting
+// 0.42 m around it) over it
+{ const far = G.world.lawn.cells.filter(t => !cellsOn[0].some(c => { const d = Math.hypot(c[0] - t.x, c[1] - t.z); return d > 0.53 && d < 1.37; }));
+  if (far.length) errors.push(`lawn: ${far.length} tufts can't be reached with the mower, e.g. (${far[0].x.toFixed(2)}, ${far[0].z.toFixed(2)})`); }
 // every upstairs doorway can be walked straight through, 0.5 m either side (furniture mustn't block it)
 for (const [room, x, z, axis] of [['dressing room', 3.85, 3.95, 'z'], ['bathroom', 3.875, 6.9, 'z'], ['main bedroom', 3.26, 4.5, 'x'], ["kids' room", 3.26, 6.225, 'x']]) {
   for (let d = -0.5; d <= 0.5; d += 0.1) {
@@ -295,6 +299,7 @@ for (let n = 1; n <= 12; n++) {
   if (has('binsOut')) binTitles.push(G.board.find('binsOut').title);
   if (n === 3) G.power.cut();   // a power cut on day 3 for sure; the day can't finish until the fuses are reset
   playDay(label);
+  if (has('mow') && G.world.lawn.cutCount !== G.world.lawn.cells.length) errors.push(`${label}: ${G.world.lawn.cells.length - G.world.lawn.cutCount} tufts of long grass left after mowing`);
   if (n === 3 && !S.powerOn) errors.push('day 3 finished with the power still off');
   const saved = JSON.parse(store.get('fordHouse.save.v1'));
   if (saved.day !== day || !saved.today.completed || saved.today.done.length !== plan.length) errors.push(`${label}: save says day ${saved.day}, ${saved.today.done.length}/${plan.length} done`);
@@ -322,10 +327,11 @@ if (missing.length) {
 
 // --- a day as Dude: his homework at his own desk, keyboard practice and tidying his room
 G.days.setCharacter('boy');
-G.days.plan(['homework', 'music', 'tidyDude', 'clarinet']);
+G.days.plan(['homework', 'music', 'tidyDude', 'clarinet', 'coffee']);   // Dude takes the coffee to the table
 // (P's toys and Dad's cooking come up in the 12 days or the extra day)
 if (G.board.find('homework').steps[0].level !== 2) errors.push("Dude's homework isn't at his desk in the attic");
 playDay("Dude's day");
+{ const m = G.items.mug.position; if (!G.items.mug.visible || Math.hypot(m.x - 1.65, m.z - 7.3) > 0.01) errors.push("coffee: Dude didn't put the coffee on the dining table"); }
 G.days.next();
 
 // --- carrying something wins: by P's desk and window with the cricket box, the button puts the box
@@ -357,7 +363,8 @@ if (!G.dragon.happy()) errors.push("dragon: not happy after it's been fed and pl
 if (G.world.dragonMess.visible || G.world.crickets.visible) errors.push('dragon: mess or crickets left in the terrarium');
 { const p = G.items.dragon.position, b = G.items.dragonBowl.position;
   if (G.items.dragon.parent !== G.world.upstairs || p.x < 1.0 || p.x > 1.95 || p.z < 5.72 || p.z > 6.15) errors.push('dragon: not back in its terrarium');
-  if (b.x < 1.0 || b.x > 1.95 || b.z < 5.72 || b.z > 6.15) errors.push("dragon: the water bowl isn't back in the terrarium"); }
+  if (G.items.dragonBowl.parent !== G.world.upstairs || Math.hypot(b.x - 1.47, b.z - 6.04) > 0.01) errors.push("dragon: the water bowl isn't back in its place in the terrarium");
+  if (Math.hypot(b.x - 1.12, b.z - 5.86) < 0.2) errors.push('dragon: the water bowl is hidden under the branch'); }
 G.days.setCharacter('dad');
 G.days.next();
 
@@ -375,8 +382,10 @@ G.days.next();
 
 // --- a day as Mum: work in the office, make up the sofa bed, cook dinner
 G.days.setCharacter('mum');
-G.days.plan(['work', 'sofabed', 'cook']);
+G.days.plan(['work', 'sofabed', 'cook', 'coffee']);
+if (!G.board.find('coffee').steps.some(st => st.what === 'Drinking your coffee')) errors.push("coffee: Mum doesn't get to drink hers");
 playDay("Mum's day");
+if (G.items.mug.visible) errors.push('coffee: the mug is still about after Mum drank her coffee');
 G.days.next();
 G.days.setCharacter('dad');
 

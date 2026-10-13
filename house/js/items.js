@@ -206,10 +206,10 @@ export function createItems(scene, upstairs, attic) {
       g.scale.setScalar(1.7);   // about 40 cm nose to tail
     }, [1.68, 0.49, 5.92], { level: 1, rotY: 0.5, userData: { carry: [0.12, 0.58, 0.26], carryRot: [0, -0.4, 0] } }),
     // its water bowl, in the terrarium
-    dragonBowl: item(g => {
-      add(g, new THREE.CylinderGeometry(0.055, 0.045, 0.025, 14), mat('#7c8a8f'), [0, 0.0125, 0]);
-      add(g, new THREE.CylinderGeometry(0.045, 0.045, 0.004, 14), new THREE.MeshStandardMaterial({ color: '#7fc4e8', transparent: true, opacity: 0.8 }), [0, 0.022, 0]);
-    }, [1.12, 0.49, 5.86], { level: 1 }),
+    dragonBowl: item(g => {   // on open sand at the front of the tank, so you can see it's back
+      add(g, new THREE.CylinderGeometry(0.062, 0.05, 0.035, 16), mat('#c9733e'), [0, 0.0175, 0]);
+      add(g, new THREE.CylinderGeometry(0.052, 0.052, 0.004, 16), new THREE.MeshStandardMaterial({ color: '#4fb3e8', emissive: '#1d5f88', roughness: 0.2 }), [0, 0.037, 0]);
+    }, [1.47, 0.49, 6.04], { level: 1 }),
     // the box of crickets (and greens) on the windowsill in P's room, above the radiator
     cricketBox: item(g => {
       add(g, new THREE.BoxGeometry(0.12, 0.08, 0.09), new THREE.MeshStandardMaterial({ color: '#e8e8e2', transparent: true, opacity: 0.75 }), [0, 0.04, 0]);
