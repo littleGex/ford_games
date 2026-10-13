@@ -10,11 +10,18 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.8.1] - 2026-10-13
+
 ### Changed
 - Ford House: Mum and Dad drink their coffee themselves: sit on the sofa with it, then put the empty mug
-  in the sink. P and Dude still take it to the table for them.
+  in the sink. P and Dude still take it to the table for them (#85).
 - Ford House: mowing the lawn means every tuft of long grass, not nine in ten. Near the end the list shows how
-  many tufts are left to find.
+  many tufts are left to find (#86).
+
+### Fixed
+- Ford House: P's bearded dragon's water bowl went back under the end of the branch, where it looked like part
+  of it, so it seemed it was never put down. It now sits on open sand at the front of the terrarium, with
+  water you can see (#87).
 
 ## [4.8.0] - 2026-10-13
 
