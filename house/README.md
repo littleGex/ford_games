@@ -117,7 +117,18 @@ bushes turn orange, red and yellow, leaves lie about and drift down, and every f
 back lawn need raking up and tipping into the brown bin. In winter (December and January) there's snow
 on the ground and the bushes, snowflakes fall, the path and pavement out front need clearing with the
 snow shovel, and there's no mowing. Add `?season=autumn` (or `winter`, `spring`, `summer`) to the
-address to try a season out. Jobs say which seasons they belong to with `season: [...]` in `rules.js`. When the last job is done a "Day N complete" screen shows how long it took and
+address to try a season out. Jobs say which seasons they belong to with `season: [...]` in `rules.js`.
+
+On Halloween (31 October, `js/holidays.js`) the house is decorated: pumpkins and a string of orange lights at the
+front door, bats and webs on the dining room window and round the door, a ghost in the hall. Three jobs come on
+the list: carve a jack-o'-lantern (fetch the pumpkin from the garden, scoop it out at the dining table, pick a
+face on a card, carve it, put a tea light in, take it to the front step), decorate the house, and trick or
+treat. Mum and Dad put the sweets by the door and hand them out to two lots of trick-or-treaters who come up
+the path and ring; P and Dude pick a costume from their wardrobe (witch, vampire, ghost, black cat or pumpkin),
+dress up and ring both neighbours' bells with their pumpkin bucket. Add `?holiday=halloween` to the address to
+try it on any day (`?holiday=none` switches it off). Jobs say which day they belong to with `holiday: '...'`.
+
+When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
 Progress is saved in the browser (`localStorage`, key `fordHouse.save.v1`), so each phone has its own

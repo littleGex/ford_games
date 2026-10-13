@@ -12,6 +12,8 @@
 import { rulesFor } from './rules.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
+import { HALLOWEEN as HW } from '../world/halloween.js';
+import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -38,8 +40,9 @@ const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic ha
  * @param binPair  which pair goes out on bin day (0 blue + yellow, 1 black + brown)
  * @param binsBack which pair is waiting at the kerb to come back in (null if none)
  * @param character who is playing ('dad', 'mum', 'girl', 'boy'); some jobs happen somewhere different for each of them
+ * @param holiday  'halloween' on 31 October (see holidays.js): adds that day's jobs
  */
-export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1 } = {}) {
+export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null } = {}) {
   const grownUp = character === 'dad' || character === 'mum';
   const boxSpot = BOX_SPOTS[Math.floor(day / 7) % BOX_SPOTS.length];
   const showBox = (c, level, x, z) => {
@@ -317,5 +320,50 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'pileGrown', level: 1, at: [4.0, 2.0], place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
       setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
   ];
+  if (holiday === 'halloween') jobs.push(...halloweenJobs(character, grownUp));
   return jobs.map(job => ({ ...rulesFor(job.id), ...job }));
+}
+
+/** Halloween: carve a jack-o'-lantern, decorate the house, and trick or treat (handing out sweets at the
+ *  door for Mum and Dad; dressing up and knocking next door for P and Dude). systems/halloween.js does the rest. */
+function halloweenJobs(character, grownUp) {
+  const t = HW.table, wardrobe = HW.wardrobe[character] || HW.wardrobe.girl, room = HW.room[character] || HW.room.girl;
+  return [
+    { id: 'pumpkin', title: "Carve a jack-o'-lantern", steps: [
+      { kind: 'pick', item: 'pumpkin', label: 'Fetch the pumpkin from the garden' },
+      { kind: 'drop', item: 'pumpkin', at: t.at, place: t.place, label: 'Put it on the dining table' },
+      { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 12, what: 'Scooping out the pumpkin', label: 'Cut the lid off and scoop out the inside',
+        onDone: c => c.halloween.scoop() },
+      { kind: 'choose', choose: 'face', at: t.at, label: 'Choose a face to carve', message: o => `${o.label}: let's carve it!`,
+        onChoose: (id, c) => c.halloween.chooseFace(id) },
+      { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 15, what: 'Carving the face', label: 'Carve the face', onDone: c => c.halloween.carve() },
+      { kind: 'use', at: t.at, label: grownUp ? 'Put a tea light in and light it' : 'Put an LED tea light in and switch it on', onDone: c => c.halloween.light() },
+      { kind: 'pick', item: 'pumpkin', label: "Pick up the jack-o'-lantern" },
+      { kind: 'drop', item: 'pumpkin', at: HW.step.at, place: HW.step.place, label: 'Put it on the front step' }],
+      setup: c => c.halloween.freshPumpkin(), tidy: c => c.halloween.lanternOnStep() },
+    { id: 'decorate', title: 'Decorate the house for Halloween', steps: [
+      { kind: 'pick', item: 'decoBox', label: 'Get the box of Halloween decorations from the hall' },
+      { kind: 'use', at: HW.window, label: "Stick bats and spiders' webs on the dining room window", onDone: c => c.halloween.hang('window') },
+      { kind: 'use', at: HW.door, label: 'Put bats and a web up round the front door', onDone: c => c.halloween.hang('door') },
+      { kind: 'use', at: HW.ghost, label: 'Hang the ghost up in the hall', onDone: c => c.halloween.hang('ghost') },
+      { kind: 'drop', item: 'decoBox', home: true, label: 'Put the empty box back in the hall', onDone: c => { c.items.decoBox.visible = false; } }],
+      setup: c => { c.halloween.takeDown(); c.items.decoBox.visible = true; }, tidy: () => {} },
+    grownUp
+      ? { id: 'trickOrTreat', title: 'Hand out sweets to trick-or-treaters', steps: [
+        { kind: 'pick', item: 'sweetsBowl', label: 'Get the bowl of sweets from the kitchen' },
+        { kind: 'drop', item: 'sweetsBowl', at: HW.bowlBy.at, place: HW.bowlBy.place, label: 'Put it by the front door' },
+        ...[0, 1].flatMap(n => [
+          { kind: 'wait', dur: n ? 30 : 35, trick: n, label: 'Wait for the trick-or-treaters', doneMessage: 'Ding-dong! Trick or treat!' },
+          { kind: 'use', at: HW.openDoor, label: 'Open the door and give them some sweets', onDone: c => c.halloween.giveSweets() }])],
+        setup: c => { c.items.sweetsBowl.visible = true; }, tidy: () => {} }
+      : { id: 'trickOrTreat', title: 'Go trick or treating', steps: [
+        { kind: 'choose', choose: 'costume', ...wardrobe, label: 'Open your wardrobe and pick a costume', message: o => `${o.label}: spooky!`,
+          onChoose: (id, c) => c.halloween.chooseCostume(id) },
+        { kind: 'sit', stand: true, ...wardrobe, dur: 8, what: 'Putting on your costume', label: 'Put on your costume', onDone: c => c.halloween.dressUp() },
+        { kind: 'pick', item: 'treatPail', label: 'Grab your pumpkin bucket from the porch' },
+        { kind: 'use', at: NEIGHBOUR_HOUSES.right.step, label: 'Ring next door (on the right): trick or treat!', onDone: c => c.halloween.knock('right') },
+        { kind: 'use', at: NEIGHBOUR_HOUSES.left.step, label: 'Ring next door (on the left): trick or treat!', onDone: c => c.halloween.knock('left') },
+        { kind: 'drop', item: 'treatPail', level: room.level, at: room.at, place: room.place, label: `Take your sweets up to ${room.name}` }],
+        setup: c => { c.items.treatPail.visible = true; }, tidy: () => {} },
+  ];
 }

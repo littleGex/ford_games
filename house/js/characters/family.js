@@ -132,3 +132,11 @@ export const OFFICE_PEOPLE = {
   colleagueC: { scale: 0.95, skin: '#8d5a3c', pants: '#24272e', shoes: '#151515', brow: '#1a1210', topMat: M('#d9a43a'), hair: shortHair('#1a1210') },
   colleagueD: { scale: 0.94, skin: '#e8c0a0', pants: '#4a6a9c', shoes: '#f2f2f2', brow: '#7d5a3c', blush: true, topMat: M('#e86a8a'), hair: longHair('#9b7452') },
 };
+
+// Trick-or-treaters on Halloween (made-up kids from down the street; they come in costumes, see costumes.js).
+export const TRICK_OR_TREATERS = [
+  { scale: 0.74, skin: '#e8c0a0', pants: '#2a2d35', shoes: '#c43b3b', brow: '#5e3f27', blush: true, topMat: M('#3b7fc4'), hair: shortHair('#5e3f27'), costume: 'ghost' },
+  { scale: 0.8, skin: '#c99a78', pants: '#1c1e25', shoes: '#f2f2f2', brow: '#2a1c14', blush: true, topMat: M('#e0b23a'), hair: longHair('#2e211a'), costume: 'witch' },
+  { scale: 0.7, skin: '#f1d1ba', pants: '#3a3d42', shoes: '#2b2d31', brow: '#a88550', blush: true, topMat: M('#6aa84f'), hair: shortHair('#d9b36a'), costume: 'vampire' },
+  { scale: 0.76, skin: '#8d5a3c', pants: '#24272e', shoes: '#f08a24', brow: '#1a1210', blush: true, topMat: M('#c4477a'), hair: longHair('#1a1210'), costume: 'cat' },
+];

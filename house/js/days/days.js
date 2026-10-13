@@ -6,18 +6,20 @@ import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
 import { planDay, personalDue, seededRandom } from './planner.js';
 import { currentSeason } from '../seasons.js';
+import { currentHoliday } from '../holidays.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
 function binParams(save) {
   const last = save.lastBinPair;
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day };   // day: where the loft box is
+  // day: where the loft box is; holiday: Halloween jobs and decorations (kept for the day once it's planned)
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHoliday() };
 }
 
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
   const pool = createJobs({ ...params, character: save.character });
-  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, season: currentSeason() }, seededRandom(save.day * 7919 + 13));
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, season: currentSeason(), holiday: params.holiday }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
@@ -34,6 +36,7 @@ export function createDays(ctx) {
     S.carrying = null; S.dayOver = false; S.lampOn = false;
     board.clear();
     resetItems(items);
+    ctx.halloween.reset(today.params.holiday);   // decorations up on Halloween (the decorating job takes some down again)
 
     // every job in the house either needs doing today, or is shown done
     for (const job of jobsToday()) {
@@ -117,7 +120,7 @@ export function createDays(ctx) {
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }
-    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, season: currentSeason() })) {
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, season: currentSeason(), holiday: today.params.holiday })) {
       if (today.plan.includes(job.id)) continue;
       today.plan.push(job.id);
       board.add(job);

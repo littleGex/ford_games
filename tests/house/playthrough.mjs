@@ -313,7 +313,7 @@ if (!events.post || !events.parcel || !events.fuses) errors.push('expected the p
 if (events.fuses > 3) errors.push(`${events.fuses} power cuts in 12 days, expected at most one a day and usually fewer`);
 
 // --- then a day made of every job that hasn't come up yet, so every job is played at least once
-const pool = (await import(new URL('../../house/js/jobs/rules.js', import.meta.url))).POOL_RULES.map(r => r.id);
+const pool = (await import(new URL('../../house/js/jobs/rules.js', import.meta.url))).POOL_RULES.filter(r => !r.holiday).map(r => r.id);   // Halloween's jobs get their own day below
 const missing = pool.filter(id => !played.has(id));
 if (missing.length) {
   G.days.plan(missing);
@@ -448,6 +448,54 @@ for (const who of ['dad', 'girl']) {
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
   G.days.setCharacter('dad');
   G.days.next();
+}
+
+// --- Halloween (31 October; ?holiday=halloween): as Dad, P and Dude. Carve the jack-o'-lantern (picking a
+// face), decorate the house, and trick or treat: Dad hands out sweets to two lots of trick-or-treaters at
+// the door, the kids pick a costume, dress up, and ring both neighbours' bells with their bucket
+{
+  const { HALLOWEEN: HW } = await import(new URL('../../house/js/world/halloween.js', import.meta.url));
+  const deco = G.world.halloween;
+  globalThis.location.search = '?season=autumn&holiday=halloween';
+  const realGive = G.halloween.giveSweets;
+  let gave = [];
+  G.halloween.giveSweets = () => { gave.push(G.halloween.visitors); realGive(); };
+  for (const who of ['dad', 'girl', 'boy']) {
+    const label = `Halloween (${who})`;
+    gave = [];
+    G.days.setCharacter(who);
+    G.days.plan(['pumpkin', 'decorate', 'trickOrTreat']);
+    if (!G.halloween.on || !deco.all.visible) errors.push(`${label}: decorations not up`);
+    if (deco.window.visible || deco.ghost.visible) errors.push(`${label}: the window bats or the ghost are up before decorating`);
+    if (!G.items.pumpkin.visible || G.items.pumpkin.userData.pumpkin.faceMesh.visible) errors.push(`${label}: no whole pumpkin in the garden`);
+    const grown = who === 'dad', tt = G.board.find('trickOrTreat');
+    if (grown !== /sweets/.test(tt.title)) errors.push(`${label}: trick or treat job is "${tt.title}"`);
+    laptopPick = 2;   // the second face (spooky) and the second costume (vampire)
+    playDay(label);
+    const it = G.items.pumpkin, p = it.userData.pumpkin;
+    if (it.parent !== G.stage.scene || Math.hypot(it.position.x - HW.step.place[0], it.position.z - HW.step.place[2]) > 0.01) errors.push(`${label}: the jack-o'-lantern isn't on the front step`);
+    if (!p.faceMesh.visible || !p.glow.visible) errors.push(`${label}: the jack-o'-lantern isn't carved and lit`);
+    if (G.halloween.face !== 'spooky') errors.push(`${label}: carved "${G.halloween.face}", picked spooky`);
+    if (!deco.window.visible || !deco.door.visible || !deco.ghost.visible || G.items.decoBox.visible) errors.push(`${label}: decorations not all up, or the box left out`);
+    if (grown) {
+      if (gave.join() !== 'waiting,waiting') errors.push(`${label}: trick-or-treaters at the door when handing out sweets: ${gave.join() || 'never'}`);
+    } else {
+      const room = HW.room[who], pail = G.items.treatPail;
+      if (G.player.costume !== 'vampire') errors.push(`${label}: wearing ${G.player.costume}, picked the vampire`);
+      if (!pail.getObjectByName('sweets').visible) errors.push(`${label}: no sweets in the bucket`);
+      if (pail.userData.level !== room.level || Math.hypot(pail.position.x - room.place[0], pail.position.z - room.place[2]) > 0.01) errors.push(`${label}: the bucket isn't on ${room.name}`);
+    }
+    G.days.next();
+  }
+  G.halloween.giveSweets = realGive;
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad');
+  G.days.plan(['hands']);
+  if (G.halloween.on || deco.all.visible || G.items.pumpkin.visible || G.player.costume) errors.push('after Halloween: decorations, the pumpkin or a costume still about');
+  if (G.board.find('pumpkin')) errors.push('after Halloween: Halloween jobs still on the list');
+  playDay('the day after Halloween');
+  G.days.next();
+  console.log('Halloween: pumpkin carved and lit, house decorated, trick or treat as Dad, P and Dude');
 }
 
 // --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day
