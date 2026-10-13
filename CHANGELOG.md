@@ -19,6 +19,13 @@ pull request; at release time that section becomes the new version (see "Releasi
   (new, on the terrace), clock in, then meetings with the boss and the team, desk work, lunch, water, and
   coffee, snacks and the bathroom whenever you like. An urgent phone call, and a fire drill: out through the
   fire door and wait for the all-clear. Clock out and cycle home by 17:30 for three stars (#66).
+- Ford House: Mum's office site, from her sketches: two car parks across the road, a zebra crossing to the
+  security turnstiles and the vehicle gate with its security lounge, a garden, a café in its own little
+  building, and the office building with the clock-in machine, lifts and stairs. Upstairs, Mum's office
+  floor: the open-plan office with her desk, a meeting room, the kitchen, the WC and a second office.
+- Ford House: Mum's version of **work at the office**: drive there, badge in, clock in, up to her floor by
+  lift or stairs, meetings at 10:00 and 14:00, desk work, lunch, breaks, an urgent call and a fire drill
+  (stairs only), then clock out, badge out and drive home by 17:30 for three stars (#73).
 
 ## [4.6.0] - 2026-10-12
 

@@ -33,7 +33,7 @@ export const OFFICE = {
 };
 
 /** A seated figure (a colleague at a desk, the boss at the table). */
-function seated(spec, x, z, facing, seatY = 0.45) {
+export function seated(spec, x, z, facing, seatY = 0.45) {
   const c = makeCharacter(spec);
   c.legs.forEach(l => { l.rotation.x = -1.45; });
   c.arms.forEach(a => { a.rotation.x = -0.6; });
@@ -43,7 +43,7 @@ function seated(spec, x, z, facing, seatY = 0.45) {
   return c;
 }
 
-function chair(x, z, facing) {
+export function chair(x, z, facing) {
   const g = group(x, 0, z); g.rotation.y = facing;
   add(g, new THREE.BoxGeometry(0.42, 0.06, 0.42), mat('#2b2d31'), [0, 0.45, 0]);
   add(g, new THREE.BoxGeometry(0.42, 0.45, 0.05), mat('#2b2d31'), [0, 0.7, -0.2]);
@@ -53,7 +53,7 @@ function chair(x, z, facing) {
 }
 
 /** One desk (x1..x2 by z1..z2) whose sitter faces `towards` (+1: +z, -1: -z): two monitors, a laptop, a chair. */
-function desk(x1, z1, x2, z2, towards) {
+export function desk(x1, z1, x2, z2, towards) {
   fbox(x1, z1, x2, z2, 0.73, '#e9e6df');
   const cx = (x1 + x2) / 2, back = towards > 0 ? z2 - 0.12 : z1 + 0.12, front = towards > 0 ? z1 : z2;
   [-0.32, 0.32].forEach(dx => {
@@ -66,13 +66,13 @@ function desk(x1, z1, x2, z2, towards) {
 }
 
 /** A pair of desks facing each other across the middle of x1..x2 by z1..z2. */
-function deskPair(x1, z1, x2, z2) {
+export function deskPair(x1, z1, x2, z2) {
   const mid = (z1 + z2) / 2;
   return [desk(x1, z1, x2, mid, 1), desk(x1, mid, x2, z2, -1)];
 }
 
 /** Dad's two monitors light up while he works: a page for each kind of work (call, mail, doc, code). */
-function officeScreen(cx, z) {
+export function officeScreen(cx, z) {
   const pages = {
     call: g => { g.fillStyle = '#26324a'; g.fillRect(0, 0, 256, 128); ['#e8b48f', '#c99a78', '#f1d1ba', '#a87b5a'].forEach((c, i) => { g.fillStyle = '#3b4a68'; g.fillRect(8 + (i % 2) * 124, 8 + Math.floor(i / 2) * 60, 116, 52); g.fillStyle = c; g.beginPath(); g.arc(66 + (i % 2) * 124, 34 + Math.floor(i / 2) * 60, 14, 0, 7); g.fill(); }); },
     mail: g => { g.fillStyle = '#f4f6f8'; g.fillRect(0, 0, 256, 128); for (let i = 0; i < 7; i++) { g.fillStyle = i === 1 ? '#cfe0f5' : '#ffffff'; g.fillRect(6, 6 + i * 17, 244, 14); g.fillStyle = '#6b7686'; g.fillRect(12, 11 + i * 17, 60, 4); g.fillRect(84, 11 + i * 17, 120, 4); } },

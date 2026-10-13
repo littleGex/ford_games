@@ -22,6 +22,7 @@ import { PRINTER } from '../world/rooms/wohnzimmer.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { ring, alarm } from '../core/audio.js';
 import { OFFICE } from '../world/office.js';
+import { MUM } from '../world/mumoffice.js';
 
 const KEY = 'fordHouse.missions.v1';
 const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
@@ -43,22 +44,31 @@ const DAD_DESK = [3.75, 0.5];   // Dad's desk in the dressing room, with the lap
 const DESKS = {
   dad: { level: 1, at: DAD_DESK, seat: [3.74, 0.45, 0.5, -Math.PI / 2], glow: 'dadScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'code' }, radio: 'dadNotes' },
   mum: { level: 2, at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], glow: 'mumScreen', pages: { meeting: 'sheet', mail: 'sheet', doc: 'sheet', code: 'sheet' }, radio: 'mumNotes' },
+  mumOffice: { level: 1, at: MUM.desk.at, seat: MUM.desk.seat, glow: 'mumOfficeScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'doc' }, radio: null },   // Mum's desk at her office
   office: { level: 0, at: OFFICE.desk.at, seat: OFFICE.desk.seat, glow: 'officeScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'code' }, radio: null },   // Dad's desk at the office
 };
 /** A sit-at-your-desk step: a meeting (no radio) or some work (the radio plays). */
 const deskStep = (who, kind, dur, what, label, extra = {}) => {
   const d = DESKS[who];
-  return { kind: 'sit', level: d.level, power: who !== 'office', glow: d.glow, page: d.pages[kind], ...(kind === 'meeting' || !d.radio ? {} : { fx: d.radio }),
+  return { kind: 'sit', level: d.level, power: who !== 'office' && who !== 'mumOffice', glow: d.glow, page: d.pages[kind], ...(kind === 'meeting' || !d.radio ? {} : { fx: d.radio }),
            at: d.at, seat: d.seat, dur, what, label, ...extra };
 };
 const hm = h => h * 60;   // hours to minutes since midnight
-const coffeeJob = (office = false) => ({ key: 'coffee', optional: true, title: 'Coffee (whenever you like)', steps: [office
-  ? { kind: 'sit', stand: true, at: OFFICE.coffee.at, seat: OFFICE.coffee.seat, dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee in the kitchen' }
-  : { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee' }] });
-const snackJob = (office = false) => ({ key: 'snack', optional: true, title: 'Snack (whenever you like)', steps: [
-  { kind: 'use', at: office ? OFFICE.fridge : [3.95, 3.4], label: 'Grab a snack from the fridge' }] });
-const loJob = () => ({ key: 'loo', optional: true, title: 'Bathroom (whenever you need)', steps: [
-  { kind: 'use', at: OFFICE.toilet, label: 'Use the bathroom' }] });
+// coffee, snacks and the loo at home, at Dad's office and at Mum's office (true still means Dad's office)
+const BREAKS = {
+  home: { coffee: { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee' },
+          fridge: { at: [3.95, 3.4] } },
+  dad: { coffee: { kind: 'sit', stand: true, at: OFFICE.coffee.at, seat: OFFICE.coffee.seat, dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee in the kitchen' },
+         fridge: { at: OFFICE.fridge }, loo: { at: OFFICE.toilet } },
+  mum: { coffee: { kind: 'sit', stand: true, level: 1, at: MUM.coffee.at, seat: MUM.coffee.seat, dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee in the kitchen' },
+         fridge: { level: 1, at: MUM.fridge }, loo: { level: 1, at: MUM.wc } },
+};
+const place = w => (w === true ? 'dad' : w || 'home');
+const coffeeJob = w => ({ key: 'coffee', optional: true, title: 'Coffee (whenever you like)', steps: [{ ...BREAKS[place(w)].coffee }] });
+const snackJob = w => ({ key: 'snack', optional: true, title: 'Snack (whenever you like)', steps: [
+  { kind: 'use', ...BREAKS[place(w)].fridge, label: 'Grab a snack from the fridge' }] });
+const loJob = (w = 'dad') => ({ key: 'loo', optional: true, title: 'Bathroom (whenever you need)', steps: [
+  { kind: 'use', ...BREAKS[place(w)].loo, label: 'Use the bathroom' }] });
 
 /** The phone rings once with an urgent call to take at `desk` ('dad', 'mum' or 'office') within 20 minutes. */
 function phoneRings(c, mission, minutes, desk) {
@@ -81,7 +91,7 @@ function offerLater(c, mission, minutes) {
 
 /** Once in the day the fire alarm goes off: out through the fire door to the assembly point, and wait
  *  there for the all-clear (30 seconds). Nothing else can be done meanwhile. */
-function fireDrill(c, mission, minutes) {
+function fireDrill(c, mission, minutes, where = { at: OFFICE.assembly, label: 'Go out through the fire door to the assembly point', toast: 'Fire alarm! Out through the fire door at the far end' }) {
   if (mission.drillAt === undefined) {
     let at = hm(10.75) + Math.random() * hm(4.5);
     if (at > hm(13.3) && at < hm(14.6)) at = hm(14.8);   // not in the 14:00 meeting
@@ -90,9 +100,9 @@ function fireDrill(c, mission, minutes) {
   if (mission.drilled || minutes < mission.drillAt || c.board.jobs.some(j => j.key === 'finish')) return;
   mission.drilled = true; mission.drill = true; alarm();
   if (c.S.sitting) c.sitting.standUp();
-  c.hud.toast('Fire alarm! Out through the fire door at the far end');
+  c.hud.toast(where.toast);
   c.missions.add({ key: 'drill', urgent: true, title: 'Fire drill!', steps: [
-    { kind: 'use', drill: true, at: OFFICE.assembly, label: 'Go out through the fire door to the assembly point' },
+    { kind: 'use', drill: true, at: where.at, label: where.label },
     { kind: 'wait', drill: true, dur: 30, label: 'Wait at the assembly point for the all-clear', doneMessage: 'All clear! Back to work' }] });
 }
 
@@ -225,6 +235,63 @@ export const MISSIONS = {
       fireDrill(c, mission, minutes);
     },
     result: (mission, arrived) => workResult(mission, arrived, ['boss', 'team', 'urgent'], hm(17.5), 'Home at'),
+  },
+
+  // Mum's day at her office: drive there, cross the road on the zebra, badge through the turnstiles, clock in
+  // (a coffee at the café if she likes), up to her office floor by lift or stairs, the working day up there,
+  // then back down, clock out, badge out, and drive home.
+  officeMum: {
+    title: 'Work at the office', who: ['mum'],
+    clock: { start: hm(7), end: hm(17.5), secondsPerMinute: 0.5 },          // 7:00, home by 17:30
+    spot: who => ({ name: NAMES[who], level: 1, start: [2.75, 2.35], facing: -Math.PI / 2 }),
+    intro: 'Drive to the office: your team meeting is at 10:00',
+    setup(c) { c.world.bigBed.mess(); c.world.mumGate.close(); c.world.mumCar.visible = false; },
+    jobs: () => [
+      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: [2.35, 1.9], label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
+      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2], dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
+      { title: 'Have breakfast', steps: [{ kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 6, what: 'Having breakfast', label: 'Sit down and have breakfast' }] },
+      { title: 'Drive to work', steps: [{ kind: 'use', at: [0.6, 13.25], label: 'Get in the car and drive to work', onDone: c => c.missions.travel('mumOffice') }] },
+      { title: 'Cross the road', steps: [{ kind: 'use', at: MUM.zebra, label: 'Cross the road on the zebra crossing', onDone: c => c.hud.toast('Look left, look right... and across!') }] },
+      { title: 'Badge in', steps: [{ kind: 'use', at: MUM.badgeIn, label: 'Show your badge at the turnstiles',
+        onDone: c => { c.world.mumGate.open(); c.hud.toast('Beep! The turnstile lets you through'); } }] },
+      [
+        { key: 'clockIn', title: 'Clock in', steps: [{ kind: 'use', at: MUM.clock, label: 'Clock in at the machine inside the entrance',
+          onDone: c => { c.world.mumGate.close(); c.hud.toast(`Clocked in at ${clockText(c.missions.minutes())}`); } }] },
+        { key: 'cafe', optional: true, title: 'Coffee at the café (if you like)', steps: [
+          { kind: 'sit', stand: true, at: MUM.cafe.at, seat: MUM.cafe.seat, dur: 5, what: 'Buying a coffee', label: 'Get a coffee to take up to the office' }] },
+      ],
+      // the working day upstairs: all of these at once, in any order
+      [
+        { key: 'meet10', due: hm(10), title: 'Team meeting at 10:00', steps: [
+          { kind: 'sit', level: 1, at: MUM.meeting.at, seat: MUM.meeting.seat, notBefore: hm(9.5), dur: 15, what: 'In the team meeting', label: 'Sit down in the meeting room' }] },
+        { key: 'mail', title: 'Answer your emails', steps: [deskStep('mumOffice', 'mail', 12, 'Answering emails', 'Sit at your desk and answer your emails')] },
+        { key: 'doc', title: 'Do the spreadsheets', steps: [deskStep('mumOffice', 'doc', 18, 'Working on the spreadsheets', 'Sit at your desk and do the spreadsheets')] },
+        { key: 'lunch', title: 'Lunch (from 12:00)', steps: [
+          { kind: 'use', level: 1, at: MUM.fridge, notBefore: hm(12), label: 'Get your lunch from the kitchen fridge' },
+          { kind: 'sit', level: 1, at: MUM.desk.at, seat: MUM.desk.seat, dur: 10, what: 'Eating lunch', label: 'Eat your lunch at your desk' }] },
+        { key: 'water', title: 'Drink a glass of water', steps: [{ kind: 'use', level: 1, at: MUM.sink, label: 'Pour a glass of water at the kitchen sink' }] },
+        { key: 'meet14', due: hm(14), title: 'Meeting with your manager at 14:00', steps: [
+          { kind: 'sit', level: 1, at: MUM.meeting.at, seat: MUM.meeting.seat, notBefore: hm(13.5), dur: 15, what: 'Meeting with your manager', label: 'Sit down in the meeting room' }] },
+        { key: 'code', title: 'Write the report', steps: [deskStep('mumOffice', 'doc', 18, 'Writing the report', 'Sit at your desk and write the report')] },
+        coffeeJob('mum'), snackJob('mum'), loJob('mum'),
+      ],
+      { key: 'finish', title: 'Finish your day', steps: [
+        { kind: 'use', level: 1, at: MUM.desk.at, label: 'Shut down your laptop: done for the day!' },
+        { kind: 'use', at: MUM.clock, label: 'Clock out at the machine by the entrance', onDone: c => c.hud.toast(`Clocked out at ${clockText(c.missions.minutes())}`) },
+        { kind: 'use', at: MUM.badgeOut, label: 'Badge out at the turnstiles', onDone: c => c.world.mumGate.open() }] },
+      { key: 'home', title: 'Drive home', steps: [{ kind: 'use', at: MUM.car, label: 'Get in the car and drive home', onDone: c => c.missions.travel('homeByCar') }] },
+    ],
+    onOptional(c, mission, job) {
+      (mission.breaks ||= {})[job.key === 'cafe' ? 'coffee' : job.key] = ((mission.breaks || {})[job.key === 'cafe' ? 'coffee' : job.key] || 0) + 1;
+      if (job.key !== 'cafe') mission.later.push({ at: c.missions.minutes() + 90, job: job.key === 'coffee' ? coffeeJob('mum') : job.key === 'snack' ? snackJob('mum') : loJob('mum') });
+    },
+    update(c, mission, minutes) {
+      offerLater(c, mission, minutes);
+      if (!mission.atWork || !c.board.jobs.some(j => j.key === 'meet10')) return;   // only once she's up at her desk's day
+      phoneRings(c, mission, minutes, 'mumOffice');
+      fireDrill(c, mission, minutes, { at: MUM.assembly, label: 'Take the stairs down and go out to the assembly point in the garden', toast: 'Fire alarm! Take the stairs (not the lift) and go out to the garden' });
+    },
+    result: (mission, arrived) => workResult(mission, arrived, ['meet10', 'meet14', 'urgent'], hm(17.5), 'Home at'),
   },
 
   print3d: {
@@ -371,6 +438,7 @@ export function createMissions(ctx) {
     S.mission = null;
     if (S.laptop) ctx.laptop.close();
     if (ctx.printing) ctx.printing.reset();
+    ctx.world.car.visible = true; ctx.world.mumCar.visible = false; ctx.world.mumGate.close();   // Mum's car back home
     el.box.hidden = true;
     if (S.sitting) ctx.sitting.standUp();
     player.setCharacter(days.character);
@@ -394,6 +462,17 @@ export function createMissions(ctx) {
     travel(where) {
       const bike = ctx.items.dadBike, scene = ctx.stage.scene;
       levels.show(0);
+      if (where === 'mumOffice' || where === 'homeByCar') {   // Mum drives: the car leaves the house and turns up in the car park
+        const there = where === 'mumOffice';
+        ctx.world.car.visible = !there; ctx.world.mumCar.visible = there;
+        if (there) { player.group.position.set(MUM.park[0], 0, MUM.park[1]); player.group.rotation.y = 0; }
+        else { player.group.position.set(0.6, 0, 13.0); player.group.rotation.y = Math.PI; }
+        S.mission.atWork = there;
+        if (S.mission.clock) S.mission.t += 20 * S.mission.clock.secondsPerMinute;
+        if (ctx.view) ctx.view.reset();
+        hud.toast(there ? `You drive to the office: ${clockText(now())}` : `Home again: ${clockText(now())}`);
+        return;
+      }
       if (where === 'office') {
         scene.attach(bike); bike.position.set(OFFICE.rack[0], 0, OFFICE.rack[1]); bike.rotation.set(0, 0, 0);
         player.group.position.set(OFFICE.arrive[0], 0, OFFICE.arrive[1]); player.group.rotation.y = Math.PI;

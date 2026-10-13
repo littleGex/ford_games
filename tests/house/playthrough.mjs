@@ -62,7 +62,21 @@ function walkable(level, sx, sz, { X0, Z0, NX, NZ } = HOUSE_GRID) {
   return out;
 }
 const officeCells = walkable(0, 43.0, 15.3, OFFICE_GRID);   // the office and round it, from the bike rack
-const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells), walkable(1, 4.1, 4.55), walkable(2, 4.25, 4.6)];
+// Mum's office site: from her car park, through the turnstiles (closed until you show your badge) to the
+// building; and her office floor upstairs, from the top of the stairs
+const MUM_GRID = { X0: 70.2, Z0: -8.8, NX: Math.round(49.6 / RES), NZ: Math.round(31.2 / RES) };
+const MUM_FLOOR_GRID = { X0: 98.0, Z0: 4.6, NX: Math.round(12 / RES), NZ: Math.round(17 / RES) };
+const mumOutside = walkable(0, 97.2, -4.2, MUM_GRID);
+if (mumOutside.some(c => c[1] > 3.6 && c[1] < 22)) errors.push("Mum's office: you can get onto the site without showing your badge");
+G.world.mumGate.open();
+const mumCells = walkable(0, 97.2, -4.2, MUM_GRID);
+G.world.mumGate.close();
+const mumFloorCells = walkable(1, 108.65, 17.9, MUM_FLOOR_GRID);
+for (const [what, x, z] of [['the zebra crossing', 97.5, 1.8], ['the turnstiles', 98.2, 3.05], ['the clock-in machine', 98.5, 8.1], ['the café counter', 84.6, 10.3], ['the lifts', 109.0, 16.9], ['the stairs', 108.65, 17.9], ['the assembly point', 90.2, 13.6]])
+  if (!mumCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office: can't walk to ${what} from the car park`);
+for (const [what, x, z] of [["Mum's desk", 100.1, 13.3], ['the meeting room', 101.6, 18.3], ['the kitchen fridge', 103.0, 15.55], ['the kitchen sink', 103.0, 12.9], ['the WC', 105.0, 19.4], ['the lifts upstairs', 109.0, 16.9], ['the second office', 108.0, 10.0]])
+  if (!mumFloorCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office floor: can't walk to ${what}`);
+const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
 // every room in the office can be reached from the bike rack
 for (const [room, x, z] of [['open plan', 42.6, 3.0], ["boss's office", 41.5, 8.4], ['meeting room', 41.9, 12.0], ["Dad's room", 44.0, 8.9], ['kitchen', 44.5, 10.9], ['bathroom', 44.5, 13.0], ['assembly point', 43.1, -2.4]])
   if (!officeCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`office: can't walk to the ${room} (${x}, ${z})`);
@@ -123,6 +137,16 @@ const STAIRS = {
 };
 let stairTrips = 0;
 function travel(level) {
+  if (G.player.group.position.x > 70) {   // at Mum's office: the stairs between the ground floor and her office floor
+    while (S.level !== level) {
+      const label = level > S.level ? 'Take the stairs up' : 'Take the stairs down';
+      goTo(standNear([108.65, 17.9]).cell); frame();
+      const n = G.board.nearestAction(G.player.group.position);
+      if (!n || !n.fixed || n.step.label !== label) { errors.push(`Mum's office stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${label}"`); G.levels.show(level); break; }
+      G.board.act(n); stairTrips++; frame();
+    }
+    return;
+  }
   while (S.level !== level) {
     const from = S.level, next = from + Math.sign(level - from), here = STAIRS[`${from}>${next}`];
     goTo(standNear(here.at).cell); frame();
@@ -550,6 +574,44 @@ for (const who of ['dad', 'mum']) {
   if (G.player.group.position.x > 30) errors.push('office: still at the office after going back to the day');
   const spot = MISSIONS.office.spot('dad');
   if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push('office: Dad starts inside something');
+}
+
+// --- Mum's day at the office: drive there, cross on the zebra, badge in, clock in (a café coffee), up to her
+// office floor, the working day with the urgent call and a fire drill (stairs, not the lift), then down, clock
+// out, badge out and drive home
+{
+  const planBefore = G.board.jobs.map(j => j.id).join(), seen = new Set();
+  G.missions.start('officeMum', 'mum');
+  S.mission.callAt = 11 * 60; S.mission.drillAt = 11.5 * 60;
+  let liftRefused = false;
+  playWorkDay("Mum's office", seen);
+  if (!S.mission.done) errors.push("Mum's office: the day never finished");
+  for (const key of ['clockIn', 'cafe', 'meet10', 'mail', 'doc', 'lunch', 'water', 'meet14', 'code', 'coffee', 'snack', 'loo', 'urgent', 'drill', 'finish', 'home'])
+    if (!seen.has(key)) errors.push(`Mum's office: never had "${key}" on the list`);
+  if (S.mission.done) {
+    const b = G.missions.best('officeMum', 'mum');
+    if (b.stars !== 3) errors.push(`Mum's office: a good day only got ${b.stars} stars (due ${JSON.stringify(S.mission.due)}, done ${JSON.stringify(S.mission.doneAt)})`);
+    else console.log("Mum's office: home at", Math.round(b.minutes), 'min');
+    if (!G.world.car.visible || G.world.mumCar.visible) errors.push("Mum's office: the car isn't back home");
+  }
+  void liftRefused;
+  G.missions.end();
+  if (!G.world.car.visible || G.world.mumCar.visible) errors.push("Mum's office: the car isn't back home after the mission");
+  if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push("Mum's office: the day didn't come back as it was");
+}
+// the lift doesn't run in a fire drill
+{
+  G.missions.start('officeMum', 'mum');
+  G.missions.travel('mumOffice');
+  S.mission.drill = true;
+  G.player.group.position.set(109.0, 0, 16.9); frame();
+  const n = G.board.nearestAction(G.player.group.position);
+  if (!n || n.step.label !== 'Take the lift up') errors.push(`Mum's office: no lift button (${n ? n.step.label : 'nothing'})`);
+  else { G.board.act(n); if (S.level !== 0) errors.push("Mum's office: the lift ran during a fire drill"); }
+  S.mission.drill = false;
+  G.board.act(G.board.nearestAction(G.player.group.position));
+  if (S.level !== 1) errors.push("Mum's office: the lift didn't take Mum up");
+  G.missions.end();
 }
 
 // --- up to the attic and back down by the stairs

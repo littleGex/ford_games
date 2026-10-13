@@ -3,6 +3,7 @@
 // on covers the rooms below.
 import { LEVEL_HEIGHT, FLOOR_NAMES } from '../config.js';
 import { S } from '../state.js';
+import { MUM } from '../world/mumoffice.js';
 
 // ground floor <-> first floor
 const FOOT = { at: [4.4, 6.05], arrive: [4.3, 6.0], facing: 0 };            // ground-floor hall, foot of the stairs
@@ -16,6 +17,7 @@ export function createLevels({ world, player, board, hud, stage }) {
   function show(level) {
     S.level = level;
     world.upstairs.visible = level >= 1;
+    if (world.mumFloor) world.mumFloor.visible = level === 1;   // Mum's office floor (world/mumoffice.js)
     world.attic.visible = level === 2;
     player.group.position.y = level * LEVEL_HEIGHT;
   }
@@ -33,6 +35,15 @@ export function createLevels({ world, player, board, hud, stage }) {
   board.addFixed({ level: 1, at: TOP.at, label: 'Go downstairs', act: () => go(0, FOOT) });
   board.addFixed({ level: 1, at: ATTIC_FOOT.at, label: 'Go up to the attic', act: () => go(2, ATTIC_TOP) });
   board.addFixed({ level: 2, at: ATTIC_TOP.at, label: 'Go downstairs', act: () => go(1, ATTIC_FOOT) });
+
+  // Mum's office building: the lifts and the stairs (the lifts don't run in a fire drill)
+  const lift = MUM.lift, stairs = MUM.stairs;
+  const ride = (level, how) => { show(level); player.group.position.x = how[0]; player.group.position.z = how[1]; player.group.rotation.y = -Math.PI / 2; hud.toast(level ? 'Up to the office floor' : 'Down to the ground floor'); };
+  const noLift = () => { if (S.mission && S.mission.drill) { hud.toast('Not the lift in a fire drill: take the stairs!'); return true; } return false; };
+  board.addFixed({ level: 0, at: lift, label: 'Take the lift up', act: () => { if (!noLift()) ride(1, lift); } });
+  board.addFixed({ level: 1, at: lift, label: 'Take the lift down', act: () => { if (!noLift()) ride(0, lift); } });
+  board.addFixed({ level: 0, at: stairs, label: 'Take the stairs up', act: () => ride(1, stairs) });
+  board.addFixed({ level: 1, at: stairs, label: 'Take the stairs down', act: () => ride(0, stairs) });
 
   // In the attic the roof slopes up between the camera and the rooms: make the half nearest the camera
   // see-through (it swaps over when you turn the view round).

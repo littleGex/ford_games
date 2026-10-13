@@ -38,6 +38,23 @@ ROOMS.push(
   { name: 'WC', area: 'office bathroom', r: [O + 3.05, 12.2, O + 6.2, 13.7] },
   { name: 'Büro', area: 'outside the office', r: [O - 14, -8, O + 15.2, 22] },
 );
+// Mum's office site (world/mumoffice.js, from x 80): the ground floor and outside, and her office floor upstairs
+const MO = 80;
+ROOMS.push(
+  { level: 1, name: 'Besprechungsraum', area: "Mum's office", r: [MO + 18, 18.9, MO + 23.7, 21.6] },
+  { level: 1, name: 'WC', area: "Mum's office", r: [MO + 23.8, 19.9, MO + 26.5, 21.6] },
+  { level: 1, name: 'Aufzüge', area: 'lifts and stairs', r: [MO + 26.6, 14.85, MO + 30, 21.6] },
+  { level: 1, name: 'Teeküche', area: "Mum's office", r: [MO + 22.0, 12.4, MO + 23.7, 16.2] },
+  { level: 1, name: 'Büro', area: 'second office', r: [MO + 25.7, 4.6, MO + 30, 14.75] },
+  { level: 1, name: 'Großraumbüro', area: "Mum's desk is here", r: [MO + 18, 4.6, MO + 25.6, 18.8] },
+  { name: 'Café', area: 'on the site', r: [MO + 1.5, 8.7, MO + 7.8, 13.0] },
+  { name: 'Eingangshalle', area: "Mum's office building", r: [MO + 18, 4.6, MO + 30, 21.6] },
+  { name: 'Drehkreuz', area: 'security turnstiles', r: [MO + 11.8, 3.0, MO + 19.8, 4.9] },
+  { name: 'Garten', area: 'garden on the site', r: [MO + 8, 9.0, MO + 13, 14.5] },
+  { name: 'Parkplatz', area: 'car park', r: [MO + 7.5, -7.5, MO + 26.6, -1.2] },
+  { name: 'Straße', area: 'the road', r: [MO - 12, 0.4, MO + 42, 3.1] },
+  { name: 'Bürogelände', area: "Mum's office site", r: [MO - 12, -12, MO + 42, 26] },
+);
 const OUTSIDE = { name: 'Garten', area: 'outside', level: 0 };
 
 /**

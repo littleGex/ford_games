@@ -393,6 +393,32 @@ test('work at the office: cycle there, clock in, and a fire drill stops everythi
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
+test("Mum's office: drive there, zebra crossing, badge through the turnstiles, clock in, lift up to her desk", async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="officeMum"][data-kid="mum"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Work at the office · 7:00');
+  await page.evaluate(() => { const H = window.house; for (let k = 0; k < 3; k++) H.board.advance(H.board.jobs.find(j => j.i < j.steps.length)); H.levels.show(0); });
+  const act = async (x, z, label, level = 0) => {
+    await page.evaluate(([px, pz, l]) => window.house.player.group.position.set(px, l * 2.3, pz), [x, z, level]);
+    await expect(page.locator('#actBtn')).toHaveText(label);
+    await page.locator('#actBtn').click();
+  };
+  await act(0.6, 13.0, 'Get in the car and drive to work');
+  await expect(page.locator('#roomName')).toHaveText('Parkplatz');
+  await act(97.5, 1.8, 'Cross the road on the zebra crossing');
+  await act(98.2, 2.95, 'Show your badge at the turnstiles');
+  await expect(page.locator('#taskList')).toContainText('Coffee at the café (if you like)');
+  await act(98.6, 8.1, 'Clock in at the machine inside the entrance');
+  await expect(page.locator('#taskList')).toContainText('Team meeting at 10:00');
+  await act(109.0, 16.9, 'Take the lift up');
+  await expect(page.locator('#roomName')).toHaveText('Aufzüge');
+  await page.evaluate(() => window.house.player.group.position.set(100.1, 2.3, 13.3));   // at Mum's desk
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and answer your emails');
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
 test('the 3D printing mission: pick a design on the laptop close-up', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();
