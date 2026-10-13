@@ -10,6 +10,20 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.8.0] - 2026-10-13
+
+### Added
+- Ford House: Halloween, on 31 October only. The house is decorated: pumpkins and a string of orange
+  lights at the front door, bats and spiders' webs on the dining room window and round the door, and a
+  ghost in the hall. Three jobs that day: carve a jack-o'-lantern (fetch the pumpkin, scoop it out, pick a
+  face on a card, carve it, light it, take it to the front step), decorate the house, and trick or treat.
+  Mum and Dad hand out sweets to trick-or-treaters who ring at the door; P and Dude pick a costume (witch,
+  vampire, ghost, black cat or pumpkin), dress up and ring both neighbours' bells with their pumpkin
+  bucket. Add `?holiday=halloween` to the address to try it on another day (#82, #76).
+
+### Changed
+- Ford House: at Mum's office she sits on the other side of her desk pair, with a colleague opposite (#82).
+
 ## [4.7.0] - 2026-10-13
 
 ### Added
