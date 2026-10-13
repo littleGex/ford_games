@@ -83,9 +83,9 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 10, what: 'Making coffee', label: 'Make a coffee at the machine',
         onDone: c => { c.items.mug.visible = true; } },
       { kind: 'pick', item: 'mug', label: 'Take the coffee' },
-      // Mum and Dad drink it themselves at the dining table, then the mug goes in the sink; P and Dude take it to the table for them
+      // Mum and Dad drink it themselves on the sofa, then the mug goes in the sink; P and Dude take it to the dining table for them
       ...(grownUp ? [
-        { kind: 'sit', at: [2.55, 7.2], seat: [2.15, 0.48, 7.2, -Math.PI / 2], dur: 12, what: 'Drinking your coffee', label: 'Sit at the dining table and drink your coffee' },
+        { kind: 'sit', at: [0.6, 2.3], seat: [0.55, 0.42, 2.3, Math.PI / 2], dur: 12, what: 'Drinking your coffee', label: 'Sit on the sofa and drink your coffee' },
         { kind: 'drop', item: 'mug', at: [5.32, 0.9], y: 0.9, label: 'Put the empty mug in the sink', onDone: c => { c.items.mug.visible = false; } },
       ] : [
         { kind: 'drop', item: 'mug', at: [1.75, 7.3], place: [1.65, 0.76, 7.3], label: 'Bring it to the dining table' },
