@@ -217,6 +217,34 @@ test('the seasons: raking leaves in autumn, clearing snow in winter', async ({ p
   await expect(page.locator('#actBtn')).toHaveText('Grab the snow shovel');
 });
 
+test("Halloween: on 31 October the house is decorated and there's a jack-o'-lantern to carve", async ({ page }) => {
+  await page.goto('/house/?season=autumn&holiday=halloween');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await play(page);
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+  const planned = await page.evaluate(() => window.house.board.jobs.map(j => j.id));
+  expect(planned).toEqual(expect.arrayContaining(['pumpkin', 'decorate', 'trickOrTreat']));
+  expect(await page.evaluate(() => window.house.world.halloween.all.visible)).toBe(true);
+  await planToday(page, ['pumpkin']);
+  await page.evaluate(() => { const j = window.house.board.find('pumpkin'); j.i = 3; window.house.board.refresh(); window.house.player.group.position.set(2.55, 0, 6.75); });
+  await expect(page.locator('#actBtn')).toHaveText('Choose a face to carve');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#laptop')).toBeVisible();
+  await expect(page.locator('#laptopTitle')).toHaveText('Which face shall we carve?');
+  await expect(page.locator('#laptopTiles button')).toHaveCount(4);
+  await page.locator('[data-choice="toothy"]').click();
+  await expect(page.locator('#laptop')).toBeHidden();
+  expect(await page.evaluate(() => window.house.halloween.face)).toBe('toothy');
+  await expect(page.locator('#actBtn')).toHaveText('Carve the face');
+
+  // any other day: no decorations, no Halloween jobs
+  await page.evaluate(() => localStorage.clear());
+  await page.goto('/house/?season=autumn&holiday=none');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  const after = await page.evaluate(() => ({ deco: window.house.world.halloween.all.visible, jobs: window.house.board.jobs.some(j => j.id === 'pumpkin') }));
+  expect(after).toEqual({ deco: false, jobs: false });
+});
+
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {
   await page.goto('/house/');
   await expect(page.locator('#home')).toBeVisible();   // the game opens on it
@@ -413,7 +441,7 @@ test("Mum's office: drive there, zebra crossing, badge through the turnstiles, c
   await expect(page.locator('#taskList')).toContainText('Team meeting at 10:00');
   await act(109.0, 16.9, 'Take the lift up');
   await expect(page.locator('#roomName')).toHaveText('Aufzüge');
-  await page.evaluate(() => window.house.player.group.position.set(100.1, 2.3, 13.3));   // at Mum's desk
+  await page.evaluate(() => window.house.player.group.position.set(100.1, 2.3, 10.5));   // at Mum's desk (the north side of her desk pair)
   await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and answer your emails');
   await page.evaluate(() => window.house.missions.end());
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');

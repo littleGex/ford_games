@@ -35,6 +35,7 @@ import { createSweeping } from './systems/sweeping.js';
 import { createSeasonal } from './systems/seasonal.js';
 import { currentSeason } from './seasons.js';
 import { createWaiting } from './systems/waiting.js';
+import { createHalloween } from './systems/halloween.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
@@ -69,9 +70,10 @@ ctx.printing = createPrinting(ctx);
 ctx.sweeping = createSweeping(ctx);
 ctx.seasonal = createSeasonal(ctx, ctx.season);
 ctx.waiting = createWaiting(ctx);
+ctx.halloween = createHalloween(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal];
+const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween];
 
 // controls
 preventZoom();

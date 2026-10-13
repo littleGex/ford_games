@@ -2,6 +2,7 @@
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
 //   week: N   on the first N days of every 7 (homework on the five school days)
 //   season: [...]   only in these seasons ('spring', 'summer', 'autumn', 'winter'; see seasons.js)
+//   holiday: '...'  only on that special day ('halloween' on 31 October; see holidays.js)
 //   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
 // Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
 // character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
@@ -58,6 +59,10 @@ export const POOL_RULES = [
   { id: 'rake', every: 3, season: ['autumn'] },
   { id: 'trim', every: 5, season: ['spring', 'summer', 'autumn'] },   // trim the bushes (anyone)
   { id: 'snow', every: 2, season: ['winter'] },
+  // Halloween (31 October): carve a jack-o'-lantern, decorate the house, trick or treat
+  { id: 'pumpkin', every: 1, must: true, holiday: 'halloween' },
+  { id: 'decorate', every: 1, must: true, holiday: 'halloween' },
+  { id: 'trickOrTreat', every: 1, must: true, holiday: 'halloween' },
   { id: 'hooverUp', every: 4 },
   { id: 'hooverAttic', every: 5 },
   { id: 'plants', every: 3 },

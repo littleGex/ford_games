@@ -1,6 +1,6 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'house-cache-v25';
+const CACHE_NAME = 'house-cache-v26';
 const urlsToCache = [
   './',
   './index.html',
@@ -12,9 +12,11 @@ const urlsToCache = [
   './js/missions/missions.js',
   './js/state.js',
   './js/seasons.js',
+  './js/holidays.js',
   './js/characters/character.js',
   './js/characters/family.js',
   './js/characters/player.js',
+  './js/characters/costumes.js',
   './js/core/audio.js',
   './js/core/build.js',
   './js/core/collision.js',
@@ -45,6 +47,7 @@ const urlsToCache = [
   './js/systems/power.js',
   './js/systems/sitting.js',
   './js/systems/waiting.js',
+  './js/systems/halloween.js',
   './js/ui/home.js',
   './js/ui/hud.js',
   './js/ui/sorting.js',
@@ -57,6 +60,7 @@ const urlsToCache = [
   './js/world/outside/neighbours.js',
   './js/world/office.js',
   './js/world/mumoffice.js',
+  './js/world/halloween.js',
   './js/world/outside/garden.js',
   './js/world/outside/terrace.js',
   './js/world/rooms/esszimmer.js',

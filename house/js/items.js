@@ -4,6 +4,7 @@
 // so their positions are plan coordinates with y = 0 at that floor.
 import * as THREE from 'three';
 import { add, mat, castShadows } from './core/build.js';
+import { makePumpkin } from './world/halloween.js';
 
 function item(build, pos, opts = {}) {
   const g = new THREE.Group();
@@ -279,6 +280,27 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.01, 0.016, 0.07, 8), mat('#141416'), [0, 0.585, 0]);           // mouthpiece
       [0.14, 0.22, 0.3, 0.38, 0.46].forEach(y => add(g, new THREE.TorusGeometry(0.018, 0.004, 4, 12), mat('#c9ccd1'), [0, y, 0], null, [Math.PI / 2, 0, 0]));
     }, [5.5, 0.05, 1.3], { level: 2, userData: { carry: [0, 0.32, 0.26], carryRot: [-0.5, 0, 0] } }),
+    // Halloween (only shown on the day): the pumpkin to carve, in the garden; the box of decorations in the
+    // hall; the bowl of sweets in the kitchen; and the kids' pumpkin bucket by the front door
+    pumpkin: item(g => { g.userData.pumpkin = makePumpkin(g, 0.14, { carve: true }); }, [4.95, 0, -4.6], { hidden: true }),
+    decoBox: item(g => {
+      add(g, new THREE.BoxGeometry(0.42, 0.26, 0.32), mat('#e07a1e'), [0, 0.13, 0]);
+      add(g, new THREE.BoxGeometry(0.43, 0.04, 0.33), mat('#1d1a24'), [0, 0.27, 0]);
+      add(g, new THREE.SphereGeometry(0.06, 10, 8), mat('#f6f6f2'), [0.1, 0.31, 0.04]);      // the ghost peeking out
+      add(g, new THREE.BoxGeometry(0.16, 0.005, 0.07), mat('#15151a'), [-0.08, 0.295, -0.04], null, [0, 0.4, 0]);   // a bat
+    }, [3.75, 0, 5.1], { hidden: true }),
+    sweetsBowl: item(g => {
+      add(g, new THREE.CylinderGeometry(0.15, 0.09, 0.09, 18), mat('#7a3fb5'), [0, 0.045, 0]);
+      [['#e74c3c', -0.05, 0.02], ['#f2c81c', 0.04, -0.03], ['#3fa36b', 0.0, 0.05], ['#f08a24', 0.06, 0.04], ['#2f6fd6', -0.03, -0.05]]
+        .forEach(([c, x, z]) => add(g, new THREE.BoxGeometry(0.06, 0.025, 0.035), mat(c), [x, 0.095, z], null, [0, x * 20, 0]));
+    }, [5.33, 0.9, 2.45], { hidden: true }),
+    treatPail: item(g => {
+      add(g, new THREE.SphereGeometry(0.11, 16, 10, 0, Math.PI * 2, Math.PI * 0.25, Math.PI * 0.75), mat('#ec7a1c'), [0, 0.11, 0], [1, 0.9, 1]);
+      add(g, new THREE.TorusGeometry(0.1, 0.006, 6, 16, Math.PI), mat('#1d1a24'), [0, 0.18, 0]);
+      [[-0.035, 0.12], [0.035, 0.12]].forEach(([x, y]) => add(g, new THREE.CircleGeometry(0.018, 3), mat('#1d1a24'), [x, y, 0.104]));
+      const sweets = new THREE.Group(); sweets.name = 'sweets'; g.add(sweets);
+      [['#e74c3c', -0.03], ['#f2c81c', 0.03], ['#3fa36b', 0]].forEach(([c, x], i) => add(sweets, new THREE.BoxGeometry(0.05, 0.022, 0.03), mat(c), [x, 0.165 + i * 0.012, x * 0.6], null, [0, i, 0]));
+    }, [4.05, 0, 7.9], { hidden: true }),
     // the box that goes up into the loft and comes back down (moved about by the loft jobs)
     box: item(g => {
       add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);

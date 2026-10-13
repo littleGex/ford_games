@@ -1,16 +1,22 @@
 // The laptop close-up for the 3D printing mission: a 'choose' step opens it at Dad's desk with tiles to
 // pick from (a design, then a filament colour); tap one, or press its number. "Close the laptop" keeps your
-// place on the list.
+// place on the list. The same close-up, as a plain card instead of a laptop, picks a face to carve in the
+// Halloween pumpkin and a costume.
 import { S } from '../state.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
+import { FACES, faceImage } from '../world/halloween.js';
+import { COSTUMES } from '../characters/costumes.js';
 
 const SCREENS = {
   design: { app: 'Printables', title: 'Pick something to print', options: () => DESIGNS.map(d => ({ id: d.id, label: d.label, icon: d.icon })) },
   filament: { app: 'Filament shop', title: 'Order a spool of filament', options: () => COLOURS.map(c => ({ id: c.id, label: c.label, swatch: c.hex })),
               note: 'It comes by courier to the front door.' },
+  face: { card: true, title: 'Which face shall we carve?', options: () => FACES.map(f => ({ id: f.id, label: f.label, img: faceImage(f), icon: '🎃' })) },
+  costume: { card: true, title: 'What are you going as?', options: () => COSTUMES.map(c => ({ id: c.id, label: c.label, icon: c.icon })) },
 };
 
-export function createLaptop({ board, hud }) {
+export function createLaptop(ctx) {
+  const { board } = ctx;
   const $ = id => document.getElementById(id);
   const el = { box: $('laptop'), app: $('laptopApp'), title: $('laptopTitle'), tiles: $('laptopTiles'), note: $('laptopNote'), later: $('laptopLater') };
   let job = null, step = null, options = [];
@@ -19,12 +25,15 @@ export function createLaptop({ board, hud }) {
     job = j; step = s;
     const screen = SCREENS[s.choose];
     options = screen.options();
-    el.app.textContent = screen.app; el.title.textContent = screen.title; el.note.textContent = screen.note || '';
+    el.app.textContent = screen.app || ''; el.title.textContent = screen.title; el.note.textContent = screen.note || '';
+    el.box.classList.toggle('laptop--card', !!screen.card);
+    el.later.textContent = screen.card ? 'Not now' : 'Close the laptop';
     el.tiles.replaceChildren(...options.map((o, i) => {
       const b = document.createElement('button');
       b.className = 'laptop-tile'; b.dataset.choice = o.id;
       const pic = document.createElement('span');
-      if (o.icon) { pic.className = 'laptop-icon'; pic.textContent = o.icon; }
+      if (o.img) { pic.className = 'laptop-pic'; const im = document.createElement('img'); im.src = o.img; im.alt = ''; pic.append(im); }
+      else if (o.icon) { pic.className = 'laptop-icon'; pic.textContent = o.icon; }
       else { pic.className = 'laptop-swatch'; pic.style.background = o.swatch; }
       const k = document.createElement('kbd'); k.textContent = String(i + 1);
       b.append(pic, Object.assign(document.createElement('span'), { textContent: o.label }), k);
@@ -46,7 +55,7 @@ export function createLaptop({ board, hud }) {
     const j = job, s = step;
     close();
     if (S.mission) (S.mission.choices ||= {})[s.choose] = o.id;
-    if (s.onChoose) s.onChoose(o.id);
+    if (s.onChoose) s.onChoose(o.id, ctx);
     board.advance(j, s.message ? s.message(o) : `${o.label}: good choice!`);
   }
 
