@@ -255,7 +255,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'use', level: 1, at: TERRARIUM.at, label: 'Scoop out the mess', onDone: c => { c.world.dragonMess.visible = false; } },
       { kind: 'pick', item: 'dragonBowl', level: 1, at: TERRARIUM.at, label: 'Take out the water bowl' },
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 5, what: 'Rinsing and filling the bowl', label: 'Rinse it and fill it with fresh water at the basin' },
-      { kind: 'drop', item: 'dragonBowl', level: 1, at: TERRARIUM.at, place: [1.12, TERRARIUM.floor, 5.86], label: 'Put the water bowl back in' }],
+      { kind: 'drop', item: 'dragonBowl', level: 1, at: TERRARIUM.at, place: [1.47, TERRARIUM.floor, 6.04], label: 'Put the water bowl back in' }],
       setup: c => { c.world.dragonMess.visible = true; }, tidy: c => { c.world.dragonMess.visible = false; } },
 
     // Attic

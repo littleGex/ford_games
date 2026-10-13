@@ -357,7 +357,8 @@ if (!G.dragon.happy()) errors.push("dragon: not happy after it's been fed and pl
 if (G.world.dragonMess.visible || G.world.crickets.visible) errors.push('dragon: mess or crickets left in the terrarium');
 { const p = G.items.dragon.position, b = G.items.dragonBowl.position;
   if (G.items.dragon.parent !== G.world.upstairs || p.x < 1.0 || p.x > 1.95 || p.z < 5.72 || p.z > 6.15) errors.push('dragon: not back in its terrarium');
-  if (b.x < 1.0 || b.x > 1.95 || b.z < 5.72 || b.z > 6.15) errors.push("dragon: the water bowl isn't back in the terrarium"); }
+  if (G.items.dragonBowl.parent !== G.world.upstairs || Math.hypot(b.x - 1.47, b.z - 6.04) > 0.01) errors.push("dragon: the water bowl isn't back in its place in the terrarium");
+  if (Math.hypot(b.x - 1.12, b.z - 5.86) < 0.2) errors.push('dragon: the water bowl is hidden under the branch'); }
 G.days.setCharacter('dad');
 G.days.next();
 
