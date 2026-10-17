@@ -483,10 +483,10 @@ for (const who of ['dad', 'girl']) {
   if ((who === 'dad') !== /fridge/.test(first)) errors.push(`food shopping (${who}): starts with "${first}"`);
   while (job.i < job.steps.length && job.steps[job.i].kind !== 'wait') { const r = doStep(job); if (r !== true) { errors.push(`food shopping (${who}): ${r}`); break; } }
   for (let k = 0; k < 4000 && job.steps[job.i].kind === 'wait'; k++) frame();
-  // the wait for a delivery only ends when the driver rings (the banner may show a parcel courier instead,
-  // if one of the day's random parcels turns up at the same moment)
+  // the wait for a delivery only ends when the driver rings. The banner says so, unless one of the day's
+  // random parcels (for us, or for the neighbours) has a courier at the door at the same moment: that banner wins
   if (job.steps[job.i].kind === 'wait') errors.push(`food shopping (${who}): the driver never rang`);
-  else if (!/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door`);
+  else if (!S.courierWaiting && !/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door (${G.deliveries.banner()})`);
   playDay(`food shopping (${who})`);
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
   G.days.setCharacter('dad');
