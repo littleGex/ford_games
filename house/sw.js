@@ -1,6 +1,6 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'house-cache-v28';
+const CACHE_NAME = 'house-cache-v29';
 const urlsToCache = [
   './',
   './index.html',
@@ -106,6 +106,10 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // only the game's own files: anything else (the family server, fonts, three.js from the CDN) goes straight
+  // to the network as usual, so server answers are never cached or held up here
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
