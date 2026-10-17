@@ -134,6 +134,102 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   check(!fs.connected && !store.has('fordHouse.gameToken.v1'), 'family server: the token is still saved after disconnecting');
 }
 
+// the family server keeps the settings the same on every device: the first device saves them, changes go up after
+// a short pause, another device's changes come down, a save that crosses another device's keeps both, an older
+// server without the bedrooms still saves the rest, offline changes nothing
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  store.set('fordHouse.gameToken.v1', 'secret-token');
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { createSettings } = await import('../../house/js/settings.js');
+  const { createSettingsSync, SETTINGS_URL } = await import('../../house/js/settingsync.js');
+  const clone = x => JSON.parse(JSON.stringify(x));
+  // a fake fordDbs: one copy with a version; a save must name the version it saw
+  const server = { version: 0, settings: null, rooms: true, down: false, token: 'secret-token', between: null };
+  const calls = [];
+  const fetch = async (url, opts) => {
+    calls.push([url, opts.method, opts.body && JSON.parse(opts.body)]);
+    if (server.down) throw new TypeError('Failed to fetch');
+    if (opts.headers.Authorization !== `Bearer ${server.token}`) return { ok: false, status: 401, json: async () => ({ detail: 'no' }) };
+    const doc = () => ({ version: server.version, updated_at: server.version ? '2026-10-17T18:00:00Z' : null, settings: clone(server.settings) });
+    if (opts.method === 'GET') { if (server.between) { const fn = server.between; server.between = null; fn(); } return { ok: true, status: 200, json: async () => doc() }; }
+    const body = JSON.parse(opts.body);
+    if (!server.rooms && 'swapRooms' in body.settings) return { ok: false, status: 422, json: async () => ({ detail: 'extra field' }) };
+    if (body.base_version !== server.version) return { ok: false, status: 409, json: async () => ({ detail: 'changed', ...doc() }) };
+    server.settings = clone(body.settings); server.version++;
+    return { ok: true, status: 200, json: async () => doc() };
+  };
+  const anotherDevice = change => { const s = clone(server.settings); change(s); server.settings = s; server.version++; };
+  const players = createPlayers(), settings = createSettings();
+  let applied = 0;
+  const sync = createSettingsSync({ players, settings }, { fetch, wait: 5, onApplied: () => { applied++; } });
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+
+  // the first device: the server has nothing yet, so this device's settings go up
+  players.setName('girl', 'Pia');
+  await pause(30); await sync.sync();
+  check(calls[0][0] === SETTINGS_URL && /\/v1\/game\/settings$/.test(SETTINGS_URL), `settings sync: wrong address ${calls[0] && calls[0][0]}`);
+  check(server.version >= 1 && server.settings.players.girl.name === 'Pia' && server.settings.swapRooms === false && Array.isArray(server.settings.off), `settings sync: the first save (${JSON.stringify(server.settings)})`);
+  check(sync.status.ok && applied === 0, `settings sync: first save ${JSON.stringify(sync.status)}, applied ${applied}`);
+  const v = server.version; calls.length = 0;
+  await sync.sync();
+  check(calls.length === 1 && calls[0][1] === 'GET' && server.version === v, 'settings sync: saved again with nothing changed');
+
+  // another device renames Dude and switches the bike off; this one changes P's hair meanwhile: both stick
+  anotherDevice(s => { s.players.boy.name = 'Max'; s.off = ['bike']; });
+  players.setLook('girl', { hair: 'bun' });
+  await pause(30); await sync.sync();
+  check(players.customName('boy') === 'Max' && !settings.isOn('bike') && applied === 1, `settings sync: the other device's changes didn't come down (${players.customName('boy')}, bike ${settings.isOn('bike')}, applied ${applied})`);
+  check(server.settings.players.girl.look.hair === 'bun' && server.settings.players.boy.name === 'Max' && server.settings.off.join() === 'bike', `settings sync: merged save ${JSON.stringify(server.settings)}`);
+
+  // a save that crosses another device's: 409, then both changes are kept
+  settings.setRoomsSwapped(true);
+  server.between = () => anotherDevice(s => { s.players.dad.name = 'Papa'; });
+  calls.length = 0;
+  await pause(30); await sync.sync();
+  check(calls.some(c => c[1] === 'PUT') && server.settings.swapRooms === true && server.settings.players.dad.name === 'Papa' && players.customName('dad') === 'Papa', `settings sync: crossing saves lost one (${JSON.stringify(server.settings)})`);
+
+  // a family server from before the bedrooms could be swapped (422): the rest is saved, the swap stays here
+  server.rooms = false;
+  delete server.settings.swapRooms;
+  players.setName('mum', 'Mama');
+  await pause(30); await sync.sync();
+  check(server.settings.players.mum.name === 'Mama' && !('swapRooms' in server.settings) && settings.roomsSwapped() && sync.status.ok, `settings sync: older server ${JSON.stringify(sync.status)}`);
+  server.rooms = true;
+
+  // offline: nothing changes, and it says so; a wrong token says so too
+  server.down = true;
+  check(!(await sync.sync()).ok && /offline/.test(sync.status.message) && players.customName('mum') === 'Mama', 'settings sync: offline');
+  server.down = false; server.token = 'other';
+  check(!(await sync.sync()).ok && /token/.test(sync.status.message), 'settings sync: wrong token not reported');
+  server.token = 'secret-token';
+  // no token, no asking
+  store.delete('fordHouse.gameToken.v1'); calls.length = 0;
+  players.setName('girl', 'P2'); await pause(30); await sync.sync();
+  check(calls.length === 0, 'settings sync: asked without a token');
+  players.setName('girl', 'Pia');
+  // the server updated to know about the bedrooms: the swap goes up with the next sync
+  store.set('fordHouse.gameToken.v1', 'secret-token');
+  await pause(30); await sync.sync();
+  check(server.settings.swapRooms === true && server.settings.players.girl.name === 'Pia', `settings sync: the swap didn't go up once the server knew about it (${JSON.stringify(server.settings)})`);
+
+  // a new device joining: the family's settings on the server win over what was typed in there
+  store.clear(); store.set('fordHouse.gameToken.v1', 'secret-token');
+  const players2 = createPlayers(), settings2 = createSettings();
+  players2.setName('girl', 'Lena');
+  const sync2 = createSettingsSync({ players: players2, settings: settings2 }, { fetch, wait: 5 });
+  await sync2.sync();
+  check(players2.customName('girl') === 'Pia' && players2.customName('boy') === 'Max' && !settings2.isOn('bike') && settings2.roomsSwapped(), `settings sync: a new device didn't take the family's settings (${players2.customName('girl')})`);
+  check(server.settings.players.girl.name === 'Pia', 'settings sync: a new device overwrote the family\'s settings');
+  // a look the server keeps with fields left out: the usual look fills in, and nothing changes every sync
+  anotherDevice(s => { s.players.boy.look = { hair: 'spiky' }; });
+  await sync2.sync();
+  const before = server.version;
+  await sync2.sync();
+  check(players2.look('boy').hair === 'spiky' && server.version === before, 'settings sync: a partial look keeps changing');
+}
+
 // Christmas and Advent: the tags each date gets, the Advent candles, which jobs come on which days, and the
 // Advent calendar doors (one more each real day, never ahead; a new Advent starts shut)
 {

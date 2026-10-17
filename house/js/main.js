@@ -41,6 +41,7 @@ import { createHalloween } from './systems/halloween.js';
 import { createBedtime } from './systems/bedtime.js';
 import { createBirthday } from './systems/birthday.js';
 import { createFamilyServer } from './familyserver.js';
+import { createSettingsSync } from './settingsync.js';
 import { createChristmas } from './systems/christmas.js';
 import { createAdvent } from './advent.js';
 import { createAdventCard } from './ui/advent.js';
@@ -124,6 +125,9 @@ ctx.days.start();
 ctx.home = createHome(ctx);
 ctx.avatar = createAvatar(ctx);   // names, looks and birthdays, from the home screen
 ctx.settingsCard = createSettingsCard(ctx);   // jobs on or off, and the share link
+// the names, looks, jobs and bedrooms kept the same on every device with the game token (pulled after the birthdays)
+ctx.settingsSync = createSettingsSync(ctx, { onApplied: () => ctx.settingsCard.refresh() });
+ctx.settingsSync.onStatus(() => { if (ctx.settingsCard.isOpen) ctx.settingsCard.render(); });
 // ask the family server for the birthdays in the background (never waits; offline keeps the saved ones). If
 // that turns today into someone's birthday before anything's been done, today's list is planned again.
 ctx.familyServer.sync().then(() => ctx.days.replanIfUntouched()).catch(() => {});

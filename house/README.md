@@ -52,6 +52,16 @@ in the background with a short time limit and never waits: offline, or without a
 birthdays saved on the device. If the answer makes today someone's birthday before anything's been done, the
 day is planned again with the party jobs.
 
+**The same settings on every device** (`js/settingsync.js`): with the game token, the names, looks, jobs on or
+off and who sleeps where are kept on the family server too (`GET` and `PUT /v1/game/settings`), so every phone
+and tablet has the same. The game pulls them when it opens and when it comes back to the front, and pushes a
+change a couple of seconds after it's made. The server keeps a version number. If another device saved in
+between, the server answers 409 with its copy, and the game puts back only what was changed on this device
+(each player's name and look, the jobs, the bedrooms) and saves again. A device connecting for the first time
+takes the family's settings from the server. Offline, nothing changes and the changes go up next time. The
+rooms, jobs, and sharing card shows when the settings were last synced. The share link still works without a
+server.
+
 ## Missions
 
 Missions are one-off storylines, started from the home screen (`js/missions/missions.js`). A mission puts
@@ -246,6 +256,8 @@ house/
     systems/            things that happen over time: power cuts, post & parcels, sitting jobs,
                         mowing, hoovering, car charging, the washing machine (waiting.js),
                         plant growth, and levels.js for the stairs
+    familyserver.js     birthdays from the family server (fordDbs), and the game token
+    settingsync.js      names, looks, jobs and bedrooms kept the same on every device through the family server
     pack/kidrooms.js    the Ford house's kids' rooms: whose bed, wardrobe and desk are where
     ui/hud.js           room chip, job list, banner, toasts
 ```
