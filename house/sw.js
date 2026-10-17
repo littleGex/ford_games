@@ -106,10 +106,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // only the game's own files: anything else (the family server, fonts, three.js from the CDN) goes straight
-  // to the network as usual, so server answers are never cached or held up here
+  // only the game's own files and what's on the list above (three.js from the CDN): anything else (the family
+  // server, fonts) goes straight to the network as usual, so server answers are never cached or held up here
   const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (event.request.method !== 'GET') return;
+  if (url.origin !== self.location.origin && !urlsToCache.includes(event.request.url)) return;
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
