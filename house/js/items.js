@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { add, mat, castShadows } from './core/build.js';
 import { makePumpkin } from './world/halloween.js';
+import { makeCake, makePresent } from './systems/birthday.js';
 
 function item(build, pos, opts = {}) {
   const g = new THREE.Group();
@@ -315,6 +316,9 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.CylinderGeometry(0.035, 0.03, 0.11, 14), new THREE.MeshStandardMaterial({ color: '#dff1fb', transparent: true, opacity: 0.55 }), [0, 0.055, 0]);
       add(g, new THREE.CylinderGeometry(0.031, 0.028, 0.07, 14), new THREE.MeshStandardMaterial({ color: '#7fc4e8', transparent: true, opacity: 0.7 }), [0, 0.04, 0]);
     }, [5.02, 0.9, 6.98], { level: 1, hidden: true }),
+    // birthdays: the cake waiting in the fridge, and a present to wrap (in the oak wardrobe upstairs)
+    cake: item(g => { g.userData.cake = makeCake(g); }, [4.3, 0.9, 3.4], { hidden: true }),
+    giftBox: item(g => makePresent(g, 1), [3.45, 0.9, 2.0], { level: 1, hidden: true }),
     // the box that goes up into the loft and comes back down (moved about by the loft jobs)
     box: item(g => {
       add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);

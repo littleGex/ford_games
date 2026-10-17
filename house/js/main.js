@@ -39,6 +39,8 @@ import { currentSeason } from './seasons.js';
 import { createWaiting } from './systems/waiting.js';
 import { createHalloween } from './systems/halloween.js';
 import { createBedtime } from './systems/bedtime.js';
+import { createBirthday } from './systems/birthday.js';
+import { createFamilyServer } from './familyserver.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
@@ -77,9 +79,11 @@ ctx.seasonal = createSeasonal(ctx, ctx.season);
 ctx.waiting = createWaiting(ctx);
 ctx.halloween = createHalloween(ctx);
 ctx.bedtime = createBedtime(ctx);
+ctx.birthday = createBirthday(ctx);
+ctx.familyServer = createFamilyServer(players);   // the real birthdays, if this device has the game token
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween, ctx.bedtime];
+const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween, ctx.bedtime, ctx.birthday];
 
 // controls
 preventZoom();
@@ -105,6 +109,9 @@ markCharacter(ctx.days.character);
 ctx.days.start();
 ctx.home = createHome(ctx);
 ctx.avatar = createAvatar(ctx);   // looks and birthdays, from the home screen
+// ask the family server for the birthdays in the background (never waits; offline keeps the saved ones). If
+// that turns today into someone's birthday before anything's been done, today's list is planned again.
+ctx.familyServer.sync().then(() => ctx.days.replanIfUntouched()).catch(() => {});
 ctx.missions = createMissions(ctx);
 systems.push(ctx.missions);
 ctx.home.open();   // the game opens on the home screen

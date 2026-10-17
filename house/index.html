@@ -144,7 +144,16 @@
         <input type="date" id="avatarBirthday">
         <p class="avatar-age" id="avatarAge"></p>
       </div>
-      <p class="avatar-note">Saved on this device only.</p>
+      <div class="avatar-server">
+        <h2>Family server</h2>
+        <p class="avatar-server-status" id="serverStatus"></p>
+        <div class="avatar-server-row" id="serverConnect">
+          <input type="password" id="serverToken" autocomplete="off" placeholder="Game token" aria-label="Game token">
+          <button class="avatar-chip" id="serverConnectBtn">Connect</button>
+        </div>
+        <button class="linkbtn" id="serverDisconnect" hidden>Disconnect this device</button>
+      </div>
+      <p class="avatar-note">Looks, birthdays and the token are saved on this device only.</p>
       <div class="avatar-actions">
         <button class="linkbtn" id="avatarReset">Back to how they were</button>
         <button class="btn" id="avatarDone">Done</button>
