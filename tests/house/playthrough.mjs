@@ -913,12 +913,13 @@ for (const who of ['dad', 'mum']) {
   if (P.stage('girl') !== 'child' || Math.abs(scaleOf() - 0.78) > 1e-9) errors.push('looks: P back to a child after clearing her birthday');
   G.days.next();
   if (G.board.find('cook')) errors.push('growing up: P the child still has cooking on her list');
-  // a beard: Dad has one, and Dude can once he's 18, not before (and never Mum or P)
+  // a beard: Dad has one; any grown-up can (Mum, and P or Dude once they're 18), never a child or a teenager
   const { specFor } = await import(new URL('../../house/js/characters/looks.js', import.meta.url));
   if (!specFor('dad', P.look('dad'), 'adult').beard || P.look('dad').hair !== 'bald') errors.push('looks: Dad should be bald with a beard');
   if (specFor('boy', { beard: true }, 'teen').beard) errors.push('looks: Dude has a beard as a teenager');
   if (!specFor('boy', { beard: true }, 'adult').beard) errors.push("looks: Dude can't have a beard at 18");
-  if (specFor('mum', { beard: true }, 'adult').beard || specFor('girl', { beard: true }, 'adult').beard) errors.push('looks: only Dad and Dude get beards');
+  if (!specFor('mum', { beard: true }, 'adult').beard || !specFor('girl', { beard: true }, 'adult').beard) errors.push('looks: Mum and grown-up P can\'t have a beard');
+  if (specFor('girl', { beard: true }, 'child').beard) errors.push('looks: a child with a beard');
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
 }
@@ -1112,6 +1113,57 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
   console.log('who sleeps where: swapped rooms for homework, beds, washing, Halloween, Christmas, the school run and bedtime');
+}
+
+// --- the shape of the family (#78): she/he/they in the labels, and a family with one grown-up. With Dad left
+// out the game carries on as Mum, she does Dad's household jobs (the bike, the solar panels), the texts say
+// just "Mum", and she can do the 3D printing; his shaving and his work don't come. Then Dad comes back.
+{
+  const { BED } = await import(new URL('../../house/js/systems/bedtime.js', import.meta.url));
+  G.players.setPronoun('boy', 'they'); G.players.setPronoun('girl', 'he');
+  if (BED.bed.boy.name !== 'their bed' || BED.wardrobe.girl.name !== 'his wardrobe') errors.push(`pronouns: bedtime says ${BED.bed.boy.name}, ${BED.wardrobe.girl.name}`);
+  G.players.setPronoun('boy', null); G.players.setPronoun('girl', null);
+
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.players.setInFamily('dad', false);
+  if (G.days.character !== 'mum') errors.push(`one grown-up: still playing as ${G.days.character} after leaving Dad out`);
+  G.days.plan(['fixBike', 'solar', 'fold']);
+  const fold = G.board.find('fold').steps.map(st => st.label).join(' / ');
+  if (!fold.includes("Pick up Mum's clothes")) errors.push(`one grown-up: the washing says "${fold}"`);
+  playDay('one grown-up: Mum does the bike, the solar panels and the washing');
+  G.days.next();
+  // P's Christmas present is for Mum only
+  globalThis.location.search = '?season=winter&date=2026-12-15';
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.plan(['xmasGift']);
+  if (G.board.find('xmasGift').title !== 'Make a present for Mum') errors.push(`one grown-up: "${G.board.find('xmasGift').title}"`);
+  playDay('one grown-up: the Christmas present');
+  G.days.next();
+  globalThis.location.search = '?season=autumn';
+  // Mum prints a dragon on Dad's printer
+  laptopPick = 1;
+  G.missions.start('print3d', 'mum');
+  for (let round = 0; round < 30 && !S.mission.done; round++) {
+    for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+      let guard = 0;
+      while (job.i < job.steps.length && guard++ < 10) {
+        const before = job.i, r = doStep(job);
+        if (r !== true) { errors.push(`one grown-up 3D printing "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; break; }
+      }
+    }
+    frame();
+  }
+  if (!S.mission.done) errors.push('one grown-up: Mum never finished the 3D printing');
+  G.missions.end();
+  // a few days as Mum: Dad's own jobs never come, his household ones do
+  G.days.setCharacter('mum'); G.player.setCharacter('mum');
+  const seen = new Set();
+  for (let d = 0; d < 8; d++) { G.board.jobs.forEach(j => seen.add(j.id)); G.days.next(); }
+  if (seen.has('shave') || seen.has('dadWork')) errors.push(`one grown-up: Dad's own jobs came for Mum (${[...seen].filter(id => /shave|dadWork/.test(id))})`);
+  G.players.setInFamily('dad', true);
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('the shape of the family: pronouns in the labels; with one grown-up, Mum does the household jobs and the 3D printing');
 }
 
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);

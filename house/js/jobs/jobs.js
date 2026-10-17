@@ -10,7 +10,7 @@
 // Adding a job: copy one below with a new id, add its rule to rules.js, point its steps at things in the house.
 // Pick steps don't need `at` - they use wherever the item currently is.
 import { rulesFor } from './rules.js';
-import { nameOf, possessive } from '../names.js';
+import { nameOf, possessive, grownUpNames, grownUpsPossessive } from '../names.js';
 import { kidIn, roomFor, roomOf } from '../pack/kidrooms.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
@@ -325,7 +325,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'pileDude', level: roomFor('boy').level, at: roomFor('boy').wardrobe.at, place: roomFor('boy').wardrobe.clothes, label: `Put them in ${possessive('boy')} wardrobe`, onDone: c => { c.items.pileDude.visible = false; } },
       { kind: 'pick', item: 'pileP', label: `Pick up ${possessive('girl')} clothes` },
       { kind: 'drop', item: 'pileP', level: roomFor('girl').level, at: roomFor('girl').wardrobe.at, place: roomFor('girl').wardrobe.clothes, label: `Put them in ${possessive('girl')} wardrobe`, onDone: c => { c.items.pileP.visible = false; } },
-      { kind: 'pick', item: 'pileGrown', label: `Pick up ${nameOf('mum')} and ${possessive('dad')} clothes` },
+      { kind: 'pick', item: 'pileGrown', label: `Pick up ${grownUpsPossessive()} clothes` },
       { kind: 'drop', item: 'pileGrown', level: 1, at: [4.0, 2.0], place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
       setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
   ];
@@ -452,8 +452,8 @@ function christmasJobs(character, grownUp, tags) {
         { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 8, what: 'Wrapping the present', label: 'Wrap it in Christmas paper at the dining table' },
         { kind: 'drop', item: 'xmasGift', at: tree, place: XMAS.giftPlace, label: 'Put it under the tree' }],
         setup: c => c.christmas.giftAt(null) }
-      : { id: 'xmasGift', title: `Make a present for ${nameOf('mum')} and ${nameOf('dad')}`, personal: true, steps: [
-        { kind: 'sit', ...desk, dur: 10, what: 'Making a present', label: `Sit at your desk and make a present for ${nameOf('mum')} and ${nameOf('dad')}`, onDone: c => c.christmas.made() },
+      : { id: 'xmasGift', title: `Make a present for ${grownUpNames()}`, personal: true, steps: [
+        { kind: 'sit', ...desk, dur: 10, what: 'Making a present', label: `Sit at your desk and make a present for ${grownUpNames()}`, onDone: c => c.christmas.made() },
         { kind: 'pick', item: 'xmasGift', label: 'Pick up your present' },
         { kind: 'drop', item: 'xmasGift', at: tree, place: XMAS.giftPlace, label: 'Put it under the tree' }],
         setup: c => c.christmas.giftAt(deskPlace) },

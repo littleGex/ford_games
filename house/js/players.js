@@ -1,10 +1,10 @@
-// The four players (Dad, Mum, P and Dude): what they're called, how each one looks and their birthday, saved on
-// this device only
-// (localStorage), never in the repository. Their age follows from the birthday, and the age sets their life
+// The four players (Dad, Mum, P and Dude): what they're called, whether they're she, he or they, how each one
+// looks, their birthday, and whether they're in the family at all (a family with one grown-up leaves Mum or Dad
+// out). Saved on this device only (localStorage), never in the repository. Their age follows from the birthday, and the age sets their life
 // stage: a child under 13, a teenager from 13 to 17, an adult from 18. Teenagers are a bit taller and get
 // some grown-up jobs (rules.js: `teen: true`).
 
-import { cleanName, useNames } from './names.js';
+import { GROWN_UPS, PRONOUNS, cleanName, useNames } from './names.js';
 
 export const PLAYER_KEYS = ['dad', 'mum', 'girl', 'boy'];
 // how the family looks by default (the figures are built from a look in characters/looks.js)
@@ -53,8 +53,14 @@ export function createPlayers() {
     look: { ...DEFAULT_LOOKS[k], ...((saved[k] && saved[k].look) || {}) },
     birthday: (saved[k] && saved[k].birthday) || null,
     name: cleanName(saved[k] && saved[k].name) || null,   // null: the usual name (names.js)
+    pronoun: PRONOUNS.includes(saved[k] && saved[k].pronoun) ? saved[k].pronoun : null,   // null: the usual one
+    away: GROWN_UPS.includes(k) && !!(saved[k] && saved[k].away),   // a family with one grown-up leaves the other out
   }]));
-  useNames(key => (data[key] && data[key].name) || null);
+  if (GROWN_UPS.every(k => data[k].away)) GROWN_UPS.forEach(k => { data[k].away = false; });   // never nobody
+  useNames(key => (data[key] && data[key].name) || null, {
+    pronoun: key => (data[key] && data[key].pronoun) || null,
+    away: key => !!(data[key] && data[key].away),
+  });
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* private mode */ } };
   const changed = key => listeners.forEach(fn => fn(key));
 
@@ -70,6 +76,17 @@ export function createPlayers() {
     stage(key, date) {
       if (DEFAULT_STAGE[key] === 'adult') return 'adult';
       return stageFor(ageOn(data[key].birthday, date)) || DEFAULT_STAGE[key];
+    },
+    /** 'she', 'he' or 'they' as chosen here (null: the usual one, names.js). */
+    customPronoun: key => data[key].pronoun,
+    setPronoun(key, pronoun) { data[key].pronoun = PRONOUNS.includes(pronoun) ? pronoun : null; save(); changed(key); },
+    /** In the family? Only a grown-up can be left out, and never both. */
+    inFamily: key => !data[key].away,
+    setInFamily(key, on) {
+      if (!GROWN_UPS.includes(key)) return false;
+      if (!on && GROWN_UPS.every(k => k === key || data[k].away)) return false;
+      data[key].away = !on; save(); changed(key);
+      return true;
     },
     setLook(key, change) { Object.assign(data[key].look, change); save(); changed(key); },
     resetLook(key) { data[key].look = { ...DEFAULT_LOOKS[key] }; save(); changed(key); },

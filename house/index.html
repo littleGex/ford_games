@@ -61,7 +61,7 @@
         <li class="mission" id="missionOffice"><span class="mission-icon" aria-hidden="true">🏢</span><span><b>Work at the office</b><small><span data-name="dad">Dad</span> cycles: clock in, meet the boss, work, lunch, the team meeting, maybe a fire drill, home by 17:30. <span data-name="mum">Mum</span> drives: zebra crossing, turnstiles, clock in, lift up to her floor, meetings, lunch, a fire drill, home by 17:30</small><small class="mission-best" data-best="office officeMum"></small></span>
           <span class="mission-play" role="group" aria-label="Play work at the office as"><button data-mission="office" data-kid="dad" data-name="dad">Dad</button><button data-mission="officeMum" data-kid="mum" data-name="mum">Mum</button></span></li>
         <li class="mission" id="missionPrint3d"><span class="mission-icon" aria-hidden="true">🖨️</span><span><b>3D printing</b><small><span data-name="dad">Dad</span>: pick a design on the laptop, order filament, load the printer by the sofa, print it and put it where it belongs</small><small class="mission-best" data-best="print3d"></small></span>
-          <span class="mission-play" role="group" aria-label="Play 3D printing as"><button data-mission="print3d" data-kid="dad" data-name="dad">Dad</button></span></li>
+          <span class="mission-play" role="group" aria-label="Play 3D printing as"><button data-mission="print3d" data-kid="dad" data-name="dad">Dad</button><button data-mission="print3d" data-kid="mum" data-name="mum" data-cover="dad" hidden>Mum</button></span></li>
         <li class="mission" id="missionBedtime"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small><span data-name="mum">Mum</span> or <span data-name="dad">Dad</span>, from 19:45: iPads off, upstairs, a shower, pyjamas and teeth each, a story, then tuck them in and lights out by 20:30. Expect some trouble!</small><small class="mission-best" data-best="bedtime"></small></span>
           <span class="mission-play" role="group" aria-label="Play bedtime as"><button data-mission="bedtime" data-kid="mum" data-name="mum">Mum</button><button data-mission="bedtime" data-kid="dad" data-name="dad">Dad</button></span></li>
       </ul>
@@ -184,6 +184,14 @@
         <label for="avatarName">Name</label>
         <input type="text" id="avatarName" maxlength="16" autocomplete="off" spellcheck="false" enterkeyhint="done">
         <p class="avatar-hint" id="avatarNameHint"></p>
+      </div>
+      <div class="avatar-pronoun">
+        <span class="avatar-label" id="avatarPronounLabel">Talk about them as</span>
+        <div class="avatar-opts" id="avatarPronoun" role="group" aria-labelledby="avatarPronounLabel"></div>
+      </div>
+      <div class="avatar-family" id="avatarFamily" hidden>
+        <p class="avatar-hint" id="avatarFamilyText"></p>
+        <button class="avatar-chip" id="avatarFamilyBtn"></button>
       </div>
       <div class="avatar-body">
         <canvas class="avatar-preview" id="avatarPreview" width="240" height="300" aria-label="Preview of the look"></canvas>

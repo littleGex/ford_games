@@ -23,7 +23,7 @@ export const BD = {
 export const GIFTS = {
   girl: ['a book all about bearded dragons', 'a box of glitter pens', 'roller-skate knee pads'],
   boy: ['a space rocket building kit', 'a new clarinet songbook', 'a football'],
-  mum: ['a pot plant for the office', 'a cosy scarf', 'her favourite chocolates'],
+  mum: ['a pot plant for the office', 'a cosy scarf', 'a box of favourite chocolates'],
   dad: ['a bright bike light', 'a spool of glow-in-the-dark filament', 'a pair of funny socks'],
 };
 const WRAP = ['#e84a5f', '#3b7fc4', '#f2c81c', '#8e5bd6'], RIBBON = ['#f7f6f2', '#f2c81c', '#e84a5f', '#3fa36b'];

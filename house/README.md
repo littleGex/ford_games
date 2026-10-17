@@ -14,8 +14,8 @@ missions, start over from day 1, or go back to Game Zone. The
 
 **Looks and birthdays** (`js/ui/avatar.js`, from the home screen): change how each of the four players looks,
 with a turning preview: skin, hair style (long, shoulder, ponytail, bun, swept, short, spiky, a beanie or
-bald) and colour, glasses, a beard (Dad, and Dude once he's 18), top (their own or a colour), trousers and
-shoes. Give each a birthday: the age decides whether P and Dude are children (under 13), teenagers (13 to
+bald) and colour, glasses, a beard, top (their own or a colour), trousers and
+shoes. Any grown-up can have a beard (Mum and Dad, and P or Dude from 18). Give each a birthday: the age decides whether P and Dude are children (under 13), teenagers (13 to
 17) or grown-ups (18 and over). Teenagers are taller and cook dinner too (`teen: true` in `rules.js`).
 Everything is saved on the device only (`js/players.js`, `localStorage`), never in this repository. Dad is
 bald with a beard by default.
@@ -25,6 +25,16 @@ bald with a beard by default.
 asks `names.js` when it builds its text, so a new name shows on the buttons, in job titles ("Fix Pia's bike"),
 missions, the Advent calendars and the room chips. Names are cleaned up (letters, numbers, spaces, - ' and .,
 at most 16 characters), so they can never carry markup.
+
+**She, he or they** (the same card): how the game talks about each player in jobs and missions ("her bed",
+"his teeth", "their iPad"). Dad and Dude are he and Mum and P are she unless it's changed (`names.js`:
+`pronounOf`, `their`).
+
+**A family with one grown-up** (the same card, on Mum's or Dad's page): leave one of them out. Their buttons and
+missions disappear, and the game carries on as the other one. Their household jobs (the bike, the solar panels,
+the sofa bed: `cover: true` in `rules.js`) and the 3D printing go to the grown-up who's there. Their own jobs
+(shaving, their work) and their birthday party don't come. Texts like "Make a present for Mum and Dad" name just
+the one (`grownUpNames()`). Children always play, and there's always at least one grown-up.
 
 **Bedrooms** (`js/pack/kidrooms.js`, in the rooms, jobs and sharing card): P sleeps in the room on the first
 floor and Dude in the attic, unless they swap. Their bed, wardrobe and desk go with them: homework, making the

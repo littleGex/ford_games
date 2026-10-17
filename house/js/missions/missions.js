@@ -21,7 +21,7 @@
 // parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
 // laptop, watch it grow, then take the model out and put it where it belongs.
 import { S } from '../state.js';
-import { NAMES, nameOf, possessive } from '../names.js';
+import { NAMES, nameOf, possessive, their } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { resetItems } from '../items.js';
 import { FOOD_DELIVERY } from '../config.js';
@@ -30,7 +30,7 @@ import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { ring, alarm } from '../core/audio.js';
 import { OFFICE } from '../world/office.js';
 import { MUM } from '../world/mumoffice.js';
-import { BED, SEARCH, NAMES as KID, PRONOUN } from '../systems/bedtime.js';
+import { BED, SEARCH, NAMES as KID } from '../systems/bedtime.js';
 import { STAIRS } from '../systems/levels.js';
 
 const KEY = 'fordHouse.missions.v1';
@@ -149,7 +149,7 @@ function pickTroubles() {
 }
 /** One child's turn in the bathroom: shower then teeth, and (at the same time) the pyjamas. */
 function wash(who, m) {
-  const N = KID[who], his = PRONOUN[who], with_ = c => c.bedtime.withYou(who), w = BED.wardrobe[who], lost = m.trouble.pyjamas && m.trouble.pyjamas.who === who;
+  const N = KID[who], his = their(who), with_ = c => c.bedtime.withYou(who), w = BED.wardrobe[who], lost = m.trouble.pyjamas && m.trouble.pyjamas.who === who;
   // lost pyjamas: not in the wardrobe, not in the first place you look either
   const decoy = lost && SEARCH.pyjamas.find((p, i) => i !== m.trouble.pyjamas.spot);
   const find = lost ? [
@@ -414,7 +414,7 @@ export const MISSIONS = {
     },
     jobs: () => [
       ['girl', 'boy'].map(who => ({ key: `ipad-${who}`, title: `${KID[who]}: iPad off`, steps: [
-        { kind: 'use', at: BED.sofa[who].at, label: `Tell ${KID[who]} to switch off ${PRONOUN[who]} iPad`,
+        { kind: 'use', at: BED.sofa[who].at, label: `Tell ${KID[who]} to switch off ${their(who)} iPad`,
           onDone: c => { c.bedtime.follow(who); c.hud.toast(`${KID[who]}: "Okaaay..."`); } }] })),
       { key: 'first', title: 'Upstairs to the bathroom', steps: [
         { kind: 'choose', choose: 'bedFirst', level: 1, at: BED.bathDoor, can: c => c.bedtime.withYou('girl') && c.bedtime.withYou('boy'),
@@ -460,8 +460,8 @@ export const MISSIONS = {
   },
 
   print3d: {
-    title: '3D printing', who: ['dad'],
-    spot: () => ({ name: nameOf('dad'), level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
+    title: '3D printing', who: ['dad'], cover: true,   // Dad's printer; in a family without Dad, Mum prints
+    spot: who => ({ name: nameOf(who || 'dad'), level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
     intro: 'Pick something to print on the laptop at your desk',
     setup(c) { c.printing.reset(); },
     jobs: () => [
