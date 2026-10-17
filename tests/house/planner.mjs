@@ -228,6 +228,17 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   const before = server.version;
   await sync2.sync();
   check(players2.look('boy').hair === 'spiky' && server.version === before, 'settings sync: a partial look keeps changing');
+  // she/he/they and who's in the family go up and come down; which grown-up is left out can change round
+  players2.setPronoun('boy', 'they');
+  await pause(30); await sync2.sync();
+  check(server.settings.players.boy.pronoun === 'they' && server.settings.players.dad.away === false && !('away' in server.settings.players.boy), `settings sync: pronoun and away up (${JSON.stringify(server.settings.players.boy)})`);
+  anotherDevice(s => { s.players.dad.away = true; s.players.girl.pronoun = 'they'; });
+  await sync2.sync();
+  check(!players2.inFamily('dad') && players2.customPronoun('girl') === 'they', 'settings sync: Dad left out on another device');
+  anotherDevice(s => { s.players.dad.away = false; s.players.mum.away = true; });
+  await sync2.sync();
+  check(players2.inFamily('dad') && !players2.inFamily('mum'), 'settings sync: the other grown-up left out instead (Dad back first)');
+  players2.setInFamily('mum', true); players2.setPronoun('boy', null); players2.setPronoun('girl', null);
 }
 
 // Christmas and Advent: the tags each date gets, the Advent candles, which jobs come on which days, and the
@@ -336,6 +347,49 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   check(bad && !bad.players.hacker && bad.players.dad.birthday === null && bad.off.join() === 'dragon' && !('token' in bad), 'unknown players, future dates, unknown jobs and extra fields are dropped');
   check(readShareCode('not-a-real-code') === null && readShareCode('<script>') === null && readShareCode('x'.repeat(7000)) === null, 'junk is ignored');
   players.setName('girl', '');
+}
+
+// the shape of the family: she, he or they for each player, and a family with one grown-up (Mum or Dad left out,
+// never both, never a child): their household jobs go to the other grown-up, the texts say just one name, their
+// birthday has no party, and it all goes in the share link and to the family server
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { their, pronounOf, inFamily, grownUps, grownUpNames, grownUpsPossessive, familyKeys } = await import('../../house/js/names.js');
+  const { rulesFor } = await import('../../house/js/jobs/rules.js');
+  const { currentBirthday } = await import('../../house/js/holidays.js');
+  const { createSettings, shareCode, readShareCode, applyShare } = await import('../../house/js/settings.js');
+  const players = createPlayers(), settings = createSettings();
+  check(pronounOf('dad') === 'he' && their('girl') === 'her' && their('boy') === 'his', 'the usual pronouns');
+  players.setPronoun('boy', 'they'); players.setPronoun('girl', 'he'); players.setPronoun('mum', 'nonsense');
+  check(their('boy') === 'their' && their('girl') === 'his' && pronounOf('mum') === 'she', `pronouns chosen: ${their('boy')}, ${their('girl')}, ${pronounOf('mum')}`);
+  check(grownUpNames() === 'Mum and Dad' && grownUpsPossessive() === "Mum and Dad's", `both grown-ups: ${grownUpNames()}`);
+
+  // only a grown-up can be left out, and never both
+  check(players.setInFamily('girl', false) === false && inFamily('girl'), 'a child was left out');
+  check(players.setInFamily('dad', false) === true && !inFamily('dad') && grownUps().join() === 'mum', 'leaving Dad out');
+  check(players.setInFamily('mum', false) === false && inFamily('mum'), 'both grown-ups were left out');
+  check(familyKeys().join() === 'mum,girl,boy' && grownUpNames() === 'Mum' && grownUpsPossessive() === "Mum's", `one grown-up: ${grownUpNames()}, ${grownUpsPossessive()}`);
+
+  // Dad's household jobs go to Mum; his own (shaving, his work) don't
+  check(rulesFor('fixBike').who.join() === 'mum' && rulesFor('solar').who.join() === 'mum' && rulesFor('shave').who.join() === 'dad' && rulesFor('dadWork').who.join() === 'dad', 'Dad\'s household jobs for Mum');
+  const mumDay = planDay(POOL_RULES.map(r => rulesFor(r.id)), { day: 30, lastDone: {}, character: 'mum', season: 'summer', holiday: [] }, seededRandom(4));
+  check(mumDay.includes('fixBike') && mumDay.includes('solar') && !mumDay.includes('shave'), `Mum's day without Dad: ${mumDay}`);
+  players.setBirthday('dad', '1980-03-04');
+  check(currentBirthday(players, new Date(2026, 2, 4, 12)) === null, 'a party for someone who isn\'t in the family');
+
+  // the share link carries both
+  const got = readShareCode(shareCode(players, settings));
+  check(got.players.boy.pronoun === 'they' && got.players.dad.away === true && got.players.mum.away === false && got.players.girl.away === false, `share link: ${JSON.stringify(got.players.dad)}`);
+  const nobody = readShareCode(btoa(JSON.stringify({ v: 1, p: { dad: { x: true }, mum: { x: true }, girl: { x: true, pr: 'it' } }, off: [] })).replace(/=+$/, ''));
+  check(!nobody.players.dad.away && !nobody.players.mum.away && !nobody.players.girl.away && nobody.players.girl.pronoun === null, 'a link leaving everyone out');
+  // a link the other way round: Dad back in, Mum out (Dad comes back first)
+  const swapped = { ...got, players: { ...got.players, dad: { ...got.players.dad, away: false }, mum: { ...got.players.mum, away: true } } };
+  applyShare(swapped, players, settings);
+  check(inFamily('dad') && !inFamily('mum'), 'a link swapping which grown-up is left out');
+  players.setInFamily('mum', true); players.setPronoun('boy', null); players.setPronoun('girl', null); players.setBirthday('dad', null);
+  check(inFamily('dad') && inFamily('mum') && their('boy') === 'his', 'back to the usual family');
 }
 
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');

@@ -68,5 +68,6 @@ export function currentBirthday(players, date = today()) {
   if (['dad', 'mum', 'girl', 'boy'].includes(asked)) return asked;
   if (!players) return null;
   const md = `-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  return ['girl', 'boy', 'mum', 'dad'].find(k => (players.birthday(k) || '').endsWith(md)) || null;
+  // (not someone who isn't in the family: a family with one grown-up)
+  return ['girl', 'boy', 'mum', 'dad'].find(k => (!players.inFamily || players.inFamily(k)) && (players.birthday(k) || '').endsWith(md)) || null;
 }

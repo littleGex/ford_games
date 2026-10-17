@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
-import { NAMES, possessive } from '../names.js';
+import { NAMES, possessive, their } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { makeCharacter, animateWalk } from '../characters/character.js';
 import { specFor } from '../characters/looks.js';
@@ -31,10 +31,10 @@ export const BED = {
   story: { at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2],         // on the edge of the first-floor room's daybed
            kids: { girl: [0.5, 0.46, 7.45, Math.PI / 2], boy: [0.5, 0.46, 6.35, Math.PI / 2] } },
   // each child's bed, iPad spot, light switch and wardrobe: in the room they sleep in (pack/kidrooms.js)
-  bed: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.at, lie: r.bedtime.lie, name: `${PRONOUN[k]} bed` }; }),
+  bed: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.at, lie: r.bedtime.lie, name: `${their(k)} bed` }; }),
   ipad: byKid(k => { const r = roomFor(k); return { level: r.level, ...r.bedtime.ipad }; }),     // back on the iPad, on their bed
   switch: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.switch, room: k, name: `${possessive(k)} room` }; }),
-  wardrobe: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.wardrobe.at, name: `${PRONOUN[k]} wardrobe` }; }),
+  wardrobe: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.wardrobe.at, name: `${their(k)} wardrobe` }; }),
   dance: { level: 1, spot: [3.95, 0, 5.45, 0] },                          // the landing
   terrarium: [2.3, 6.35],
 };
@@ -47,7 +47,6 @@ export const SEARCH = {
          { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], get name() { return `under ${possessive(kidIn('first'))} bed`; } }],
 };
 export { NAMES };   // (the players' names, names.js)
-export const PRONOUN = { girl: 'her', boy: 'his' };
 
 export const BOOKS = [
   { id: 'dragon', label: "The dragon who couldn't sleep", icon: '🐉' },

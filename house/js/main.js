@@ -47,7 +47,7 @@ import { createAdvent } from './advent.js';
 import { createAdventCard } from './ui/advent.js';
 import { createSettings } from './settings.js';
 import { createSettingsCard } from './ui/settings.js';
-import { showNames } from './names.js';
+import { showNames, grownUps } from './names.js';
 import { XMAS } from './world/christmas.js';
 
 const stage = createStage(document.getElementById('scene'));
@@ -119,6 +119,14 @@ const markCharacter = hud.bindCharacterButtons(key => {
   if (S.mission) return;   // a mission is played as one of the kids
   player.setCharacter(key); ctx.days.setCharacter(key);
 });
+/** Playing as someone who's been left out of the family (one grown-up): carry on as the grown-up who's there. */
+ctx.keepPlayerInFamily = () => {
+  if (S.mission || players.inFamily(ctx.days.character)) return;
+  const k = grownUps()[0];
+  player.setCharacter(k); ctx.days.setCharacter(k); markCharacter(k);
+};
+players.onChange(() => ctx.keepPlayerInFamily());
+if (!players.inFamily(ctx.days.character)) ctx.days.setCharacter(grownUps()[0]);
 player.setCharacter(ctx.days.character);
 markCharacter(ctx.days.character);
 ctx.days.start();

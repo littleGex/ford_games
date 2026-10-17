@@ -92,7 +92,8 @@ export function createSettingsCard(ctx) {
     if (!pending) { hud.toast("That link didn't have any family settings in it"); return false; }
     const lines = Object.entries(pending.players).map(([k, p]) => {
       const now = NAMES[k], next = p.name || DEFAULT_NAMES[k];
-      return `${now === next ? now : `${now} → ${next}`}${p.birthday ? ', with a birthday' : ''}`;
+      if (p.away) return `${now === next ? now : `${now} → ${next}`}: not in the family`;
+      return `${now === next ? now : `${now} → ${next}`}${p.pronoun ? ` (${p.pronoun})` : ''}${p.birthday ? ', with a birthday' : ''}`;
     });
     const off = JOB_GROUPS.filter(g => pending.off.includes(g.id)).map(g => g.label);
     lines.push(off.length ? `Switched off: ${off.join(', ')}` : 'All jobs on');

@@ -359,6 +359,53 @@ test('who sleeps where: P and Dude swap rooms, and the homework goes to the desk
   expect(await page.evaluate(() => window.house.settings.roomsSwapped())).toBe(true);
 });
 
+test('the shape of the family: Dude as they, and a family with one grown-up (Dad left out)', async ({ page }) => {
+  test.setTimeout(60000);   // two page loads and both cards
+  await page.goto('/house/');
+  await expect(page.locator('#home')).toBeVisible();
+  await page.locator('#looksBtn').click();
+  // Dude: they / their
+  await page.locator('.avatar-who [data-p="boy"]').click();
+  await expect(page.locator('#avatarPronounLabel')).toHaveText('Talk about Dude as');
+  await expect(page.locator('#avatarFamily')).toBeHidden();   // children always play
+  await page.locator('#avatarPronoun [data-pronoun="they"]').click();
+  await expect(page.locator('#avatarPronoun [data-pronoun="they"]')).toHaveAttribute('aria-pressed', 'true');
+  // Dad left out: Mum's the only grown-up, and she can't be left out too
+  await page.locator('.avatar-who [data-p="dad"]').click();
+  await page.locator('#avatarFamilyBtn').click();
+  await expect(page.locator('#avatarFamilyText')).toContainText("Dad isn't in the family");
+  await expect(page.locator('#avatarFamilyBtn')).toHaveText('Bring Dad back');
+  await expect(page.locator('.avatar-who [data-p="dad"]')).toHaveClass(/away/);
+  await page.locator('.avatar-who [data-p="mum"]').click();
+  await expect(page.locator('#avatarFamilyText')).toHaveText('Mum is the only grown-up in the family.');
+  await expect(page.locator('#avatarFamilyBtn')).toBeHidden();
+  await page.locator('#avatarDone').click();
+
+  // the home screen: no Dad to pick or play missions as; Mum does the 3D printing
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeHidden();
+  await expect(page.locator('.home-who [data-c="mum"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#homeSub')).toContainText('playing as Mum');
+  await expect(page.locator('[data-mission="wfh"][data-kid="dad"]')).toBeHidden();
+  await expect(page.locator('[data-mission="office"][data-kid="dad"]')).toBeHidden();
+  await expect(page.locator('[data-mission="print3d"][data-kid="mum"]')).toBeVisible();
+  await expect(page.locator('[data-mission="bedtime"][data-kid="mum"]')).toBeVisible();
+  await play(page);
+  await expect(page.locator('.hud.bottom .who [data-c="dad"]')).toBeHidden();
+  await planToday(page, ['fixBike']);
+  await expect(page.locator('#taskList')).toContainText('Fix');
+
+  // kept after a reload; Dad back again
+  await page.reload();
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeHidden();
+  expect(await page.evaluate(() => [window.house.players.customPronoun('boy'), window.house.players.inFamily('dad')])).toEqual(['they', false]);
+  await page.locator('#looksBtn').click();
+  await page.locator('.avatar-who [data-p="dad"]').click();
+  await page.locator('#avatarFamilyBtn').click();
+  await page.locator('#avatarDone').click();
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeVisible();
+  await expect(page.locator('[data-mission="print3d"][data-kid="mum"]')).toBeHidden();
+});
+
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {
   await page.goto('/house/');
   await expect(page.locator('#home')).toBeVisible();   // the game opens on it

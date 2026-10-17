@@ -30,7 +30,15 @@ pull request; at release time that section becomes the new version (see "Releasi
   after they're made and come down when the game opens; if two devices change things at the same time, both
   changes are kept. The rooms, jobs, and sharing card shows when they were last synced (#78).
 
+- Ford House: **she, he or they** for each player, in the names, looks and birthdays card. Jobs and missions
+  say "their bed", "her teeth" and so on to match (#78).
+- Ford House: **a family with one grown-up**: leave Mum or Dad out in the same card. Their buttons and missions
+  go, the other grown-up does their household jobs (the bike, the solar panels, the sofa bed) and the 3D
+  printing, and texts say just the one name. Both settings go in the share link and sync through the family
+  server (fordDbs 2.10.0 or newer; older servers sync everything else) (#78).
+
 ### Changed
+- Ford House: any grown-up can have a beard now (Mum, and P or Dude from 18), not just Dad and Dude.
 - Ford House: when two jobs are at the same desk, the one you've started comes first (the present you just made
   at the attic desk, not the wish list still waiting there).
 

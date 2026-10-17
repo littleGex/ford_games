@@ -7,7 +7,7 @@
 // reach GitHub Pages either). It never includes the family server's game token. Whatever comes in a link is
 // checked before it's used: only the four players, cleaned-up names, known hair styles, colours as #rrggbb,
 // real dates, and known job groups.
-import { cleanName, nameOf, possessive } from './names.js';
+import { GROWN_UPS, PRONOUNS, cleanName, nameOf, possessive } from './names.js';
 import { PLAYER_KEYS, HAIR_STYLES } from './players.js';
 import { useRoomSwap } from './pack/kidrooms.js';
 
@@ -77,6 +77,8 @@ export function shareCode(players, settings) {
     p[k] = { l: players.look(k) };
     if (players.customName(k)) p[k].n = players.customName(k);
     if (players.birthday(k)) p[k].b = players.birthday(k);
+    if (players.customPronoun && players.customPronoun(k)) p[k].pr = players.customPronoun(k);
+    if (players.inFamily && !players.inFamily(k)) p[k].x = true;   // not in the family
   }
   return toBase64Url(JSON.stringify({ v: 1, p, off: settings.offGroups(), ...(settings.roomsSwapped() ? { sw: true } : {}) }));
 }
@@ -107,8 +109,10 @@ export function readShareCode(code) {
   for (const k of PLAYER_KEYS) {
     const p = data.p[k];
     if (!p || typeof p !== 'object') continue;
-    players[k] = { name: typeof p.n === 'string' ? cleanName(p.n) || null : null, look: cleanLook(p.l), birthday: realDate(p.b) };
+    players[k] = { name: typeof p.n === 'string' ? cleanName(p.n) || null : null, look: cleanLook(p.l), birthday: realDate(p.b),
+                   pronoun: PRONOUNS.includes(p.pr) ? p.pr : null, away: GROWN_UPS.includes(k) && p.x === true };
   }
+  if (GROWN_UPS.every(k => players[k] && players[k].away)) GROWN_UPS.forEach(k => { players[k].away = false; });   // never nobody
   const off = Array.isArray(data.off) ? data.off.filter(id => GROUP_IDS.includes(id)) : [];
   return { players, off, swapRooms: data.sw === true };
 }
@@ -119,6 +123,12 @@ export function applyShare(shared, players, settings) {
     players.setName(k, p.name || '');
     if (p.look) players.setLook(k, p.look);
     if (p.birthday) players.setBirthday(k, p.birthday);
+    if (players.setPronoun) players.setPronoun(k, p.pronoun);
+  }
+  // who's in the family: bring people back first, so there's always a grown-up
+  if (players.setInFamily) {
+    for (const k of GROWN_UPS) if (shared.players[k] && !shared.players[k].away) players.setInFamily(k, true);
+    for (const k of GROWN_UPS) if (shared.players[k] && shared.players[k].away) players.setInFamily(k, false);
   }
   settings.setOffGroups(shared.off);
   settings.setRoomsSwapped(shared.swapRooms);

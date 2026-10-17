@@ -5,11 +5,14 @@
 //   holiday: '...'  only on days with that tag ('halloween', 'christmas', 'christmasEve'... see holidays.js; 'birthday' on anyone's birthday)
 //   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
 //   teen: true   (with who) also for P or Dude once they're teenagers (their birthdays, players.js)
+//   cover: true  (with who) a household job: in a family with one grown-up, whoever's there does it instead
 // Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
 // character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
 // appointments: they fill the day next, the most overdue first, and are never early (on a full day one can
 // be a day late). The every-other-day jobs fill whatever is left, the longest-waiting first, so with this
 // many of them they come round every few days.
+import { grownUps, inFamily } from '../names.js';
+
 export const POOL_RULES = [
   // every day: the routine, always on the list
   { id: 'dishes', every: 1 },
@@ -43,9 +46,9 @@ export const POOL_RULES = [
   { id: 'cleanDragon', every: 3, who: ['girl'] },
   { id: 'cook', every: 1, who: ['dad', 'mum'], teen: true },   // and P or Dude once they're teenagers
   { id: 'work', week: 5, who: ['mum'] },
-  { id: 'sofabed', every: 3, who: ['mum'] },
-  { id: 'fixBike', every: 6, who: ['dad'] },     // the shed
-  { id: 'solar', every: 5, who: ['dad'] },
+  { id: 'sofabed', every: 3, who: ['mum'], cover: true },
+  { id: 'fixBike', every: 6, who: ['dad'], cover: true },     // the shed
+  { id: 'solar', every: 5, who: ['dad'], cover: true },
   // appointments
   { id: 'hoover', every: 3 },
   { id: 'shopping', every: 3 },
@@ -85,4 +88,9 @@ export const POOL_RULES = [
   { id: 'loftDown', after: { job: 'loftUp', days: 7 }, must: true },
 ];
 
-export const rulesFor = id => POOL_RULES.find(r => r.id === id);
+/** A job's rule. A household job (`cover`) whose grown-up isn't in the family goes to the grown-up who is. */
+export function rulesFor(id) {
+  const rule = POOL_RULES.find(r => r.id === id);
+  if (!rule || !rule.cover || !rule.who || rule.who.some(inFamily)) return rule;
+  return { ...rule, who: grownUps() };
+}
