@@ -4,12 +4,13 @@
 // The day's birthday jobs are in jobs.js; this builds the decorations and runs the cake, presents and guests.
 import * as THREE from 'three';
 import { S } from '../state.js';
+import { NAMES } from '../names.js';
 import { add, group, mat } from '../core/build.js';
 import { dingDong, music } from '../core/audio.js';
 import { makeCharacter } from '../characters/character.js';
 import { charMat as M } from '../characters/character.js';
 
-export const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
+export { NAMES };   // (the players' names, names.js)
 // Where things happen, plan coordinates [x, z] (ground floor)
 export const BD = {
   table: { at: [2.5, 7.0], seat: [2.5, 0, 6.95, -Math.PI / 2], cake: [1.45, 0.75, 6.85] },   // standing at the dining table
@@ -22,7 +23,7 @@ export const BD = {
 export const GIFTS = {
   girl: ['a book all about bearded dragons', 'a box of glitter pens', 'roller-skate knee pads'],
   boy: ['a space rocket building kit', 'a new clarinet songbook', 'a football'],
-  mum: ['a pot plant for the office', 'a cosy scarf', 'her favourite chocolates'],
+  mum: ['a pot plant for the office', 'a cosy scarf', 'a box of favourite chocolates'],
   dad: ['a bright bike light', 'a spool of glow-in-the-dark filament', 'a pair of funny socks'],
 };
 const WRAP = ['#e84a5f', '#3b7fc4', '#f2c81c', '#8e5bd6'], RIBBON = ['#f7f6f2', '#f2c81c', '#e84a5f', '#3fa36b'];

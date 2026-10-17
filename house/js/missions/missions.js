@@ -21,6 +21,8 @@
 // parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
 // laptop, watch it grow, then take the model out and put it where it belongs.
 import { S } from '../state.js';
+import { NAMES, nameOf, possessive, their } from '../names.js';
+import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { resetItems } from '../items.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
@@ -28,7 +30,7 @@ import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { ring, alarm } from '../core/audio.js';
 import { OFFICE } from '../world/office.js';
 import { MUM } from '../world/mumoffice.js';
-import { BED, SEARCH, NAMES as KID, PRONOUN } from '../systems/bedtime.js';
+import { BED, SEARCH, NAMES as KID } from '../systems/bedtime.js';
 import { STAIRS } from '../systems/levels.js';
 
 const KEY = 'fordHouse.missions.v1';
@@ -36,15 +38,14 @@ const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; 
 const saveBest = () => { try { localStorage.setItem(KEY, JSON.stringify(BEST)); } catch (e) { /* private mode */ } };
 export const clockText = minutes => `${Math.floor(minutes / 60)}:${String(Math.floor(minutes % 60)).padStart(2, '0')}`;
 
-// where things are for each of the kids
-export const KIDS = {
-  girl: { name: 'P', level: 1, start: [1.4, 7.6], facing: -Math.PI / 2, bed: [1.25, 6.9], bedHandle: 'daybed',
-          wardrobe: { at: [2.3, 6.95], seat: [2.3, 0, 6.95, Math.PI / 2] }, desk: [2.3, 8.05], bag: [2.85, 0.73, 7.9] },
-  boy:  { name: 'Dude', level: 2, start: [1.8, 2.45], facing: Math.PI, bed: [1.8, 2.75], bedHandle: 'dudeBed',
-          wardrobe: { at: [0.35, 2.95], seat: [0.35, 0, 2.95, 0] }, desk: [4.62, 2.27], bag: [5.3, 0.76, 2.0] },
+// where things are for each of the kids: in the room they sleep in (pack/kidrooms.js)
+const kidSpots = k => {
+  const r = roomFor(k);
+  return { name: nameOf(k), level: r.level, start: r.start.at, facing: r.start.facing, bed: r.bed.at, bedHandle: r.bed.handle,
+           wardrobe: { at: r.wardrobe.at, seat: r.wardrobe.seat }, desk: r.desk.at, bag: r.desk.bag };
 };
+export const KIDS = { get girl() { return kidSpots('girl'); }, get boy() { return kidSpots('boy'); } };
 
-const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
 const DAD_DESK = [3.75, 0.5];   // Dad's desk in the dressing room, with the laptop
 
 // Mum's and Dad's desks for working from home, and which screen shows for each kind of work
@@ -148,7 +149,7 @@ function pickTroubles() {
 }
 /** One child's turn in the bathroom: shower then teeth, and (at the same time) the pyjamas. */
 function wash(who, m) {
-  const N = KID[who], his = PRONOUN[who], with_ = c => c.bedtime.withYou(who), w = BED.wardrobe[who], lost = m.trouble.pyjamas && m.trouble.pyjamas.who === who;
+  const N = KID[who], his = their(who), with_ = c => c.bedtime.withYou(who), w = BED.wardrobe[who], lost = m.trouble.pyjamas && m.trouble.pyjamas.who === who;
   // lost pyjamas: not in the wardrobe, not in the first place you look either
   const decoy = lost && SEARCH.pyjamas.find((p, i) => i !== m.trouble.pyjamas.spot);
   const find = lost ? [
@@ -173,10 +174,10 @@ function wash(who, m) {
 function bedJob(who, m) {
   const N = KID[who], b = BED.bed[who], sw = BED.switch[who], t = m.trouble, with_ = c => c.bedtime.withYou(who);
   const water = t.water && t.water.who === who, inBed = c => c.bedtime.is(who, 'bed');
-  const side = who === 'girl' ? [1.05, 0, 7.75] : [2.85, 0, 3.6];
+  const side = roomFor(who).bedtime.glass;
   return { key: `bed-${who}`, title: `${N}: bed and lights out`, steps: [
-    ...(who === 'girl' && t.dragon ? [{ kind: 'use', level: 1, at: BED.terrarium, can: with_, label: 'Say goodnight to the dragon with P',
-      onDone: c => c.hud.toast('P: "Night night, little dragon!"') }] : []),
+    ...(who === 'girl' && t.dragon ? [{ kind: 'use', level: 1, at: BED.terrarium, can: with_, label: `Say goodnight to the dragon with ${nameOf('girl')}`,
+      onDone: c => c.hud.toast(`${nameOf('girl')}: "Night night, little dragon!"`) }] : []),
     { kind: 'use', level: b.level, at: b.at, can: with_, label: `Tuck ${N} into ${b.name}`, onDone: c => {
       c.bedtime.place(who, b.level, b.lie, 'bed');
       if (water) { c.items.waterGlass.visible = true; c.hud.toast(`${N}: "I need a drink of water!"`); }
@@ -401,7 +402,9 @@ export const MISSIONS = {
       const m = S.mission;
       m.trouble = pickTroubles(); m.lightsOut = {};
       for (const who of ['girl', 'boy']) {   // the pyjamas are in the wardrobes, unless one pair has gone missing
-        const it = c.items[PJ[who]];
+        const it = c.items[PJ[who]], r = roomFor(who);
+        [c.stage.scene, c.world.upstairs, c.world.attic][r.level].add(it);   // in the wardrobe of the room they sleep in
+        it.position.set(...r.wardrobe.pyjamas); it.rotation.set(0, 0, 0); it.userData.level = r.level;
         it.visible = true;
         if (m.trouble.pyjamas && m.trouble.pyjamas.who === who) {
           const where = SEARCH.pyjamas[m.trouble.pyjamas.spot];
@@ -411,7 +414,7 @@ export const MISSIONS = {
     },
     jobs: () => [
       ['girl', 'boy'].map(who => ({ key: `ipad-${who}`, title: `${KID[who]}: iPad off`, steps: [
-        { kind: 'use', at: BED.sofa[who].at, label: `Tell ${KID[who]} to switch off ${PRONOUN[who]} iPad`,
+        { kind: 'use', at: BED.sofa[who].at, label: `Tell ${KID[who]} to switch off ${their(who)} iPad`,
           onDone: c => { c.bedtime.follow(who); c.hud.toast(`${KID[who]}: "Okaaay..."`); } }] })),
       { key: 'first', title: 'Upstairs to the bathroom', steps: [
         { kind: 'choose', choose: 'bedFirst', level: 1, at: BED.bathDoor, can: c => c.bedtime.withYou('girl') && c.bedtime.withYou('boy'),
@@ -427,7 +430,7 @@ export const MISSIONS = {
             return false;
           } },
         { kind: 'sit', level: 1, at: BED.story.at, seat: BED.story.seat, kidsSit: BED.story.kids, can: bothWithYou, dur: 10,
-          what: 'Reading the story', label: "Sit on P's bed and read the story" }] }),
+          what: 'Reading the story', label: `Sit on ${possessive(kidIn('first'))} bed and read the story` }] }),
       (c, m) => ['girl', 'boy'].map(who => bedJob(who, m)),
       { key: 'down', title: 'Go back downstairs', steps: [
         { kind: 'use', level: 1, at: STAIRS.TOP.at, label: 'Tiptoe back downstairs', onDone: c => { c.levels.go(0); c.bedtime.downstairs(); } }] },
@@ -457,8 +460,8 @@ export const MISSIONS = {
   },
 
   print3d: {
-    title: '3D printing', who: ['dad'],
-    spot: () => ({ name: 'Dad', level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
+    title: '3D printing', who: ['dad'], cover: true,   // Dad's printer; in a family without Dad, Mum prints
+    spot: who => ({ name: nameOf(who || 'dad'), level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
     intro: 'Pick something to print on the laptop at your desk',
     setup(c) { c.printing.reset(); },
     jobs: () => [

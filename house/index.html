@@ -46,23 +46,24 @@
 
       <h2>Who's playing?</h2>
       <div class="home-who" role="group" aria-label="Choose who to play">
-        <button data-c="dad" aria-pressed="true">Dad</button><button data-c="mum" aria-pressed="false">Mum</button><button data-c="girl" aria-pressed="false">P</button><button data-c="boy" aria-pressed="false">Dude</button>
+        <button data-c="dad" data-name="dad" aria-pressed="true">Dad</button><button data-c="mum" data-name="mum" aria-pressed="false">Mum</button><button data-c="girl" data-name="girl" aria-pressed="false">P</button><button data-c="boy" data-name="boy" aria-pressed="false">Dude</button>
       </div>
-      <button class="linkbtn home-looks" id="looksBtn">Change how everyone looks, and birthdays</button>
+      <button class="linkbtn home-looks" id="looksBtn">Names, looks and birthdays</button>
+      <button class="linkbtn home-looks" id="settingsBtn">Bedrooms, jobs, and sharing with another device</button>
       <button class="linkbtn home-looks" id="adventBtn" hidden>🎄 Look at the Advent calendars</button>
 
       <h2>Missions</h2>
       <ul class="missions">
         <li class="mission" id="missionSchoolRun"><span class="mission-icon" aria-hidden="true">🚲</span><span><b>The school run</b><small>Get up, breakfast, dressed, bag packed, then cycle to school before the bell at 8:00</small><small class="mission-best" data-best="schoolRun"></small></span>
-          <span class="mission-play" role="group" aria-label="Play the school run as"><button data-mission="schoolRun" data-kid="girl">P</button><button data-mission="schoolRun" data-kid="boy">Dude</button></span></li>
-        <li class="mission" id="missionWfh"><span class="mission-icon" aria-hidden="true">💻</span><span><b>Work from home</b><small>Mum or Dad, 7:00 to 17:00: up, showered, dressed, breakfast, then meetings, emails, work, lunch and coffee your way, and watch out for the phone</small><small class="mission-best" data-best="wfh"></small></span>
-          <span class="mission-play" role="group" aria-label="Play work from home as"><button data-mission="wfh" data-kid="dad">Dad</button><button data-mission="wfh" data-kid="mum">Mum</button></span></li>
-        <li class="mission" id="missionOffice"><span class="mission-icon" aria-hidden="true">🏢</span><span><b>Work at the office</b><small>Dad cycles: clock in, meet the boss, work, lunch, the team meeting, maybe a fire drill, home by 17:30. Mum drives: zebra crossing, turnstiles, clock in, lift up to her floor, meetings, lunch, a fire drill, home by 17:30</small><small class="mission-best" data-best="office officeMum"></small></span>
-          <span class="mission-play" role="group" aria-label="Play work at the office as"><button data-mission="office" data-kid="dad">Dad</button><button data-mission="officeMum" data-kid="mum">Mum</button></span></li>
-        <li class="mission" id="missionPrint3d"><span class="mission-icon" aria-hidden="true">🖨️</span><span><b>3D printing</b><small>Dad: pick a design on the laptop, order filament, load the printer by the sofa, print it and put it where it belongs</small><small class="mission-best" data-best="print3d"></small></span>
-          <span class="mission-play" role="group" aria-label="Play 3D printing as"><button data-mission="print3d" data-kid="dad">Dad</button></span></li>
-        <li class="mission" id="missionBedtime"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small>Mum or Dad, from 19:45: iPads off, upstairs, a shower, pyjamas and teeth each, a story, then tuck them in and lights out by 20:30. Expect some trouble!</small><small class="mission-best" data-best="bedtime"></small></span>
-          <span class="mission-play" role="group" aria-label="Play bedtime as"><button data-mission="bedtime" data-kid="mum">Mum</button><button data-mission="bedtime" data-kid="dad">Dad</button></span></li>
+          <span class="mission-play" role="group" aria-label="Play the school run as"><button data-mission="schoolRun" data-kid="girl" data-name="girl">P</button><button data-mission="schoolRun" data-kid="boy" data-name="boy">Dude</button></span></li>
+        <li class="mission" id="missionWfh"><span class="mission-icon" aria-hidden="true">💻</span><span><b>Work from home</b><small><span data-name="mum">Mum</span> or <span data-name="dad">Dad</span>, 7:00 to 17:00: up, showered, dressed, breakfast, then meetings, emails, work, lunch and coffee your way, and watch out for the phone</small><small class="mission-best" data-best="wfh"></small></span>
+          <span class="mission-play" role="group" aria-label="Play work from home as"><button data-mission="wfh" data-kid="dad" data-name="dad">Dad</button><button data-mission="wfh" data-kid="mum" data-name="mum">Mum</button></span></li>
+        <li class="mission" id="missionOffice"><span class="mission-icon" aria-hidden="true">🏢</span><span><b>Work at the office</b><small><span data-name="dad">Dad</span> cycles: clock in, meet the boss, work, lunch, the team meeting, maybe a fire drill, home by 17:30. <span data-name="mum">Mum</span> drives: zebra crossing, turnstiles, clock in, lift up to her floor, meetings, lunch, a fire drill, home by 17:30</small><small class="mission-best" data-best="office officeMum"></small></span>
+          <span class="mission-play" role="group" aria-label="Play work at the office as"><button data-mission="office" data-kid="dad" data-name="dad">Dad</button><button data-mission="officeMum" data-kid="mum" data-name="mum">Mum</button></span></li>
+        <li class="mission" id="missionPrint3d"><span class="mission-icon" aria-hidden="true">🖨️</span><span><b>3D printing</b><small><span data-name="dad">Dad</span>: pick a design on the laptop, order filament, load the printer by the sofa, print it and put it where it belongs</small><small class="mission-best" data-best="print3d"></small></span>
+          <span class="mission-play" role="group" aria-label="Play 3D printing as"><button data-mission="print3d" data-kid="dad" data-name="dad">Dad</button><button data-mission="print3d" data-kid="mum" data-name="mum" data-cover="dad" hidden>Mum</button></span></li>
+        <li class="mission" id="missionBedtime"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small><span data-name="mum">Mum</span> or <span data-name="dad">Dad</span>, from 19:45: iPads off, upstairs, a shower, pyjamas and teeth each, a story, then tuck them in and lights out by 20:30. Expect some trouble!</small><small class="mission-best" data-best="bedtime"></small></span>
+          <span class="mission-play" role="group" aria-label="Play bedtime as"><button data-mission="bedtime" data-kid="mum" data-name="mum">Mum</button><button data-mission="bedtime" data-kid="dad" data-name="dad">Dad</button></span></li>
       </ul>
 
       <div class="home-foot">
@@ -130,11 +131,40 @@
     </div>
   </div>
 
+  <div class="settings" id="settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+    <div class="settings-card">
+      <h1 id="settingsTitle">Rooms, jobs, and sharing</h1>
+      <h2>Bedrooms</h2>
+      <p class="settings-note" id="settingsRooms"></p>
+      <button class="avatar-chip settings-share" id="swapRooms">Swap rooms</button>
+      <h2>Jobs in the house</h2>
+      <p class="settings-note">Switch off what doesn't fit your family. It shows from tomorrow, or straight away if nothing's been done today.</p>
+      <ul class="settings-jobs" id="settingsJobs"></ul>
+      <h2>Every phone and tablet</h2>
+      <p class="settings-note" id="syncStatus" aria-live="polite"></p>
+      <h2>Share with another phone or tablet</h2>
+      <p class="settings-note">No game token there? This makes a link with everyone's names, looks, birthdays, bedrooms and which jobs are on. Open it on the other device to copy them there. The family server token isn't in it.</p>
+      <button class="avatar-chip settings-share" id="shareBtn">Share the link</button>
+      <p class="settings-note" id="shareStatus" aria-live="polite"></p>
+      <input class="settings-link" id="shareLink" readonly hidden aria-label="Link with the family settings">
+      <div class="advent-actions"><button class="btn" id="settingsDone">Done</button></div>
+    </div>
+  </div>
+
+  <div class="settings" id="shareImport" role="dialog" aria-modal="true" aria-labelledby="shareImportTitle" hidden>
+    <div class="settings-card">
+      <h1 id="shareImportTitle">Use these family settings?</h1>
+      <p class="settings-note">This link has family settings from another device. Use them on this one? They replace the names, looks, birthdays and jobs here.</p>
+      <ul class="settings-import" id="shareImportList"></ul>
+      <div class="settings-actions"><button class="linkbtn" id="shareNo">No thanks</button><button class="btn" id="shareYes">Use them</button></div>
+    </div>
+  </div>
+
   <div class="advent" id="advent" role="dialog" aria-modal="true" aria-labelledby="adventTitle" hidden>
     <div class="advent-card">
       <h1 id="adventTitle">Advent calendars</h1>
       <div class="avatar-who" role="tablist" aria-label="Whose calendar">
-        <button role="tab" data-k="girl">P</button><button role="tab" data-k="boy">Dude</button>
+        <button role="tab" data-k="girl" data-name="girl">P</button><button role="tab" data-k="boy" data-name="boy">Dude</button>
       </div>
       <p class="advent-status" id="adventStatus" aria-live="polite"></p>
       <div class="advent-grid" id="adventGrid"></div>
@@ -146,9 +176,22 @@
 
   <div class="avatar" id="avatar" role="dialog" aria-modal="true" aria-labelledby="avatarTitle" hidden>
     <div class="avatar-card">
-      <h1 id="avatarTitle">Looks and birthdays</h1>
+      <h1 id="avatarTitle">Names, looks and birthdays</h1>
       <div class="avatar-who" role="tablist" aria-label="Whose look">
-        <button role="tab" data-p="dad">Dad</button><button role="tab" data-p="mum">Mum</button><button role="tab" data-p="girl">P</button><button role="tab" data-p="boy">Dude</button>
+        <button role="tab" data-p="dad" data-name="dad">Dad</button><button role="tab" data-p="mum" data-name="mum">Mum</button><button role="tab" data-p="girl" data-name="girl">P</button><button role="tab" data-p="boy" data-name="boy">Dude</button>
+      </div>
+      <div class="avatar-name">
+        <label for="avatarName">Name</label>
+        <input type="text" id="avatarName" maxlength="16" autocomplete="off" spellcheck="false" enterkeyhint="done">
+        <p class="avatar-hint" id="avatarNameHint"></p>
+      </div>
+      <div class="avatar-pronoun">
+        <span class="avatar-label" id="avatarPronounLabel">Talk about them as</span>
+        <div class="avatar-opts" id="avatarPronoun" role="group" aria-labelledby="avatarPronounLabel"></div>
+      </div>
+      <div class="avatar-family" id="avatarFamily" hidden>
+        <p class="avatar-hint" id="avatarFamilyText"></p>
+        <button class="avatar-chip" id="avatarFamilyBtn"></button>
       </div>
       <div class="avatar-body">
         <canvas class="avatar-preview" id="avatarPreview" width="240" height="300" aria-label="Preview of the look"></canvas>
@@ -193,7 +236,7 @@
     <div class="stick" id="stick" aria-label="Movement stick"><div class="knob" id="knob"></div></div>
     <div class="right">
       <div class="who" role="group" aria-label="Choose who to play">
-        <button data-c="dad" aria-pressed="true">Dad</button><button data-c="mum" aria-pressed="false">Mum</button><button data-c="girl" aria-pressed="false">P</button><button data-c="boy" aria-pressed="false">Dude</button>
+        <button data-c="dad" data-name="dad" aria-pressed="true">Dad</button><button data-c="mum" data-name="mum" aria-pressed="false">Mum</button><button data-c="girl" data-name="girl" aria-pressed="false">P</button><button data-c="boy" data-name="boy" aria-pressed="false">Dude</button>
       </div>
       <button class="ghost" id="rotBtn" aria-label="Turn the camera">↻ Turn view</button>
       <button class="btn act" id="actBtn" hidden>Pick up</button>

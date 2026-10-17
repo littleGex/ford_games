@@ -483,10 +483,10 @@ for (const who of ['dad', 'girl']) {
   if ((who === 'dad') !== /fridge/.test(first)) errors.push(`food shopping (${who}): starts with "${first}"`);
   while (job.i < job.steps.length && job.steps[job.i].kind !== 'wait') { const r = doStep(job); if (r !== true) { errors.push(`food shopping (${who}): ${r}`); break; } }
   for (let k = 0; k < 4000 && job.steps[job.i].kind === 'wait'; k++) frame();
-  // the wait for a delivery only ends when the driver rings (the banner may show a parcel courier instead,
-  // if one of the day's random parcels turns up at the same moment)
+  // the wait for a delivery only ends when the driver rings. The banner says so, unless one of the day's
+  // random parcels (for us, or for the neighbours) has a courier at the door at the same moment: that banner wins
   if (job.steps[job.i].kind === 'wait') errors.push(`food shopping (${who}): the driver never rang`);
-  else if (!/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door`);
+  else if (!S.courierWaiting && !/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door (${G.deliveries.banner()})`);
   playDay(`food shopping (${who})`);
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
   G.days.setCharacter('dad');
@@ -628,6 +628,38 @@ for (const who of ['dad', 'girl']) {
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
   console.log(`Christmas: tree, biscuits, presents, Advent doors 1-15 for P, Christmas Eve, down on 5 January`);
+}
+
+// --- names and switched-off jobs (#78): P called Pia and Dad called Alan show in job titles, labels, the room
+// chip and the buttons; with the dragon and the clarinet off they never come up, and a day still finishes
+{
+  const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.plan(['fixBike', 'fold', 'shave']);
+  G.players.setName('girl', 'Pia'); G.players.setName('dad', 'Alan');
+  G.days.retitle();
+  const fix = G.board.find('fixBike'), fold = G.board.find('fold');
+  if (fix.title !== "Fix Pia's bike" || !fold.steps.some(st => st.label === "Pick up Pia's clothes") || !fold.steps.some(st => st.label === "Pick up Mum and Alan's clothes")) errors.push(`names: "${fix.title}", ${fold.steps.map(st => st.label).filter(Boolean).join(' / ')}`);
+  if (roomAt(1.5, 7, 1).name !== "Pia's room" || roomAt(44.5, 7.5, 0).name !== 'Alans Büro') errors.push(`names: room chips ${roomAt(1.5, 7, 1).name}, ${roomAt(44.5, 7.5, 0).name}`);
+  playDay('a day with new names');
+  G.days.next();
+  G.players.setName('girl', ''); G.players.setName('dad', '');
+
+  G.settings.set('dragon', false); G.settings.set('clarinet', false);
+  for (const who of ['girl', 'boy']) {
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    for (let n = 0; n < 3; n++) {
+      G.days.next();
+      const plan = G.board.jobs.map(j => j.id);
+      if (plan.some(id => /Dragon|clarinet/.test(id))) errors.push(`jobs off: ${who} still got ${plan.filter(id => /Dragon|clarinet/.test(id))}`);
+      if (plan.length < DAY_JOBS.min) errors.push(`jobs off: ${who}'s day only has ${plan.length} jobs`);
+    }
+  }
+  playDay('a day with the dragon and clarinet off');
+  G.settings.set('dragon', true); G.settings.set('clarinet', true);
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('names and jobs off: Pia and Alan in titles, labels and rooms; no dragon or clarinet when switched off');
 }
 
 // --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day
@@ -881,12 +913,13 @@ for (const who of ['dad', 'mum']) {
   if (P.stage('girl') !== 'child' || Math.abs(scaleOf() - 0.78) > 1e-9) errors.push('looks: P back to a child after clearing her birthday');
   G.days.next();
   if (G.board.find('cook')) errors.push('growing up: P the child still has cooking on her list');
-  // a beard: Dad has one, and Dude can once he's 18, not before (and never Mum or P)
+  // a beard: Dad has one; any grown-up can (Mum, and P or Dude once they're 18), never a child or a teenager
   const { specFor } = await import(new URL('../../house/js/characters/looks.js', import.meta.url));
   if (!specFor('dad', P.look('dad'), 'adult').beard || P.look('dad').hair !== 'bald') errors.push('looks: Dad should be bald with a beard');
   if (specFor('boy', { beard: true }, 'teen').beard) errors.push('looks: Dude has a beard as a teenager');
   if (!specFor('boy', { beard: true }, 'adult').beard) errors.push("looks: Dude can't have a beard at 18");
-  if (specFor('mum', { beard: true }, 'adult').beard || specFor('girl', { beard: true }, 'adult').beard) errors.push('looks: only Dad and Dude get beards');
+  if (!specFor('mum', { beard: true }, 'adult').beard || !specFor('girl', { beard: true }, 'adult').beard) errors.push('looks: Mum and grown-up P can\'t have a beard');
+  if (specFor('girl', { beard: true }, 'child').beard) errors.push('looks: a child with a beard');
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
 }
@@ -1005,6 +1038,133 @@ G.days.setCharacter('boy');
 if (ids().includes('shave') || ids().filter(id => id === 'homework').length !== 1) errors.push('switching to Dude: no shave, and homework is not asked for twice in a day');
 G.days.setCharacter('dad');
 if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push('who is playing was not saved');
+
+// --- who sleeps where (#78): P and Dude swap rooms. Their beds, wardrobes and desks follow them (homework,
+// making the beds, the folded washing, the school run, bedtime, Halloween costumes, the Christmas wish list and
+// present, the 3D-printed dragon and rocket); the room chips and labels say whose room is whose. Then back.
+{
+  const { roomFor, kidIn } = await import(new URL('../../house/js/pack/kidrooms.js', import.meta.url));
+  const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
+  const { DESIGNS } = await import(new URL('../../house/js/systems/printing.js', import.meta.url));
+  const { KIDS: kidsNow, MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  G.settings.setRoomsSwapped(true);
+  if (kidIn('attic') !== 'girl' || kidIn('first') !== 'boy' || roomFor('girl').level !== 2) errors.push('rooms swapped: P should be in the attic, Dude on the first floor');
+  if (roomAt(1.5, 7, 1).name !== "Dude's room" || roomAt(2, 2, 2).name !== 'Ps Zimmer') errors.push(`rooms swapped: room chips ${roomAt(1.5, 7, 1).name}, ${roomAt(2, 2, 2).name}`);
+  if (DESIGNS[0].goes.level !== 2 || DESIGNS[3].goes.level !== 1) errors.push("rooms swapped: the printed dragon and rocket don't go to the new desks");
+  for (const [who, kid] of Object.entries({ girl: kidsNow.girl, boy: kidsNow.boy })) {
+    if (blocked(kid.start[0], kid.start[1], kid.level)) errors.push(`rooms swapped: ${who} wakes up inside something`);
+  }
+  const seenAt = [];
+  for (const who of ['girl', 'boy']) {
+    const label = `rooms swapped (${who})`, r = roomFor(who);
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.days.plan(['homework', 'beds', 'fold']);
+    const hw = G.board.find('homework').steps[0];
+    if (G.board.levelOf(hw) !== r.level || hw.at !== r.desk.at) errors.push(`${label}: homework isn't at the desk in the new room`);
+    const beds = G.board.find('beds').steps.map(st => st.label).join(' / ');
+    if (!beds.includes("Make Dude's bed") || !beds.includes("Make P's bed")) errors.push(`${label}: beds "${beds}"`);
+    playDay(`${label}: homework, beds, washing`);
+    const pile = G.items[who === 'girl' ? 'pileP' : 'pileDude'];
+    seenAt.push(pile.userData.level);
+    G.days.next();
+    // Halloween: the costume from the wardrobe in the new room, the sweets up to the new desk
+    globalThis.location.search = '?season=autumn&holiday=halloween';
+    G.days.plan(['trickOrTreat']);
+    laptopPick = 1;
+    playDay(`${label}: Halloween`);
+    if (G.items.treatPail.userData.level !== r.level) errors.push(`${label}: the sweets went to the old room`);
+    G.days.next();
+    // Christmas: the wish list and the present made at the desk in the new room
+    globalThis.location.search = '?season=winter&date=2026-12-15';
+    G.days.plan(['wishList', 'xmasGift']);
+    playDay(`${label}: Christmas`);
+    G.days.next();
+    globalThis.location.search = '?season=autumn';
+    // the school run, waking up in the new room
+    G.missions.start('schoolRun', who);
+    for (let round = 0; round < 30 && !S.mission.done; round++) {
+      for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+        let guard = 0;
+        while (job.i < job.steps.length && guard++ < 10) {
+          const before = job.i, res = doStep(job);
+          if (res !== true) { errors.push(`${label} school run "${job.title}" step ${before + 1}: ${res}`); job.i = job.steps.length; S.carrying = null; break; }
+        }
+      }
+      frame();
+    }
+    if (!S.mission.done) errors.push(`${label}: never got to school`);
+    G.missions.end();
+  }
+  if (seenAt.join() !== '2,1') errors.push(`rooms swapped: the folded clothes went to floors ${seenAt}, want P's in the attic and Dude's downstairs`);
+  // bedtime: each tucked into the bed in their new room
+  {
+    const B = G.bedtime, seen = new Set();
+    G.missions.start('bedtime', 'mum');
+    S.mission.trouble = {};
+    laptopPick = 1;
+    playWorkDay('rooms swapped bedtime', seen);
+    if (!S.mission.done) errors.push('rooms swapped bedtime: never finished');
+    for (const k of ['girl', 'boy']) if (!B.is(k, 'bed') || B.kid(k).level !== roomFor(k).level) errors.push(`rooms swapped bedtime: ${k} isn't in bed in the new room`);
+    G.missions.end();
+    void MISSIONS;
+  }
+  G.settings.setRoomsSwapped(false);
+  if (kidIn('first') !== 'girl' || roomAt(1.5, 7, 1).name !== "P's room") errors.push('rooms back: P should be on the first floor again');
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('who sleeps where: swapped rooms for homework, beds, washing, Halloween, Christmas, the school run and bedtime');
+}
+
+// --- the shape of the family (#78): she/he/they in the labels, and a family with one grown-up. With Dad left
+// out the game carries on as Mum, she does Dad's household jobs (the bike, the solar panels), the texts say
+// just "Mum", and she can do the 3D printing; his shaving and his work don't come. Then Dad comes back.
+{
+  const { BED } = await import(new URL('../../house/js/systems/bedtime.js', import.meta.url));
+  G.players.setPronoun('boy', 'they'); G.players.setPronoun('girl', 'he');
+  if (BED.bed.boy.name !== 'their bed' || BED.wardrobe.girl.name !== 'his wardrobe') errors.push(`pronouns: bedtime says ${BED.bed.boy.name}, ${BED.wardrobe.girl.name}`);
+  G.players.setPronoun('boy', null); G.players.setPronoun('girl', null);
+
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.players.setInFamily('dad', false);
+  if (G.days.character !== 'mum') errors.push(`one grown-up: still playing as ${G.days.character} after leaving Dad out`);
+  G.days.plan(['fixBike', 'solar', 'fold']);
+  const fold = G.board.find('fold').steps.map(st => st.label).join(' / ');
+  if (!fold.includes("Pick up Mum's clothes")) errors.push(`one grown-up: the washing says "${fold}"`);
+  playDay('one grown-up: Mum does the bike, the solar panels and the washing');
+  G.days.next();
+  // P's Christmas present is for Mum only
+  globalThis.location.search = '?season=winter&date=2026-12-15';
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.plan(['xmasGift']);
+  if (G.board.find('xmasGift').title !== 'Make a present for Mum') errors.push(`one grown-up: "${G.board.find('xmasGift').title}"`);
+  playDay('one grown-up: the Christmas present');
+  G.days.next();
+  globalThis.location.search = '?season=autumn';
+  // Mum prints a dragon on Dad's printer
+  laptopPick = 1;
+  G.missions.start('print3d', 'mum');
+  for (let round = 0; round < 30 && !S.mission.done; round++) {
+    for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+      let guard = 0;
+      while (job.i < job.steps.length && guard++ < 10) {
+        const before = job.i, r = doStep(job);
+        if (r !== true) { errors.push(`one grown-up 3D printing "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; break; }
+      }
+    }
+    frame();
+  }
+  if (!S.mission.done) errors.push('one grown-up: Mum never finished the 3D printing');
+  G.missions.end();
+  // a few days as Mum: Dad's own jobs never come, his household ones do
+  G.days.setCharacter('mum'); G.player.setCharacter('mum');
+  const seen = new Set();
+  for (let d = 0; d < 8; d++) { G.board.jobs.forEach(j => seen.add(j.id)); G.days.next(); }
+  if (seen.has('shave') || seen.has('dadWork')) errors.push(`one grown-up: Dad's own jobs came for Mum (${[...seen].filter(id => /shave|dadWork/.test(id))})`);
+  G.players.setInFamily('dad', true);
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('the shape of the family: pronouns in the labels; with one grown-up, Mum does the household jobs and the 3D printing');
+}
 
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);
 console.log('trips up or down the stairs:', stairTrips);

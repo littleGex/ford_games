@@ -7,12 +7,17 @@
 import * as THREE from 'three';
 import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
+import { NAMES, possessive, their } from '../names.js';
+import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { makeCharacter, animateWalk } from '../characters/character.js';
 import { specFor } from '../characters/looks.js';
 import { dressUp, undress } from '../characters/costumes.js';
 import { music } from '../core/audio.js';
 import { add, mat } from '../core/build.js';
 import { blocked } from '../core/collision.js';
+
+/** { girl, boy } worked out each time from the child's key (where they sleep can change). */
+const byKid = fn => ({ get girl() { return fn('girl'); }, get boy() { return fn('boy'); } });
 
 // Where things happen at bedtime, plan coordinates [x, z]. level: the floor (0 ground, 1 first, 2 attic).
 // Spots where a child stands, sits or lies: [x, y, z, facing].
@@ -23,27 +28,25 @@ export const BED = {
   shower: { at: [4.7, 7.85], spot: [5.2, 0, 8.5, 0] },
   basin: { at: [4.6, 7.22], spot: [4.78, 0, 7.22, Math.PI / 2] },
   bathroom: [4.3, 7.45],                                                  // where you hand over the pyjamas
-  story: { at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2],         // on the edge of P's bed
+  story: { at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2],         // on the edge of the first-floor room's daybed
            kids: { girl: [0.5, 0.46, 7.45, Math.PI / 2], boy: [0.5, 0.46, 6.35, Math.PI / 2] } },
-  bed: { girl: { level: 1, at: [1.25, 7.2], lie: [0.575, 0.5, 6.2, Math.PI], name: 'her bed' },
-         boy: { level: 2, at: [1.8, 2.75], lie: [2.55, 0.52, 3.35, Math.PI / 2], name: 'his bed' } },
-  ipad: { girl: { level: 1, at: [1.25, 6.9], seat: [0.55, 0.46, 7.0, Math.PI / 2] },     // back on the iPad, on their bed
-          boy: { level: 2, at: [1.8, 2.75], seat: [1.8, 0.48, 3.3, 0] } },
-  switch: { girl: { level: 1, at: [2.9, 6.6], room: 'girl', name: "P's room" },
-            boy: { level: 2, at: [3.9, 3.4], room: 'boy', name: "Dude's room" } },
-  wardrobe: { girl: { level: 1, at: [2.3, 6.95], name: 'her wardrobe' }, boy: { level: 2, at: [0.35, 2.9], name: 'his wardrobe' } },
+  // each child's bed, iPad spot, light switch and wardrobe: in the room they sleep in (pack/kidrooms.js)
+  bed: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.at, lie: r.bedtime.lie, name: `${their(k)} bed` }; }),
+  ipad: byKid(k => { const r = roomFor(k); return { level: r.level, ...r.bedtime.ipad }; }),     // back on the iPad, on their bed
+  switch: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.switch, room: k, name: `${possessive(k)} room` }; }),
+  wardrobe: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.wardrobe.at, name: `${their(k)} wardrobe` }; }),
   dance: { level: 1, spot: [3.95, 0, 5.45, 0] },                          // the landing
   terrarium: [2.3, 6.35],
 };
-// Where pyjamas that can't be found might be, and where a child might hide (all on the first floor)
+// Where pyjamas that can't be found might be, and where a child might hide (all on the first floor: the daybed
+// and wardrobe are whoever sleeps in the first-floor room's)
 export const SEARCH = {
-  pyjamas: [{ at: [4.25, 3.55], place: [4.5, 0.62, 3.6], name: 'the laundry hamper' }, { at: [1.25, 6.4], place: [0.6, 0.47, 6.3], name: "the end of P's bed" },
+  pyjamas: [{ at: [4.25, 3.55], place: [4.5, 0.62, 3.6], name: 'the laundry hamper' }, { at: [1.25, 6.4], place: [0.6, 0.47, 6.3], get name() { return `the end of ${possessive(kidIn('first'))} bed`; } },
             { at: [2.35, 1.9], place: [2.0, 0.55, 1.9], name: 'the big bed' }],
-  hide: [{ at: [2.3, 6.95], name: "in P's wardrobe" }, { at: [4.7, 7.85], name: 'behind the shower curtain' },
-         { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], name: "under P's bed" }],
+  hide: [{ at: [2.3, 6.95], get name() { return `in ${possessive(kidIn('first'))} wardrobe`; } }, { at: [4.7, 7.85], name: 'behind the shower curtain' },
+         { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], get name() { return `under ${possessive(kidIn('first'))} bed`; } }],
 };
-export const NAMES = { girl: 'P', boy: 'Dude' };
-export const PRONOUN = { girl: 'her', boy: 'his' };
+export { NAMES };   // (the players' names, names.js)
 
 export const BOOKS = [
   { id: 'dragon', label: "The dragon who couldn't sleep", icon: '🐉' },

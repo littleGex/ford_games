@@ -14,11 +14,41 @@ missions, start over from day 1, or go back to Game Zone. The
 
 **Looks and birthdays** (`js/ui/avatar.js`, from the home screen): change how each of the four players looks,
 with a turning preview: skin, hair style (long, shoulder, ponytail, bun, swept, short, spiky, a beanie or
-bald) and colour, glasses, a beard (Dad, and Dude once he's 18), top (their own or a colour), trousers and
-shoes. Give each a birthday: the age decides whether P and Dude are children (under 13), teenagers (13 to
+bald) and colour, glasses, a beard, top (their own or a colour), trousers and
+shoes. Any grown-up can have a beard (Mum and Dad, and P or Dude from 18). Give each a birthday: the age decides whether P and Dude are children (under 13), teenagers (13 to
 17) or grown-ups (18 and over). Teenagers are taller and cook dinner too (`teen: true` in `rules.js`).
 Everything is saved on the device only (`js/players.js`, `localStorage`), never in this repository. Dad is
 bald with a beard by default.
+
+**Names** (`js/names.js`): each player's name can be changed at the top of the names, looks and birthdays card
+(Dad, Mum, P and Dude by default). The game knows them as dad, mum, girl and boy; everything that shows a name
+asks `names.js` when it builds its text, so a new name shows on the buttons, in job titles ("Fix Pia's bike"),
+missions, the Advent calendars and the room chips. Names are cleaned up (letters, numbers, spaces, - ' and .,
+at most 16 characters), so they can never carry markup.
+
+**She, he or they** (the same card): how the game talks about each player in jobs and missions ("her bed",
+"his teeth", "their iPad"). Dad and Dude are he and Mum and P are she unless it's changed (`names.js`:
+`pronounOf`, `their`).
+
+**A family with one grown-up** (the same card, on Mum's or Dad's page): leave one of them out. Their buttons and
+missions disappear, and the game carries on as the other one. Their household jobs (the bike, the solar panels,
+the sofa bed: `cover: true` in `rules.js`) and the 3D printing go to the grown-up who's there. Their own jobs
+(shaving, their work) and their birthday party don't come. Texts like "Make a present for Mum and Dad" name just
+the one (`grownUpNames()`). Children always play, and there's always at least one grown-up.
+
+**Bedrooms** (`js/pack/kidrooms.js`, in the rooms, jobs and sharing card): P sleeps in the room on the first
+floor and Dude in the attic, unless they swap. Their bed, wardrobe and desk go with them: homework, making the
+beds, the folded washing, the school run, bedtime, the Halloween costumes, the Christmas wish list and present,
+and the 3D-printed models all use the new room, and the room chips say whose room is whose. The terrarium, the
+toys, the Lego, the keyboard and the clarinet stay where they are.
+
+**Jobs, and sharing** (`js/settings.js`, `js/ui/settings.js`, from the home screen): switch groups of jobs off
+that don't fit a family (the bearded dragon, keyboard practice, the clarinet, the bike, the solar panels, the
+car, shaving, the loft) and the special days (Halloween, Christmas and the Advent calendars, birthday parties).
+They're never planned while they're off. **Share the link** makes a link with everyone's names, looks,
+birthdays, the switches and who sleeps where, in the part after `#` (which never reaches a server); opening it on another phone
+or tablet asks first, then copies them there. The family server token is never in it, and everything in a
+link is checked before it's used.
 
 **Birthdays** (`js/systems/birthday.js`): on a player's birthday the dining room has balloons and a "Happy
 birthday" banner with their name, and four jobs come on the list: decorate (blow up the balloons, hang the
@@ -31,6 +61,16 @@ parent types the game token into the looks card once per device; it's kept on th
 in the background with a short time limit and never waits: offline, or without a token, it uses the
 birthdays saved on the device. If the answer makes today someone's birthday before anything's been done, the
 day is planned again with the party jobs.
+
+**The same settings on every device** (`js/settingsync.js`): with the game token, the names, looks, jobs on or
+off and who sleeps where are kept on the family server too (`GET` and `PUT /v1/game/settings`), so every phone
+and tablet has the same. The game pulls them when it opens and when it comes back to the front, and pushes a
+change a couple of seconds after it's made. The server keeps a version number. If another device saved in
+between, the server answers 409 with its copy, and the game puts back only what was changed on this device
+(each player's name and look, the jobs, the bedrooms) and saves again. A device connecting for the first time
+takes the family's settings from the server. Offline, nothing changes and the changes go up next time. The
+rooms, jobs, and sharing card shows when the settings were last synced. The share link still works without a
+server.
 
 ## Missions
 
@@ -226,8 +266,14 @@ house/
     systems/            things that happen over time: power cuts, post & parcels, sitting jobs,
                         mowing, hoovering, car charging, the washing machine (waiting.js),
                         plant growth, and levels.js for the stairs
+    familyserver.js     birthdays from the family server (fordDbs), and the game token
+    settingsync.js      names, looks, jobs and bedrooms kept the same on every device through the family server
+    pack/kidrooms.js    the Ford house's kids' rooms: whose bed, wardrobe and desk are where
     ui/hud.js           room chip, job list, banner, toasts
 ```
+
+The code is being split into an engine that works for any house and a house pack with what makes it the Ford
+house (`js/pack/`). See [ARCHITECTURE.md](ARCHITECTURE.md) for the plan and the slices still to do.
 
 The tests live with the rest of the repo's tests, in `tests/house/` (Node play-through) and
 `tests/e2e/house.spec.js` (browser).

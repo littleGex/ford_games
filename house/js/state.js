@@ -5,6 +5,7 @@ export const S = {
   sorting: false,
   laptop: false,   // the laptop close-up is open (3D printing)
   calendar: false,        // the Advent calendars are open up close (ui/advent.js)
+  settings: false,        // the jobs and sharing card, or the card about settings from a link (ui/settings.js)
   mission: null,          // a mission in progress: { id, who, clock, t, done } (missions/missions.js)
   menuOpen: true,         // the home screen is open (ui/home.js); the game is paused        // the sort-the-washing card is open (ui/sorting.js)
   level: 0,              // which floor the player is on: 0 Erdgeschoss, 1 Obergeschoss, 2 Dachgeschoss

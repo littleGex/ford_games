@@ -134,6 +134,113 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   check(!fs.connected && !store.has('fordHouse.gameToken.v1'), 'family server: the token is still saved after disconnecting');
 }
 
+// the family server keeps the settings the same on every device: the first device saves them, changes go up after
+// a short pause, another device's changes come down, a save that crosses another device's keeps both, an older
+// server without the bedrooms still saves the rest, offline changes nothing
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  store.set('fordHouse.gameToken.v1', 'secret-token');
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { createSettings } = await import('../../house/js/settings.js');
+  const { createSettingsSync, SETTINGS_URL } = await import('../../house/js/settingsync.js');
+  const clone = x => JSON.parse(JSON.stringify(x));
+  // a fake fordDbs: one copy with a version; a save must name the version it saw
+  const server = { version: 0, settings: null, rooms: true, down: false, token: 'secret-token', between: null };
+  const calls = [];
+  const fetch = async (url, opts) => {
+    calls.push([url, opts.method, opts.body && JSON.parse(opts.body)]);
+    if (server.down) throw new TypeError('Failed to fetch');
+    if (opts.headers.Authorization !== `Bearer ${server.token}`) return { ok: false, status: 401, json: async () => ({ detail: 'no' }) };
+    const doc = () => ({ version: server.version, updated_at: server.version ? '2026-10-17T18:00:00Z' : null, settings: clone(server.settings) });
+    if (opts.method === 'GET') { if (server.between) { const fn = server.between; server.between = null; fn(); } return { ok: true, status: 200, json: async () => doc() }; }
+    const body = JSON.parse(opts.body);
+    if (!server.rooms && 'swapRooms' in body.settings) return { ok: false, status: 422, json: async () => ({ detail: 'extra field' }) };
+    if (body.base_version !== server.version) return { ok: false, status: 409, json: async () => ({ detail: 'changed', ...doc() }) };
+    server.settings = clone(body.settings); server.version++;
+    return { ok: true, status: 200, json: async () => doc() };
+  };
+  const anotherDevice = change => { const s = clone(server.settings); change(s); server.settings = s; server.version++; };
+  const players = createPlayers(), settings = createSettings();
+  let applied = 0;
+  const sync = createSettingsSync({ players, settings }, { fetch, wait: 5, onApplied: () => { applied++; } });
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+
+  // the first device: the server has nothing yet, so this device's settings go up
+  players.setName('girl', 'Pia');
+  await pause(30); await sync.sync();
+  check(calls[0][0] === SETTINGS_URL && /\/v1\/game\/settings$/.test(SETTINGS_URL), `settings sync: wrong address ${calls[0] && calls[0][0]}`);
+  check(server.version >= 1 && server.settings.players.girl.name === 'Pia' && server.settings.swapRooms === false && Array.isArray(server.settings.off), `settings sync: the first save (${JSON.stringify(server.settings)})`);
+  check(sync.status.ok && applied === 0, `settings sync: first save ${JSON.stringify(sync.status)}, applied ${applied}`);
+  const v = server.version; calls.length = 0;
+  await sync.sync();
+  check(calls.length === 1 && calls[0][1] === 'GET' && server.version === v, 'settings sync: saved again with nothing changed');
+
+  // another device renames Dude and switches the bike off; this one changes P's hair meanwhile: both stick
+  anotherDevice(s => { s.players.boy.name = 'Max'; s.off = ['bike']; });
+  players.setLook('girl', { hair: 'bun' });
+  await pause(30); await sync.sync();
+  check(players.customName('boy') === 'Max' && !settings.isOn('bike') && applied === 1, `settings sync: the other device's changes didn't come down (${players.customName('boy')}, bike ${settings.isOn('bike')}, applied ${applied})`);
+  check(server.settings.players.girl.look.hair === 'bun' && server.settings.players.boy.name === 'Max' && server.settings.off.join() === 'bike', `settings sync: merged save ${JSON.stringify(server.settings)}`);
+
+  // a save that crosses another device's: 409, then both changes are kept
+  settings.setRoomsSwapped(true);
+  server.between = () => anotherDevice(s => { s.players.dad.name = 'Papa'; });
+  calls.length = 0;
+  await pause(30); await sync.sync();
+  check(calls.some(c => c[1] === 'PUT') && server.settings.swapRooms === true && server.settings.players.dad.name === 'Papa' && players.customName('dad') === 'Papa', `settings sync: crossing saves lost one (${JSON.stringify(server.settings)})`);
+
+  // a family server from before the bedrooms could be swapped (422): the rest is saved, the swap stays here
+  server.rooms = false;
+  delete server.settings.swapRooms;
+  players.setName('mum', 'Mama');
+  await pause(30); await sync.sync();
+  check(server.settings.players.mum.name === 'Mama' && !('swapRooms' in server.settings) && settings.roomsSwapped() && sync.status.ok, `settings sync: older server ${JSON.stringify(sync.status)}`);
+  server.rooms = true;
+
+  // offline: nothing changes, and it says so; a wrong token says so too
+  server.down = true;
+  check(!(await sync.sync()).ok && /offline/.test(sync.status.message) && players.customName('mum') === 'Mama', 'settings sync: offline');
+  server.down = false; server.token = 'other';
+  check(!(await sync.sync()).ok && /token/.test(sync.status.message), 'settings sync: wrong token not reported');
+  server.token = 'secret-token';
+  // no token, no asking
+  store.delete('fordHouse.gameToken.v1'); calls.length = 0;
+  players.setName('girl', 'P2'); await pause(30); await sync.sync();
+  check(calls.length === 0, 'settings sync: asked without a token');
+  players.setName('girl', 'Pia');
+  // the server updated to know about the bedrooms: the swap goes up with the next sync
+  store.set('fordHouse.gameToken.v1', 'secret-token');
+  await pause(30); await sync.sync();
+  check(server.settings.swapRooms === true && server.settings.players.girl.name === 'Pia', `settings sync: the swap didn't go up once the server knew about it (${JSON.stringify(server.settings)})`);
+
+  // a new device joining: the family's settings on the server win over what was typed in there
+  store.clear(); store.set('fordHouse.gameToken.v1', 'secret-token');
+  const players2 = createPlayers(), settings2 = createSettings();
+  players2.setName('girl', 'Lena');
+  const sync2 = createSettingsSync({ players: players2, settings: settings2 }, { fetch, wait: 5 });
+  await sync2.sync();
+  check(players2.customName('girl') === 'Pia' && players2.customName('boy') === 'Max' && !settings2.isOn('bike') && settings2.roomsSwapped(), `settings sync: a new device didn't take the family's settings (${players2.customName('girl')})`);
+  check(server.settings.players.girl.name === 'Pia', 'settings sync: a new device overwrote the family\'s settings');
+  // a look the server keeps with fields left out: the usual look fills in, and nothing changes every sync
+  anotherDevice(s => { s.players.boy.look = { hair: 'spiky' }; });
+  await sync2.sync();
+  const before = server.version;
+  await sync2.sync();
+  check(players2.look('boy').hair === 'spiky' && server.version === before, 'settings sync: a partial look keeps changing');
+  // she/he/they and who's in the family go up and come down; which grown-up is left out can change round
+  players2.setPronoun('boy', 'they');
+  await pause(30); await sync2.sync();
+  check(server.settings.players.boy.pronoun === 'they' && server.settings.players.dad.away === false && !('away' in server.settings.players.boy), `settings sync: pronoun and away up (${JSON.stringify(server.settings.players.boy)})`);
+  anotherDevice(s => { s.players.dad.away = true; s.players.girl.pronoun = 'they'; });
+  await sync2.sync();
+  check(!players2.inFamily('dad') && players2.customPronoun('girl') === 'they', 'settings sync: Dad left out on another device');
+  anotherDevice(s => { s.players.dad.away = false; s.players.mum.away = true; });
+  await sync2.sync();
+  check(players2.inFamily('dad') && !players2.inFamily('mum'), 'settings sync: the other grown-up left out instead (Dad back first)');
+  players2.setInFamily('mum', true); players2.setPronoun('boy', null); players2.setPronoun('girl', null);
+}
+
 // Christmas and Advent: the tags each date gets, the Advent candles, which jobs come on which days, and the
 // Advent calendar doors (one more each real day, never ahead; a new Advent starts shut)
 {
@@ -190,6 +297,99 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   now = d(12, 1, 2027);
   const next = createAdvent({ now: () => now });
   check(next.opened('girl').length === 0 && next.ready('girl').join() === '1', 'a new Advent starts with every door shut');
+}
+
+// names, jobs switched off, and the share link (settings.js): a name in a link can't carry markup, only
+// known players, hair styles, colours, dates and job groups come through, and the game token never goes in
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { nameOf, possessive, cleanName } = await import('../../house/js/names.js');
+  const { createSettings, shareCode, readShareCode, applyShare, linkCode } = await import('../../house/js/settings.js');
+  const players = createPlayers(), settings = createSettings();
+  check(nameOf('girl') === 'P' && possessive('boy') === "Dude's", 'the usual names');
+  players.setName('girl', '  Pia  '); players.setName('boy', 'Jonas');
+  check(nameOf('girl') === 'Pia' && possessive('boy') === "Jonas'", `new names: ${nameOf('girl')}, ${possessive('boy')}`);
+  check(cleanName('<b onmouseover=x>Ann</b>') === 'b onmouseoverxAn' && !/[<>"]/.test(cleanName('"><script>')), 'names are cleaned of markup');
+  players.setName('boy', '');
+  check(nameOf('boy') === 'Dude', 'an empty name goes back to the usual one');
+
+  // jobs switched off: never planned; special days switched off: their jobs don't come
+  settings.set('dragon', false); settings.set('christmas', false);
+  const off = settings.offJobs();
+  check(off.has('feedDragon') && off.has('cleanDragon') && !off.has('homework'), `jobs off: ${[...off]}`);
+  const pool = POOL_RULES.filter(r => !off.has(r.id));
+  const tags = settings.filterTags(['advent', 'christmas', 'christmasTime', 'adventDoor', 'halloween']);
+  check(tags.join() === 'halloween', `special days left: ${tags}`);
+  const ids = planDay(pool, { day: 1, lastDone: {}, character: 'girl', season: 'winter', holiday: tags }, seededRandom(1));
+  check(!ids.some(id => /Dragon|xmas|advent/.test(id)), `P's day with the dragon and Christmas off: ${ids}`);
+  check(createSettings().offGroups().sort().join() === 'christmas,dragon', 'switched-off jobs are kept on the device');
+
+  // the share link: everything there, and back again on another device
+  players.setLook('boy', { hair: 'spiky', hairColor: '#4a7fd8', glasses: true }); players.setBirthday('girl', '2014-05-06');
+  const code = shareCode(players, settings);
+  check(/^[A-Za-z0-9_-]+$/.test(code) && !code.includes('token'), 'the code is URL-safe');
+  check(linkCode(`#family=${code}`) === code && linkCode('#something') === null, 'finding the code in an address');
+  const got = readShareCode(code);
+  check(got && got.players.girl.name === 'Pia' && got.players.girl.birthday === '2014-05-06' && got.players.boy.look.hair === 'spiky' && got.players.boy.name === null, `reading it back: ${JSON.stringify(got && got.players.girl)}`);
+  check(got && got.off.sort().join() === 'christmas,dragon', 'jobs off in the link');
+  store.clear();
+  const p2 = createPlayers(), s2 = createSettings();
+  applyShare(got, p2, s2);
+  check(nameOf('girl') === 'Pia' && p2.look('boy').glasses === true && p2.birthday('girl') === '2014-05-06' && !s2.isOn('dragon'), 'settings copied to a new device');
+
+  // a hostile link: markup in names, unknown players, bad colours and hair, a made-up date, unknown jobs, junk
+  const evil = btoa(JSON.stringify({ v: 1, p: { girl: { n: '<img src=x onerror=alert(1)>', l: { skin: 'red;background:url(x)', hair: '../../x', glasses: 'yes', top: 'own' }, b: '2014-02-31' },
+    hacker: { n: 'x' }, dad: { b: '2999-01-01' } }, off: ['dragon', '__proto__', 'everything'], token: 'abc' })).replace(/=+$/, '');
+  const bad = readShareCode(evil);
+  check(bad && !/[<>]/.test(bad.players.girl.name) && Object.keys(bad.players.girl.look).join() === 'top' && bad.players.girl.birthday === null, `hostile link cleaned: ${JSON.stringify(bad && bad.players.girl)}`);
+  check(bad && !bad.players.hacker && bad.players.dad.birthday === null && bad.off.join() === 'dragon' && !('token' in bad), 'unknown players, future dates, unknown jobs and extra fields are dropped');
+  check(readShareCode('not-a-real-code') === null && readShareCode('<script>') === null && readShareCode('x'.repeat(7000)) === null, 'junk is ignored');
+  players.setName('girl', '');
+}
+
+// the shape of the family: she, he or they for each player, and a family with one grown-up (Mum or Dad left out,
+// never both, never a child): their household jobs go to the other grown-up, the texts say just one name, their
+// birthday has no party, and it all goes in the share link and to the family server
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { their, pronounOf, inFamily, grownUps, grownUpNames, grownUpsPossessive, familyKeys } = await import('../../house/js/names.js');
+  const { rulesFor } = await import('../../house/js/jobs/rules.js');
+  const { currentBirthday } = await import('../../house/js/holidays.js');
+  const { createSettings, shareCode, readShareCode, applyShare } = await import('../../house/js/settings.js');
+  const players = createPlayers(), settings = createSettings();
+  check(pronounOf('dad') === 'he' && their('girl') === 'her' && their('boy') === 'his', 'the usual pronouns');
+  players.setPronoun('boy', 'they'); players.setPronoun('girl', 'he'); players.setPronoun('mum', 'nonsense');
+  check(their('boy') === 'their' && their('girl') === 'his' && pronounOf('mum') === 'she', `pronouns chosen: ${their('boy')}, ${their('girl')}, ${pronounOf('mum')}`);
+  check(grownUpNames() === 'Mum and Dad' && grownUpsPossessive() === "Mum and Dad's", `both grown-ups: ${grownUpNames()}`);
+
+  // only a grown-up can be left out, and never both
+  check(players.setInFamily('girl', false) === false && inFamily('girl'), 'a child was left out');
+  check(players.setInFamily('dad', false) === true && !inFamily('dad') && grownUps().join() === 'mum', 'leaving Dad out');
+  check(players.setInFamily('mum', false) === false && inFamily('mum'), 'both grown-ups were left out');
+  check(familyKeys().join() === 'mum,girl,boy' && grownUpNames() === 'Mum' && grownUpsPossessive() === "Mum's", `one grown-up: ${grownUpNames()}, ${grownUpsPossessive()}`);
+
+  // Dad's household jobs go to Mum; his own (shaving, his work) don't
+  check(rulesFor('fixBike').who.join() === 'mum' && rulesFor('solar').who.join() === 'mum' && rulesFor('shave').who.join() === 'dad' && rulesFor('dadWork').who.join() === 'dad', 'Dad\'s household jobs for Mum');
+  const mumDay = planDay(POOL_RULES.map(r => rulesFor(r.id)), { day: 30, lastDone: {}, character: 'mum', season: 'summer', holiday: [] }, seededRandom(4));
+  check(mumDay.includes('fixBike') && mumDay.includes('solar') && !mumDay.includes('shave'), `Mum's day without Dad: ${mumDay}`);
+  players.setBirthday('dad', '1980-03-04');
+  check(currentBirthday(players, new Date(2026, 2, 4, 12)) === null, 'a party for someone who isn\'t in the family');
+
+  // the share link carries both
+  const got = readShareCode(shareCode(players, settings));
+  check(got.players.boy.pronoun === 'they' && got.players.dad.away === true && got.players.mum.away === false && got.players.girl.away === false, `share link: ${JSON.stringify(got.players.dad)}`);
+  const nobody = readShareCode(btoa(JSON.stringify({ v: 1, p: { dad: { x: true }, mum: { x: true }, girl: { x: true, pr: 'it' } }, off: [] })).replace(/=+$/, ''));
+  check(!nobody.players.dad.away && !nobody.players.mum.away && !nobody.players.girl.away && nobody.players.girl.pronoun === null, 'a link leaving everyone out');
+  // a link the other way round: Dad back in, Mum out (Dad comes back first)
+  const swapped = { ...got, players: { ...got.players, dad: { ...got.players.dad, away: false }, mum: { ...got.players.mum, away: true } } };
+  applyShare(swapped, players, settings);
+  check(inFamily('dad') && !inFamily('mum'), 'a link swapping which grown-up is left out');
+  players.setInFamily('mum', true); players.setPronoun('boy', null); players.setPronoun('girl', null); players.setBirthday('dad', null);
+  check(inFamily('dad') && inFamily('mum') && their('boy') === 'his', 'back to the usual family');
 }
 
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');

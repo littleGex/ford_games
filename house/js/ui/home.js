@@ -2,7 +2,7 @@
 // playing, start a mission (the school run), start over, or go back to Game Zone. The game is paused while
 // it's open (nothing moves, no surprises turn up, timers don't run).
 import { S } from '../state.js';
-import { FAMILY } from '../characters/family.js';
+import { NAMES, nameOf, showNames } from '../names.js';
 import { clockText, MISSIONS } from '../missions/missions.js';
 import { DESIGNS } from '../systems/printing.js';
 
@@ -12,9 +12,10 @@ export function createHome(ctx) {
   const el = { box: $('home'), sub: $('homeSub'), play: $('homePlay'), menu: $('menuBtn'), restartYes: $('gameRestartYes') };
 
   function render() {
+    showNames();   // the players' names on the buttons and mission cards
     // the best result for each mission, under its card
     document.querySelectorAll('.mission-best').forEach(b => {
-      const id = b.dataset && b.dataset.best, who = [['girl', 'P'], ['boy', 'Dude'], ['dad', 'Dad'], ['mum', 'Mum']];
+      const id = b.dataset && b.dataset.best, who = ['girl', 'boy', 'dad', 'mum'].map(k => [k, NAMES[k]]);
       if (!id) return;
       const ids = id.split(' ');   // a card can show more than one mission (the office: Dad's and Mum's)
       const best = ctx.missions ? ids.flatMap(i => who.map(([k, name]) => [name, ctx.missions.best(i, k)])).filter(([, r]) => r) : [];
@@ -28,7 +29,7 @@ export function createHome(ctx) {
       return;
     }
     const jobs = board.jobs.filter(j => !j.event), done = jobs.filter(board.finished).length;
-    const who = (FAMILY[days.character] || FAMILY.dad).label;
+    const who = nameOf(days.character);
     const fresh = days.day === 1 && done === 0;
     el.play.textContent = S.dayOver ? `On to day ${days.day + 1}` : fresh ? 'Start day 1' : `Carry on with day ${days.day}`;
     el.sub.textContent = `Day ${days.day} · playing as ${who} · ${done} of ${jobs.length} jobs done`;
@@ -53,7 +54,7 @@ export function createHome(ctx) {
   el.menu.addEventListener('click', open);
   el.restartYes.addEventListener('click', () => setTimeout(close));   // starting over goes straight to day 1
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !S.sorting && !S.avatar) { e.preventDefault(); S.menuOpen ? close() : open(); }
+    if (e.key === 'Escape' && !S.sorting && !S.avatar && !S.calendar && !S.settings) { e.preventDefault(); S.menuOpen ? close() : open(); }
   });
 
   return { open, close, render, get isOpen() { return S.menuOpen; } };

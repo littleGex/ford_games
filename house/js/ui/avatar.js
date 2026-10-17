@@ -1,4 +1,5 @@
-// The avatar editor, from the home screen: how each of the four players looks (skin, hair style and colour,
+// The avatar editor, from the home screen: each player's name, whether they're she, he or they, whether a
+// grown-up is in the family at all (a family with one grown-up leaves the other out), how each of the four players looks (skin, hair style and colour,
 // glasses, a beard for the grown-ups, top, trousers, shoes) with a turning preview, and their birthday. Their
 // age follows from the birthday, and so whether P and Dude are children or teenagers. Saved on this device
 // (players.js); the figures in the game change straight away.
@@ -7,13 +8,15 @@ import { S } from '../state.js';
 import { makeCharacter } from '../characters/character.js';
 import { HAIR, PALETTE, specFor } from '../characters/looks.js';
 import { daysToBirthday, STAGE_NAMES } from '../players.js';
+import { DEFAULT_NAMES, GROWN_UPS, NAMES, inFamily, pronounOf, showNames } from '../names.js';
 
-const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
 
-export function createAvatar({ players, days, familyServer }) {
+export function createAvatar(ctx) {
+  const { players, days, familyServer } = ctx;
   const $ = id => document.getElementById(id);
   const el = { box: $('avatar'), controls: $('avatarControls'), preview: $('avatarPreview'), birthday: $('avatarBirthday'), age: $('avatarAge'),
-               done: $('avatarDone'), reset: $('avatarReset'), open: $('looksBtn'),
+               done: $('avatarDone'), reset: $('avatarReset'), open: $('looksBtn'), name: $('avatarName'), nameHint: $('avatarNameHint'),
+               pronoun: $('avatarPronoun'), pronounLabel: $('avatarPronounLabel'), family: $('avatarFamily'), familyText: $('avatarFamilyText'), familyBtn: $('avatarFamilyBtn'),
                status: $('serverStatus'), token: $('serverToken'), connect: $('serverConnectBtn'), connectRow: $('serverConnect'), disconnect: $('serverDisconnect') };
   const tabs = [...document.querySelectorAll('.avatar-who [data-p]')];
   let key = 'dad', figure = null, spin = 0, raf = null;
@@ -64,7 +67,7 @@ export function createAvatar({ players, days, familyServer }) {
 
   function render() {
     tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.p === key)));
-    const look = players.look(key), bearded = (key === 'dad' || key === 'boy') && players.stage(key) === 'adult';   // Dad, and Dude from 18
+    const look = players.look(key), bearded = players.stage(key) === 'adult';   // any grown-up (P and Dude from 18)
     el.controls.replaceChildren(
       row('Skin', swatches(PALETTE.skin), look.skin, v => set({ skin: v })),
       row('Hair', Object.entries(HAIR).map(([value, h]) => ({ value, label: h.label })), look.hair, v => set({ hair: v })),
@@ -76,6 +79,11 @@ export function createAvatar({ players, days, familyServer }) {
     );
     // the extras chips show as pressed when they're on
     el.controls.querySelectorAll('.avatar-chip').forEach(b => { if (b.dataset.value === 'glasses') b.setAttribute('aria-pressed', String(!!look.glasses)); if (b.dataset.value === 'beard') b.setAttribute('aria-pressed', String(!!look.beard)); });
+    if (globalThis.document && document.activeElement !== el.name) el.name.value = players.customName(key) || '';
+    el.name.placeholder = DEFAULT_NAMES[key];
+    el.nameHint.textContent = `Shown everywhere in the game. Leave it empty for "${DEFAULT_NAMES[key]}".`;
+    renderPronoun();
+    renderFamily();
     el.birthday.value = players.birthday(key) || '';
     const fromServer = !!(familyServer && familyServer.connected && familyServer.status && familyServer.status.ok);
     el.birthday.readOnly = fromServer;
@@ -84,6 +92,41 @@ export function createAvatar({ players, days, familyServer }) {
     el.birthday.max = new Date().toISOString().slice(0, 10);
     el.age.textContent = ageText();
     showFigure();
+  }
+
+  // she, he or they: "her bed", "his teeth", "their iPad" in the jobs and missions
+  function renderPronoun() {
+    if (!el.pronoun) return;
+    const now = pronounOf(key);
+    el.pronounLabel.textContent = `Talk about ${NAMES[key]} as`;
+    el.pronoun.replaceChildren(...[['she', 'She / her'], ['he', 'He / his'], ['they', 'They / their']].map(([p, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'avatar-chip'; b.dataset.pronoun = p; b.textContent = label;
+      b.setAttribute('aria-pressed', String(p === now));
+      b.addEventListener('click', () => { players.setPronoun(key, p); changedFamily = true; render(); });
+      return b;
+    }));
+  }
+
+  // a family with one grown-up: Mum or Dad can be left out (never both); children always play
+  function renderFamily() {
+    tabs.forEach(t => { const away = !inFamily(t.dataset.p); t.classList.toggle('away', away); t.title = away ? `${NAMES[t.dataset.p]} isn't in the family` : ''; });
+    if (!el.family) return;
+    const grown = GROWN_UPS.includes(key);
+    el.family.hidden = !grown;
+    if (!grown) return;
+    const other = GROWN_UPS.find(k => k !== key), N = NAMES[key];
+    if (inFamily(key)) {
+      const can = inFamily(other);
+      el.familyText.textContent = can ? `A family with one grown-up? Leave ${N} out: ${NAMES[other]} does the jobs around the house.` : `${N} is the only grown-up in the family.`;
+      el.familyBtn.textContent = `Leave ${N} out`;
+      el.familyBtn.disabled = !can;
+      el.familyBtn.hidden = !can;
+    } else {
+      el.familyText.textContent = `${N} isn't in the family: ${NAMES[other]} does the jobs around the house.`;
+      el.familyBtn.textContent = `Bring ${N} back`;
+      el.familyBtn.disabled = false; el.familyBtn.hidden = false;
+    }
   }
 
   // the family server: a token typed in once on this device brings the real birthdays
@@ -117,10 +160,21 @@ export function createAvatar({ players, days, familyServer }) {
 
   function close() {
     S.avatar = false; el.box.hidden = true;
+    if (changedFamily) { changedFamily = renamed = false; if (!days.replanIfUntouched({ force: true })) days.rebuild(); }   // who does what changed
+    else if (renamed) { renamed = false; days.retitle(); }   // today's jobs with the new names
+    if (ctx.home && ctx.home.isOpen) ctx.home.render();   // who's playing, the missions
     if (el.open && el.open.focus) el.open.focus();
   }
 
   tabs.forEach(t => t.addEventListener('click', () => { key = t.dataset.p; render(); }));
+  // a new name: saved as it's typed (cleaned up: letters, numbers, spaces, - ' and . only), shown on the
+  // buttons at once, and in today's job titles when the card closes
+  let renamed = false, changedFamily = false;
+  if (el.familyBtn) el.familyBtn.addEventListener('click', () => {
+    if (players.setInFamily(key, !players.inFamily(key))) { changedFamily = true; showNames(); render(); }
+  });
+  el.name.addEventListener('input', () => { players.setName(key, el.name.value); renamed = true; showNames(); });
+  el.name.addEventListener('change', () => { el.name.value = players.customName(key) || ''; render(); });
   if (familyServer && el.connect) {
     el.connect.addEventListener('click', async () => {
       if (!el.token.value.trim()) return;

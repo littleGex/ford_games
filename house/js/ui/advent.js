@@ -4,8 +4,9 @@
 // Advent job, from the calendars on the living room wall, or from the home screen in December.
 import { S } from '../state.js';
 import { DOOR_ORDER } from '../advent.js';
+import { nameOf, possessive } from '../names.js';
 
-const NAMES = { girl: 'P', boy: 'Dude' };
+const KIDS = ['girl', 'boy'];
 
 export function createAdventCard({ advent, days, hud }) {
   const $ = id => document.getElementById(id);
@@ -17,11 +18,11 @@ export function createAdventCard({ advent, days, hud }) {
   const mine = () => me() === key;
 
   function defaultStatus() {
-    const N = NAMES[key], ready = advent.ready(key), opened = advent.opened(key).length, upTo = advent.upTo();
+    const N = nameOf(key), Ns = possessive(key), ready = advent.ready(key), opened = advent.opened(key).length, upTo = advent.upTo();
     if (!mine()) {
       return ready.length
-        ? `${N} has ${ready.length === 1 ? 'a door' : `${ready.length} doors`} to open. Only ${N} can open ${N}'s calendar.`
-        : `${N}'s calendar: ${opened} of 24 doors open.`;
+        ? `${N} has ${ready.length === 1 ? 'a door' : `${ready.length} doors`} to open. Only ${N} can open ${Ns} calendar.`
+        : `${Ns} calendar: ${opened} of 24 doors open.`;
     }
     if (ready.length > 3) return `${ready.length} doors are waiting (you missed a few days!). Tap the glowing ones to open them.`;
     if (ready.length > 1) return `Doors ${ready.slice(0, -1).join(', ')} and ${ready[ready.length - 1]} are ready: you missed a day or two! Tap one to open it.`;
@@ -59,10 +60,10 @@ export function createAdventCard({ advent, days, hud }) {
   }
 
   function tap(n) {
-    const N = NAMES[key];
+    const N = nameOf(key), Ns = possessive(key);
     if (advent.isOpen(key, n)) { const [icon, name] = advent.gift(key, n); said = `Door ${n}: ${icon} ${name}`; render(); return; }
     if (!advent.canOpen(key, n)) { said = n > advent.upTo() ? `Door ${n} opens on ${n} December. No peeking! 👀` : `Door ${n} isn't ready yet.`; render(); return; }
-    if (!mine()) { said = `Only ${N} can open ${N}'s doors: play as ${N} to open it.`; render(); return; }
+    if (!mine()) { said = `Only ${N} can open ${Ns} doors: play as ${N} to open it.`; render(); return; }
     choose(n);
   }
 
@@ -80,7 +81,7 @@ export function createAdventCard({ advent, days, hud }) {
   }
 
   function open(who) {
-    key = NAMES[who] ? who : NAMES[me()] ? me() : 'girl';
+    key = KIDS.includes(who) ? who : KIDS.includes(me()) ? me() : 'girl';
     said = null;
     S.calendar = true; el.box.hidden = false;
     render();

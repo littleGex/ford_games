@@ -135,7 +135,9 @@ export function createJobBoard({ scene, items, hud, levels }) {
       const s = step(job);
       if (!s || !canDo(s) || levelOf(s) !== S.level) continue;
       const p = at(s); if (!p) continue;
-      const d = Math.hypot(pos.x - p[0], pos.z - p[1]);
+      // a job you've started goes on before a new one at the same desk (the present you just made at the attic
+      // desk, not the wish list still waiting there): a quarter of a metre's head start
+      const d = Math.hypot(pos.x - p[0], pos.z - p[1]) - (job.i > 0 && Math.hypot(pos.x - p[0], pos.z - p[1]) < REACH ? 0.25 : 0);
       // several things at the same spot (meetings and work at a desk): the one due soonest comes first
       const sooner = best && Math.abs(d - bd) < 1e-6 && (job.due ?? Infinity) < (best.job.due ?? Infinity);
       if (d < bd - 1e-6 || sooner) { bd = d; best = { job, step: s }; }

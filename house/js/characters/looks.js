@@ -1,5 +1,5 @@
 // What each player looks like, as settings the avatar editor can change (ui/avatar.js): skin, hair style
-// and colour, top, trousers, shoes, and extras (glasses; a beard for Dad, and for Dude once he's 18). specFor() turns a look into the spec
+// and colour, top, trousers, shoes, and extras (glasses; a beard for any grown-up: Mum and Dad, and P or Dude from 18). specFor() turns a look into the spec
 // makeCharacter() builds a figure from. The defaults are the family as they've always looked.
 import * as THREE from 'three';
 import { add } from '../core/build.js';
@@ -98,10 +98,10 @@ const OWN_TOP = {
 
 // the parts of each player's figure that don't change: label, socks, blush, the leg size
 const BASE = {
-  dad: { label: 'Dad', legR: 0.075 },
-  mum: { label: 'Mum', blush: true, legR: 0.08 },
-  girl: { label: 'P', blush: true, legR: 0.088 },
-  boy: { label: 'Dude', blush: true, socks: '#f08a24' },
+  dad: { legR: 0.075 },
+  mum: { blush: true, legR: 0.08 },
+  girl: { blush: true, legR: 0.088 },
+  boy: { blush: true, socks: '#f08a24' },
 };
 // how tall each player is at each life stage (the figures scale as a whole)
 export const HEIGHT = {
@@ -118,7 +118,7 @@ export function specFor(key, look = DEFAULT_LOOKS[key], stage = DEFAULT_STAGE[ke
   const l = { ...DEFAULT_LOOKS[key], ...look }, h = HEIGHT[key];
   const own = l.top === 'own' && OWN_TOP[key];
   const style = HAIR[l.hair] || HAIR.short;
-  const bearded = !!l.beard && (key === 'dad' || key === 'boy') && (stage || DEFAULT_STAGE[key]) === 'adult';   // Dad, and Dude from 18
+  const bearded = !!l.beard && (stage || DEFAULT_STAGE[key]) === 'adult';   // any grown-up
   return {
     ...BASE[key],
     scale: h[stage] || h[DEFAULT_STAGE[key]],

@@ -174,7 +174,7 @@ test('each character has their own jobs: Dad shaves, Mum works, P and Dude do ho
   // P does her homework at the desk in her room, Dude at his own desk in the attic
   await page.locator('.who button[data-c="girl"]').click();
   await page.evaluate(() => { window.house.levels.go(1); window.house.player.group.position.set(1.9, 2.3, 8.05); });
-  await expect(page.locator('#actBtn')).toHaveText('Sit at the desk and do your homework');
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
   await page.locator('.who button[data-c="boy"]').click();
   await page.evaluate(() => { window.house.levels.go(2); window.house.player.group.position.set(4.1, 4.6, 2.27); });
   await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
@@ -280,6 +280,130 @@ test('Christmas: the Advent calendar opens one more door each real day, and keep
   await page.goto('/house/?date=2026-12-04');
   await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/);
   expect(await page.evaluate(() => window.house.advent.ready('girl'))).toEqual([1, 2, 4]);
+});
+
+test('names, jobs on or off, and a link that copies them to another device', async ({ page, browser }) => {
+  await page.goto('/house/');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+  // P is called Pia here: on the buttons straight away, in today's jobs when the card closes
+  await page.locator('#looksBtn').click();
+  await page.locator('.avatar-who [data-p="girl"]').click();
+  await expect(page.locator('#avatarName')).toHaveAttribute('placeholder', 'P');
+  await page.locator('#avatarName').fill('Pia');
+  await expect(page.locator('.home-who [data-c="girl"]')).toHaveText('Pia');
+  await expect(page.locator('.avatar-who [data-p="girl"]')).toHaveText('Pia');
+  await page.locator('#avatarDone').click();
+  await play(page);
+  await planToday(page, ['fixBike']);
+  await expect(page.locator('#taskList')).toContainText("Fix Pia's bike");
+  await expect(page.locator('.hud.bottom .who [data-c="girl"]')).toHaveText('Pia');
+
+  // the dragon switched off
+  await page.locator('#menuBtn').click();
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#settings')).toBeVisible();
+  const dragon = page.locator('.settings-switch[data-group="dragon"]');
+  await expect(dragon).toContainText("Pia's bearded dragon");
+  await expect(dragon).toHaveAttribute('aria-checked', 'true');
+  await dragon.click();
+  await expect(dragon).toHaveAttribute('aria-checked', 'false');
+
+  // the share link
+  await page.locator('#shareBtn').click();
+  await expect(page.locator('#shareLink')).toBeVisible();
+  const link = await page.locator('#shareLink').inputValue();
+  expect(link).toMatch(/\/house\/#family=[A-Za-z0-9_-]+$/);
+  await page.locator('#settingsDone').click();
+
+  // another device: it asks first, then the names and the switched-off dragon are there
+  const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
+  const tablet = await other.newPage();
+  await tablet.goto(link.replace(/^https?:\/\/[^/]+/, ''));
+  await expect(tablet.locator('#shareImport')).toBeVisible();
+  await expect(tablet.locator('#shareImportList')).toContainText('P → Pia');
+  await expect(tablet.locator('#shareImportList')).toContainText("Switched off: P's bearded dragon");   // (still called P on this device)
+  expect(await tablet.evaluate(() => location.hash)).toBe('');   // the code doesn't stay in the address
+  await tablet.locator('#shareYes').click();
+  await expect(tablet.locator('#shareImport')).toBeHidden();
+  await expect(tablet.locator('.home-who [data-c="girl"]')).toHaveText('Pia');
+  expect(await tablet.evaluate(() => window.house.settings.isOn('dragon'))).toBe(false);
+  await other.close();
+});
+
+test('who sleeps where: P and Dude swap rooms, and the homework goes to the desk in the new room', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#settingsRooms')).toHaveText('P sleeps in the room on the first floor, Dude in the attic room.');
+  await expect(page.locator('#swapRooms')).toHaveText('Swap: Dude downstairs, P in the attic');
+  await page.locator('#swapRooms').click();
+  await expect(page.locator('#settingsRooms')).toHaveText('Dude sleeps in the room on the first floor, P in the attic room.');
+  await page.locator('#settingsDone').click();
+  await play(page);
+
+  // P's homework is at the attic desk now, and the rooms have new names
+  await page.locator('.hud.bottom .who [data-c="girl"]').click();
+  await planToday(page, ['homework', 'beds']);
+  const where = await page.evaluate(() => {
+    const h = window.house, step = h.board.find('homework').steps[0];
+    return { level: h.board.levelOf(step), at: step.at, beds: h.board.find('beds').steps.map(s => s.label) };
+  });
+  expect(where.level).toBe(2);
+  expect(where.at).toEqual([4.62, 2.27]);
+  expect(where.beds).toContain("Make Dude's bed");
+
+  // kept after a reload
+  await page.reload();
+  await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/, { timeout: 20000 });
+  expect(await page.evaluate(() => window.house.settings.roomsSwapped())).toBe(true);
+});
+
+test('the shape of the family: Dude as they, and a family with one grown-up (Dad left out)', async ({ page }) => {
+  test.setTimeout(60000);   // two page loads and both cards
+  await page.goto('/house/');
+  await expect(page.locator('#home')).toBeVisible();
+  await page.locator('#looksBtn').click();
+  // Dude: they / their
+  await page.locator('.avatar-who [data-p="boy"]').click();
+  await expect(page.locator('#avatarPronounLabel')).toHaveText('Talk about Dude as');
+  await expect(page.locator('#avatarFamily')).toBeHidden();   // children always play
+  await page.locator('#avatarPronoun [data-pronoun="they"]').click();
+  await expect(page.locator('#avatarPronoun [data-pronoun="they"]')).toHaveAttribute('aria-pressed', 'true');
+  // Dad left out: Mum's the only grown-up, and she can't be left out too
+  await page.locator('.avatar-who [data-p="dad"]').click();
+  await page.locator('#avatarFamilyBtn').click();
+  await expect(page.locator('#avatarFamilyText')).toContainText("Dad isn't in the family");
+  await expect(page.locator('#avatarFamilyBtn')).toHaveText('Bring Dad back');
+  await expect(page.locator('.avatar-who [data-p="dad"]')).toHaveClass(/away/);
+  await page.locator('.avatar-who [data-p="mum"]').click();
+  await expect(page.locator('#avatarFamilyText')).toHaveText('Mum is the only grown-up in the family.');
+  await expect(page.locator('#avatarFamilyBtn')).toBeHidden();
+  await page.locator('#avatarDone').click();
+
+  // the home screen: no Dad to pick or play missions as; Mum does the 3D printing
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeHidden();
+  await expect(page.locator('.home-who [data-c="mum"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#homeSub')).toContainText('playing as Mum');
+  await expect(page.locator('[data-mission="wfh"][data-kid="dad"]')).toBeHidden();
+  await expect(page.locator('[data-mission="office"][data-kid="dad"]')).toBeHidden();
+  await expect(page.locator('[data-mission="print3d"][data-kid="mum"]')).toBeVisible();
+  await expect(page.locator('[data-mission="bedtime"][data-kid="mum"]')).toBeVisible();
+  await play(page);
+  await expect(page.locator('.hud.bottom .who [data-c="dad"]')).toBeHidden();
+  await planToday(page, ['fixBike']);
+  await expect(page.locator('#taskList')).toContainText('Fix');
+
+  // kept after a reload; Dad back again
+  await page.reload();
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeHidden();
+  expect(await page.evaluate(() => [window.house.players.customPronoun('boy'), window.house.players.inFamily('dad')])).toEqual(['they', false]);
+  await page.locator('#looksBtn').click();
+  await page.locator('.avatar-who [data-p="dad"]').click();
+  await page.locator('#avatarFamilyBtn').click();
+  await page.locator('#avatarDone').click();
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeVisible();
+  await expect(page.locator('[data-mission="print3d"][data-kid="mum"]')).toBeHidden();
 });
 
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {
@@ -534,6 +658,52 @@ test('the family server: connect with the game token, and the birthdays come in 
   await page.locator('#avatarDone').click();
   await expect(page.locator('#taskList')).toContainText("P's birthday cake");
   expect(await page.evaluate(() => localStorage.getItem('fordHouse.gameToken.v1'))).toBe('test-token');
+});
+
+test('the family server keeps the settings the same on every device: they come down when connecting, and changes go up', async ({ page }) => {
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'GET, PUT' };
+  // what another device saved: Dude is called Max and the dragon is off
+  const server = { version: 1, settings: { players: { boy: { name: 'Max', look: { hair: 'spiky' } } }, off: ['dragon'] } };
+  const puts = [];
+  await page.route('**/v1/game/family', route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ players: [] }) });
+  });
+  await page.route('**/v1/game/settings', route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (req.method() === 'PUT') {
+      const body = req.postDataJSON();
+      puts.push(body);
+      if (body.base_version !== server.version) return route.fulfill({ status: 409, contentType: 'application/json', headers: cors, body: JSON.stringify({ detail: 'changed', version: server.version, settings: server.settings }) });
+      server.settings = body.settings; server.version++;
+    }
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ version: server.version, updated_at: '2026-10-17T18:00:00Z', settings: server.settings }) });
+  });
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#looksBtn').click();
+  await page.locator('#serverToken').fill('test-token');
+  await page.locator('#serverConnectBtn').click();
+  await expect(page.locator('.avatar-who [data-p="boy"]')).toHaveText('Max');
+  await page.locator('#avatarDone').click();
+  await expect(page.locator('.home-who [data-c="boy"]')).toHaveText('Max');
+  expect(await page.evaluate(() => [window.house.settings.isOn('dragon'), window.house.players.look('boy').hair])).toEqual([false, 'spiky']);
+
+  // a change here goes up a moment later, with the version it was based on
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#syncStatus')).toContainText('Family server:');
+  // (connecting already saved once: the other device's copy had only Dude in it, so this one filled in the rest)
+  const before = server.version;
+  await page.locator('.settings-switch[data-group="bike"]').click();
+  await expect.poll(() => puts.filter(p => p.settings.off.includes('bike')).length, { timeout: 10000 }).toBe(1);
+  const last = puts.find(p => p.settings.off.includes('bike'));
+  expect(last.base_version).toBe(before);
+  expect(last.settings.off.sort()).toEqual(['bike', 'dragon']);
+  expect(last.settings.players.boy.name).toBe('Max');
+  expect(last.settings.players.girl.name).toBe(null);
+  await expect(page.locator('#syncStatus')).toContainText('Saved on the family server');
+  expect(server.version).toBe(before + 1);
 });
 
 test('bedtime: starts in the evening with both kids on the sofa, and the iPads go off', async ({ page }) => {

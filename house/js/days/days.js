@@ -14,30 +14,37 @@ function binParams(save) {
   const last = save.lastBinPair, birthday = birthdayOf();
   // day: where the loft box is; holiday: today's tags, for Halloween and Christmas jobs and decorations (kept
   // for the day once it's planned)
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHolidays(), birthday };
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: offTags(currentHolidays()), birthday };
 }
 
 // a player's life stage (players.js: from their birthday), whose birthday it is today, and the day's tags for
 // one of the family (P or Dude get 'adventDoor' while there's a door on their Advent calendar to open); set up
 // by createDays
 let stageOf = () => undefined, birthdayOf = () => null, tagsFor = (who, holiday) => [].concat(holiday || []);
+// the house settings (settings.js): jobs switched off, and special days switched off
+let offJobs = () => new Set(), offTags = tags => tags;
+/** The day's jobs for a character, without the ones that are switched off. */
+const poolFor = params => { const off = offJobs(); return createJobs(params).filter(j => !off.has(j.id)); };
 
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
-  const pool = createJobs({ ...params, character: save.character });
+  const pool = poolFor({ ...params, character: save.character });
   return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: tagsFor(save.character, params.holiday), birthday: params.birthday }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
   const { board, hud, items, clock } = ctx;
   stageOf = key => (ctx.players ? ctx.players.stage(key) : undefined);
-  birthdayOf = () => currentBirthday(ctx.players);
-  tagsFor = (who, holiday) => [...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : [])];
+  const settings = () => ctx.settings;
+  birthdayOf = () => (settings() && !settings().birthdaysOn() ? null : currentBirthday(ctx.players));
+  offTags = tags => (settings() ? settings().filterTags(tags) : [].concat(tags || []));
+  offJobs = () => (settings() ? settings().offJobs() : new Set());
+  tagsFor = (who, holiday) => offTags([...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : [])]);
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
   /** Today's jobs as they are for whoever is playing (homework is somewhere different for each of the kids). */
-  const jobsToday = () => createJobs({ ...today.params, character: save.character });
+  const jobsToday = () => poolFor({ ...today.params, character: save.character });
 
   function setupDay() {
     const { plan, done } = today;
@@ -95,7 +102,7 @@ export function createDays(ctx) {
     S.dayOver = true;
     const next = { ...save, day: save.day + 1 };
     const params = binParams(next);
-    const pool = createJobs(params);
+    const pool = poolFor(params);
     const tomorrow = planFor(next, params).map(id => pool.find(j => j.id === id)).filter(j => j.must || j.who || j.every >= 3).map(j => j.title);
     hud.showDayComplete({
       day: save.day,
@@ -157,11 +164,31 @@ export function createDays(ctx) {
       writeSave(save);
     },
     /** The birthdays changed (the family server answered): if nothing's been done today yet and whose
-     *  birthday it is has changed, plan today again so the party jobs come (or go). */
-    replanIfUntouched() {
-      if (!today || today.done.length || today.completed || S.mission || today.params.birthday === birthdayOf()) return false;
+     *  birthday it is has changed, plan today again so the party jobs come (or go). force: plan again anyway
+     *  (jobs were switched on or off). */
+    replanIfUntouched({ force = false } = {}) {
+      if (!today || today.done.length || today.completed || S.mission || (!force && today.params.birthday === birthdayOf())) return false;
       save.today = null; writeSave(save); start();
       return true;
+    },
+    /** The players' names changed: today's jobs get their titles and labels with the new names (where they
+     *  are and what's done stays as it is). */
+    retitle() {
+      if (!today || S.mission) return;
+      const fresh = jobsToday();
+      for (const job of board.jobs) {
+        const f = fresh.find(x => x.id === job.id);
+        if (!f) continue;
+        job.title = f.title;
+        f.steps.forEach((s, i) => { const t = job.steps[i]; if (t && s.label !== undefined && Object.getOwnPropertyDescriptor(t, 'label') && Object.getOwnPropertyDescriptor(t, 'label').writable) t.label = s.label; });
+      }
+      board.refresh();
+    },
+    /** Where things are changed (P and Dude swapped rooms): set today up again with the jobs where they are now.
+     *  What's done stays done. */
+    rebuild() {
+      if (!today || S.mission) return;
+      setupDay();
     },
     /** For tests and trying things out: replace today's list with these job ids. */
     plan(ids) {
