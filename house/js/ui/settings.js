@@ -2,17 +2,22 @@
 // link that copies the family's names, looks, birthdays and these switches to another phone or tablet. Also
 // the card that asks first when such a link is opened here.
 import { S } from '../state.js';
-import { DEFAULT_NAMES, NAMES, showNames } from '../names.js';
+import { DEFAULT_NAMES, NAMES, nameOf, showNames } from '../names.js';
+import { kidIn } from '../pack/kidrooms.js';
 import { JOB_GROUPS, applyShare, linkCode, readShareCode, shareCode } from '../settings.js';
 
 export function createSettingsCard(ctx) {
   const { players, settings, days, hud } = ctx;
   const $ = id => document.getElementById(id);
-  const el = { box: $('settings'), list: $('settingsJobs'), done: $('settingsDone'), open: $('settingsBtn'), share: $('shareBtn'), link: $('shareLink'), status: $('shareStatus'),
+  const el = { box: $('settings'), list: $('settingsJobs'), rooms: $('settingsRooms'), swap: $('swapRooms'), done: $('settingsDone'), open: $('settingsBtn'), share: $('shareBtn'), link: $('shareLink'), status: $('shareStatus'),
                ask: $('shareImport'), askList: $('shareImportList'), yes: $('shareYes'), no: $('shareNo') };
   let changed = false, pending = null;
 
   function render() {
+    // who sleeps where
+    const first = kidIn('first'), attic = kidIn('attic');
+    el.rooms.textContent = `${nameOf(first)} sleeps in the room on the first floor, ${nameOf(attic)} in the attic room.`;
+    el.swap.textContent = `Swap: ${nameOf(attic)} downstairs, ${nameOf(first)} in the attic`;
     el.list.replaceChildren(...JOB_GROUPS.map(g => {
       const li = document.createElement('li'), b = document.createElement('button'), on = settings.isOn(g.id);
       b.type = 'button'; b.className = 'settings-switch'; b.dataset.group = g.id;
@@ -62,7 +67,7 @@ export function createSettingsCard(ctx) {
    *  yet (otherwise it shows from tomorrow); the names show everywhere. */
   function afterChange() {
     showNames();
-    if (!days.replanIfUntouched({ force: true })) days.retitle();
+    if (!days.replanIfUntouched({ force: true })) days.rebuild();   // the jobs as they are now (names, rooms)
     if (ctx.home && ctx.home.isOpen) ctx.home.render();
   }
 
@@ -80,6 +85,7 @@ export function createSettingsCard(ctx) {
     });
     const off = JOB_GROUPS.filter(g => pending.off.includes(g.id)).map(g => g.label);
     lines.push(off.length ? `Switched off: ${off.join(', ')}` : 'All jobs on');
+    if (pending.swapRooms !== settings.roomsSwapped()) lines.push(pending.swapRooms ? `${NAMES.girl} and ${NAMES.boy} swap rooms` : `${NAMES.girl} and ${NAMES.boy} back in their usual rooms`);
     el.askList.replaceChildren(...lines.map(t => { const li = document.createElement('li'); li.textContent = t; return li; }));
     S.settings = true; el.ask.hidden = false;
     if (el.yes.focus) el.yes.focus();
@@ -93,6 +99,7 @@ export function createSettingsCard(ctx) {
   el.done.addEventListener('click', close);
   if (el.open) el.open.addEventListener('click', open);
   el.share.addEventListener('click', share);
+  el.swap.addEventListener('click', () => { settings.setRoomsSwapped(!settings.roomsSwapped()); changed = true; render(); });
   el.yes.addEventListener('click', () => answer(true));
   el.no.addEventListener('click', () => answer(false));
   globalThis.addEventListener('keydown', e => {

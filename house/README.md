@@ -26,11 +26,17 @@ asks `names.js` when it builds its text, so a new name shows on the buttons, in 
 missions, the Advent calendars and the room chips. Names are cleaned up (letters, numbers, spaces, - ' and .,
 at most 16 characters), so they can never carry markup.
 
+**Bedrooms** (`js/pack/kidrooms.js`, in the rooms, jobs and sharing card): P sleeps in the room on the first
+floor and Dude in the attic, unless they swap. Their bed, wardrobe and desk go with them: homework, making the
+beds, the folded washing, the school run, bedtime, the Halloween costumes, the Christmas wish list and present,
+and the 3D-printed models all use the new room, and the room chips say whose room is whose. The terrarium, the
+toys, the Lego, the keyboard and the clarinet stay where they are.
+
 **Jobs, and sharing** (`js/settings.js`, `js/ui/settings.js`, from the home screen): switch groups of jobs off
 that don't fit a family (the bearded dragon, keyboard practice, the clarinet, the bike, the solar panels, the
 car, shaving, the loft) and the special days (Halloween, Christmas and the Advent calendars, birthday parties).
 They're never planned while they're off. **Share the link** makes a link with everyone's names, looks,
-birthdays and the switches, in the part after `#` (which never reaches a server); opening it on another phone
+birthdays, the switches and who sleeps where, in the part after `#` (which never reaches a server); opening it on another phone
 or tablet asks first, then copies them there. The family server token is never in it, and everything in a
 link is checked before it's used.
 
@@ -240,8 +246,12 @@ house/
     systems/            things that happen over time: power cuts, post & parcels, sitting jobs,
                         mowing, hoovering, car charging, the washing machine (waiting.js),
                         plant growth, and levels.js for the stairs
+    pack/kidrooms.js    the Ford house's kids' rooms: whose bed, wardrobe and desk are where
     ui/hud.js           room chip, job list, banner, toasts
 ```
+
+The code is being split into an engine that works for any house and a house pack with what makes it the Ford
+house (`js/pack/`). See [ARCHITECTURE.md](ARCHITECTURE.md) for the plan and the slices still to do.
 
 The tests live with the rest of the repo's tests, in `tests/house/` (Node play-through) and
 `tests/e2e/house.spec.js` (browser).

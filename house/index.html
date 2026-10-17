@@ -49,7 +49,7 @@
         <button data-c="dad" data-name="dad" aria-pressed="true">Dad</button><button data-c="mum" data-name="mum" aria-pressed="false">Mum</button><button data-c="girl" data-name="girl" aria-pressed="false">P</button><button data-c="boy" data-name="boy" aria-pressed="false">Dude</button>
       </div>
       <button class="linkbtn home-looks" id="looksBtn">Names, looks and birthdays</button>
-      <button class="linkbtn home-looks" id="settingsBtn">Jobs, and sharing with another device</button>
+      <button class="linkbtn home-looks" id="settingsBtn">Bedrooms, jobs, and sharing with another device</button>
       <button class="linkbtn home-looks" id="adventBtn" hidden>🎄 Look at the Advent calendars</button>
 
       <h2>Missions</h2>
@@ -133,12 +133,15 @@
 
   <div class="settings" id="settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
     <div class="settings-card">
-      <h1 id="settingsTitle">Jobs, and sharing</h1>
+      <h1 id="settingsTitle">Rooms, jobs, and sharing</h1>
+      <h2>Bedrooms</h2>
+      <p class="settings-note" id="settingsRooms"></p>
+      <button class="avatar-chip settings-share" id="swapRooms">Swap rooms</button>
       <h2>Jobs in the house</h2>
       <p class="settings-note">Switch off what doesn't fit your family. It shows from tomorrow, or straight away if nothing's been done today.</p>
       <ul class="settings-jobs" id="settingsJobs"></ul>
       <h2>Share with another phone or tablet</h2>
-      <p class="settings-note">Makes a link with everyone's names, looks, birthdays and which jobs are on. Open it on the other device to copy them there. The family server token isn't in it.</p>
+      <p class="settings-note">Makes a link with everyone's names, looks, birthdays, bedrooms and which jobs are on. Open it on the other device to copy them there. The family server token isn't in it.</p>
       <button class="avatar-chip settings-share" id="shareBtn">Share the link</button>
       <p class="settings-note" id="shareStatus" aria-live="polite"></p>
       <input class="settings-link" id="shareLink" readonly hidden aria-label="Link with the family settings">

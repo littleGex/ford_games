@@ -1,16 +1,17 @@
 import { genitive, possessive } from '../names.js';
+import { kidIn } from '../pack/kidrooms.js';
 
 // Named areas for the room chip in the corner. Areas (m²) are the figures printed on the floor plan.
 // Order matters: the first rectangle that contains the player wins.
 export const ROOMS = [
   // Dachgeschoss
-  { level: 2, get name() { return `${genitive('boy')} Zimmer`; }, area: '15,00 m²', r: [0, 0, 5.64, 3.94] },
+  { level: 2, get name() { return `${genitive(kidIn('attic'))} Zimmer`; }, area: '15,00 m²', r: [0, 0, 5.64, 3.94] },   // (whoever sleeps there)
   { level: 2, name: 'Büro', area: '9,83 m²', r: [0, 3.94, 3.02, 8.88] },
   { level: 2, name: 'Flur', area: 'ca. 3,17 m²', r: [3.02, 3.94, 5.64, 8.88] },
   // Obergeschoss
   { level: 1, name: 'Elternzimmer', area: '16,90 m²', r: [0, 0, 3.2, 5.6] },
   { level: 1, name: 'Ankleide', area: '10,24 m²', r: [3.2, 0, 5.64, 3.95] },
-  { level: 1, get name() { return `${possessive('girl')} room`; }, area: '10,64 m²', r: [0, 5.65, 3.26, 8.88] },
+  { level: 1, get name() { return `${possessive(kidIn('first'))} room`; }, area: '10,64 m²', r: [0, 5.65, 3.26, 8.88] },
   { level: 1, name: 'Bad', area: '4,63 m²', r: [3.32, 6.9, 5.64, 8.88] },
   { level: 1, name: 'Flur', area: '3,17 m²', r: [3.2, 3.95, 5.64, 6.9] },
   // Erdgeschoss and outside
