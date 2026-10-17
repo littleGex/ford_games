@@ -1,11 +1,12 @@
 // The laptop close-up for the 3D printing mission: a 'choose' step opens it at Dad's desk with tiles to
 // pick from (a design, then a filament colour); tap one, or press its number. "Close the laptop" keeps your
 // place on the list. The same close-up, as a plain card instead of a laptop, picks a face to carve in the
-// Halloween pumpkin and a costume.
+// Halloween pumpkin and a costume, and at bedtime who showers first and which story to read.
 import { S } from '../state.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { FACES, faceImage } from '../world/halloween.js';
 import { COSTUMES } from '../characters/costumes.js';
+import { BOOKS } from '../systems/bedtime.js';
 
 const SCREENS = {
   design: { app: 'Printables', title: 'Pick something to print', options: () => DESIGNS.map(d => ({ id: d.id, label: d.label, icon: d.icon })) },
@@ -13,6 +14,9 @@ const SCREENS = {
               note: 'It comes by courier to the front door.' },
   face: { card: true, title: 'Which face shall we carve?', options: () => FACES.map(f => ({ id: f.id, label: f.label, img: faceImage(f), icon: '🎃' })) },
   costume: { card: true, title: 'What are you going as?', options: () => COSTUMES.map(c => ({ id: c.id, label: c.label, icon: c.icon })) },
+  // bedtime: who goes in the shower first, and which story to read
+  bedFirst: { card: true, title: 'Who goes in the shower first?', options: () => [{ id: 'girl', label: 'P', icon: '👧' }, { id: 'boy', label: 'Dude', icon: '👦' }] },
+  book: { card: true, title: 'Pick a bedtime story', options: () => BOOKS.map(b => ({ id: b.id, label: b.label, icon: b.icon })) },
 };
 
 export function createLaptop(ctx) {
@@ -53,9 +57,9 @@ export function createLaptop(ctx) {
     const o = typeof id === 'number' ? options[id - 1] : options.find(k => k.id === id);
     if (!o) return;
     const j = job, s = step;
+    if (s.onChoose && s.onChoose(o.id, ctx) === false) return;   // not accepted ("Not that one!"): pick again
     close();
     if (S.mission) (S.mission.choices ||= {})[s.choose] = o.id;
-    if (s.onChoose) s.onChoose(o.id, ctx);
     board.advance(j, s.message ? s.message(o) : `${o.label}: good choice!`);
   }
 

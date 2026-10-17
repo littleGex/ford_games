@@ -301,6 +301,20 @@ export function createItems(scene, upstairs, attic) {
       const sweets = new THREE.Group(); sweets.name = 'sweets'; g.add(sweets);
       [['#e74c3c', -0.03], ['#f2c81c', 0.03], ['#3fa36b', 0]].forEach(([c, x], i) => add(sweets, new THREE.BoxGeometry(0.05, 0.022, 0.03), mat(c), [x, 0.165 + i * 0.012, x * 0.6], null, [0, i, 0]));
     }, [4.05, 0, 7.9], { hidden: true }),
+    // bedtime: the kids' folded pyjamas (in their wardrobes, or somewhere odd when they can't be found) and a
+    // glass of water from the bathroom
+    pyjamasGirl: item(g => {
+      add(g, new THREE.BoxGeometry(0.28, 0.07, 0.2), mat('#f4b6cf'), [0, 0.035, 0]);
+      [[-0.07, 0.04], [0.06, -0.05], [0.02, 0.06]].forEach(([x, z]) => add(g, new THREE.CylinderGeometry(0.015, 0.015, 0.004, 8), mat('#ffffff'), [x, 0.072, z]));
+    }, [2.88, 0.9, 6.95], { level: 1, hidden: true }),
+    pyjamasBoy: item(g => {
+      add(g, new THREE.BoxGeometry(0.28, 0.07, 0.2), mat('#7fb2e8'), [0, 0.035, 0]);
+      [[-0.07, 0.04], [0.06, -0.05], [0.02, 0.06]].forEach(([x, z]) => add(g, new THREE.CylinderGeometry(0.015, 0.015, 0.004, 8), mat('#f2d24a'), [x, 0.072, z]));
+    }, [0.35, 0.9, 3.45], { level: 2, hidden: true }),
+    waterGlass: item(g => {
+      add(g, new THREE.CylinderGeometry(0.035, 0.03, 0.11, 14), new THREE.MeshStandardMaterial({ color: '#dff1fb', transparent: true, opacity: 0.55 }), [0, 0.055, 0]);
+      add(g, new THREE.CylinderGeometry(0.031, 0.028, 0.07, 14), new THREE.MeshStandardMaterial({ color: '#7fc4e8', transparent: true, opacity: 0.7 }), [0, 0.04, 0]);
+    }, [5.02, 0.9, 6.98], { level: 1, hidden: true }),
     // the box that goes up into the loft and comes back down (moved about by the loft jobs)
     box: item(g => {
       add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);

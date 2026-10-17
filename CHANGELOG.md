@@ -10,6 +10,14 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: a new mission, **bedtime**, for Mum or Dad (#71). It's evening: dark outside, a moon, lights on
+  in the house. P and Dude walk about on their own: get them off their iPads on the sofa, and they follow
+  you upstairs. Choose who showers first; a shower, pyjamas and teeth for each, a story on P's bed (pick
+  the book), then tuck each into bed and switch their light off. Two to four things go wrong each time
+  (lost pyjamas, "Not that story!", goodnight to the dragon, a glass of water, a dance party, back on the
+  iPad, hide and seek). Lights out by 20:30 for three stars; tiptoe downstairs to finish.
+
 ### Fixed
 - Ford House: Mum's office day could only just be done by 17:30, even playing perfectly: her site is twice
   the walk of Dad's office. Her clock now runs a bit slower (1.5 minutes a second instead of 2), which gives
