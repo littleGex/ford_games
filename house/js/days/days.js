@@ -4,26 +4,31 @@ import { DAY_COMPLETE_DELAY } from '../config.js';
 import { S } from '../state.js';
 import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
-import { planDay, personalDue, seededRandom } from './planner.js';
+import { planDay, personalDue, seededRandom, isFor } from './planner.js';
 import { currentSeason } from '../seasons.js';
-import { currentHoliday } from '../holidays.js';
+import { currentHoliday, currentBirthday } from '../holidays.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
 function binParams(save) {
-  const last = save.lastBinPair;
+  const last = save.lastBinPair, birthday = birthdayOf();
   // day: where the loft box is; holiday: Halloween jobs and decorations (kept for the day once it's planned)
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHoliday() };
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHoliday(), birthday };
 }
+
+// a player's life stage (players.js: from their birthday), and whose birthday it is today; set up by createDays
+let stageOf = () => undefined, birthdayOf = () => null;
 
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
   const pool = createJobs({ ...params, character: save.character });
-  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, season: currentSeason(), holiday: params.holiday }, seededRandom(save.day * 7919 + 13));
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: params.holiday, birthday: params.birthday }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
   const { board, hud, items, clock } = ctx;
+  stageOf = key => (ctx.players ? ctx.players.stage(key) : undefined);
+  birthdayOf = () => currentBirthday(ctx.players);
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
@@ -37,6 +42,7 @@ export function createDays(ctx) {
     board.clear();
     resetItems(items);
     ctx.halloween.reset(today.params.holiday);   // decorations up on Halloween (the decorating job takes some down again)
+    if (ctx.birthday) ctx.birthday.reset(today.params.birthday);   // someone's birthday: balloons, banner, presents
 
     // every job in the house either needs doing today, or is shown done
     for (const job of jobsToday()) {
@@ -113,14 +119,14 @@ export function createDays(ctx) {
   /** Someone else is playing now: their own jobs come on the list, the last player's unfinished ones go. */
   function swapPersonalJobs() {
     const pool = jobsToday(), who = save.character;
-    for (const job of pool.filter(j => j.who)) {
+    for (const job of pool.filter(j => j.who || j.personal)) {   // (personal: birthday jobs say whose birthday it is)
       if (!today.plan.includes(job.id) || today.done.includes(job.id)) continue;
       if (S.sitting && S.sitting.job.id === job.id) ctx.sitting.standUp();
-      if (job.who.includes(who)) { board.replace(job); continue; }   // still theirs, but maybe somewhere else: start it afresh
+      if (isFor(job, who, stageOf(who))) { board.replace(job); continue; }   // still theirs, but maybe somewhere else: start it afresh
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }
-    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, season: currentSeason(), holiday: today.params.holiday })) {
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, stage: stageOf(who), season: currentSeason(), holiday: today.params.holiday, birthday: today.params.birthday })) {
       if (today.plan.includes(job.id)) continue;
       today.plan.push(job.id);
       board.add(job);
@@ -143,6 +149,13 @@ export function createDays(ctx) {
       save.character = key;
       if (today && !today.completed) swapPersonalJobs();
       writeSave(save);
+    },
+    /** The birthdays changed (the family server answered): if nothing's been done today yet and whose
+     *  birthday it is has changed, plan today again so the party jobs come (or go). */
+    replanIfUntouched() {
+      if (!today || today.done.length || today.completed || S.mission || today.params.birthday === birthdayOf()) return false;
+      save.today = null; writeSave(save); start();
+      return true;
     },
     /** For tests and trying things out: replace today's list with these job ids. */
     plan(ids) {

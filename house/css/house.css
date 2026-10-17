@@ -169,3 +169,39 @@ button, a, [role="button"] { touch-action: manipulation; }
 .laptop--card .laptop-tile:hover { border-color: #ff9a2e; box-shadow: 0 0 0 2px rgba(255, 154, 46, .3); }
 .laptop--card .laptop-tile kbd, .laptop--card .laptop-note { color: #c9b8dc; }
 .laptop .linkbtn { all: unset; cursor: pointer; color: var(--muted); text-decoration: underline; font-size: 12px; padding: 10px 4px 2px; }
+
+/* the avatar editor (ui/avatar.js): looks and birthdays for each player, with a turning preview */
+.home-looks { margin-top: 8px; font-size: 13px; }
+.avatar { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(8, 12, 20, .72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 14; }
+.avatar-card { width: min(560px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; touch-action: pan-y; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 18px 18px 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, .45); animation: pop .3s ease-out; }
+.avatar h1 { margin: 0 0 10px; font-family: var(--f-display); font-weight: 800; font-size: 26px; color: var(--marigold); text-align: center; }
+.avatar-who { display: flex; gap: 4px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-bottom: 12px; }
+.avatar-who button { flex: 1; border: 0; background: transparent; color: var(--paper); font: 700 14px var(--f-body); padding: 8px 6px; border-radius: 999px; cursor: pointer; }
+.avatar-who button[aria-selected="true"] { background: var(--paper); color: var(--night); }
+.avatar-body { display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: start; }
+.avatar-preview { width: 160px; height: 200px; border-radius: 16px; background: radial-gradient(circle at 50% 35%, #2c3c56, #121b29); }
+.avatar-row { margin-bottom: 10px; }
+.avatar-row h2 { margin: 0 0 5px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.avatar-opts { display: flex; flex-wrap: wrap; gap: 5px; }
+.avatar-swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); cursor: pointer; padding: 0; }
+.avatar-swatch[aria-pressed="true"] { border-color: var(--marigold); box-shadow: 0 0 0 2px rgba(255, 176, 46, .35); }
+.avatar-chip { border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--paper); font: 600 12px var(--f-body); padding: 5px 10px; border-radius: 999px; cursor: pointer; }
+.avatar-chip[aria-pressed="true"] { background: var(--marigold); color: var(--night); border-color: var(--marigold); }
+.avatar-swatch:focus-visible, .avatar-chip:focus-visible, .avatar-who button:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; }
+.avatar-birthday { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.avatar-birthday label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.avatar-birthday input { font: 600 14px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; color-scheme: dark; }
+.avatar-age { margin: 0; font-size: 13px; color: var(--paper); }
+.avatar-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.avatar-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.avatar-actions .btn { padding: 10px 26px; }
+@media (max-width: 460px) {
+  .avatar-body { grid-template-columns: 1fr; }
+  .avatar-preview { width: 140px; height: 170px; margin: 0 auto; display: block; }
+}
+.avatar-server { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.avatar-server h2 { margin: 0 0 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.avatar-server-status { margin: 0 0 6px; font-size: 13px; }
+.avatar-server-row { display: flex; gap: 8px; }
+.avatar-server-row input { flex: 1; min-width: 0; font: 600 14px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; }
+.avatar-birthday input[readonly] { opacity: .7; }

@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
 import { makeCharacter, animateWalk } from '../characters/character.js';
-import { FAMILY } from '../characters/family.js';
+import { specFor } from '../characters/looks.js';
 import { dressUp, undress } from '../characters/costumes.js';
 import { music } from '../core/audio.js';
 import { add, mat } from '../core/build.js';
@@ -71,13 +71,18 @@ export function createBedtime(ctx) {
 
   // --- the children
   const kids = {};
-  for (const who of ['girl', 'boy']) {
-    const c = makeCharacter(FAMILY[who]);
+  /** A child's figure as they look now (players.js: the avatar editor, and taller as a teenager). */
+  function buildKid(who) {
+    const old = kids[who];
+    if (old && old.c.root.parent) old.c.root.parent.remove(old.c.root);
+    const players = ctx.players;
+    const c = makeCharacter(players ? specFor(who, players.look(who), players.stage(who)) : specFor(who));
     c.root.visible = false; stage.scene.add(c.root);
     const tablet = add(c.root, new THREE.BoxGeometry(0.2, 0.012, 0.14), new THREE.MeshStandardMaterial({ color: '#2b2f36', emissive: '#4a8fd6', emissiveIntensity: 0.6 }), [0, 0.55, 0.28], null, [-0.6, 0, 0]);
     const duvet = add(c.root, new THREE.BoxGeometry(0.5, 0.12, 0.62), mat(who === 'girl' ? '#c99ab8' : '#e9ecf2'), [0, 0.06, -0.42]);
     kids[who] = { who, c, tablet, duvet, level: 0, mode: 'away', spot: null, phase: 0, idx: 0, path: [] };
   }
+  ['girl', 'boy'].forEach(buildKid);
   const k = who => kids[who];
 
   function toFloor(kid, level) {
@@ -265,7 +270,7 @@ export function createBedtime(ctx) {
       if (on) this.end();
       on = true; night(); trail = []; last = null;
       for (const who of ['girl', 'boy']) {
-        undress(k(who).c); k(who).dressed = false;
+        buildKid(who); k(who).dressed = false;
         const s = BED.sofa[who];
         place(who, s.level, s.seat, 'sofa');
       }

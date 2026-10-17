@@ -69,6 +69,9 @@ const SONGS = {
   // a clarinet: a hollow, reedy square wave, softened, with a little vibrato; slower and legato
   clarinet: { notes: [392, 440, 494, 587, 494, 440, 392, 330, 349, 392, 440, 392, 349, 330, 294, 392], beat: 0.52, len: 0.56,
               voices: [[1, 0.05, 'square']], filter: 1500, vibrato: 5 },
+  // the birthday song (the old tune, long out of copyright), on a music box, for singing round the cake
+  birthday: { notes: [392, 392, 440, 392, 523, 494, 0, 392, 392, 440, 392, 587, 523, 0, 392, 392, 784, 659, 523, 494, 440, 0, 698, 698, 659, 523, 587, 523, 0, 0],
+              beat: 0.36, len: 0.4, voices: [[1, 0.05, 'triangle'], [2, 0.012, 'sine']] },
 };
 let playing = null, timer = null, step = 0;
 export function music(kind) {
@@ -80,6 +83,7 @@ export function music(kind) {
   const note = () => {
     try {
       const now = ctx.currentTime, f = song.notes[step++ % song.notes.length];
+      if (!f) return;   // a rest
       for (const [mult, vol, type] of song.voices) {
         const o = ctx.createOscillator(), g = ctx.createGain();
         o.type = type; o.frequency.value = f * mult;

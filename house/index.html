@@ -48,6 +48,7 @@
       <div class="home-who" role="group" aria-label="Choose who to play">
         <button data-c="dad" aria-pressed="true">Dad</button><button data-c="mum" aria-pressed="false">Mum</button><button data-c="girl" aria-pressed="false">P</button><button data-c="boy" aria-pressed="false">Dude</button>
       </div>
+      <button class="linkbtn home-looks" id="looksBtn">Change how everyone looks, and birthdays</button>
 
       <h2>Missions</h2>
       <ul class="missions">
@@ -125,6 +126,38 @@
       </div>
       <p class="sort-feedback" id="sortFeedback" role="status"></p>
       <button class="linkbtn" id="sortLater">Do it later</button>
+    </div>
+  </div>
+
+  <div class="avatar" id="avatar" role="dialog" aria-modal="true" aria-labelledby="avatarTitle" hidden>
+    <div class="avatar-card">
+      <h1 id="avatarTitle">Looks and birthdays</h1>
+      <div class="avatar-who" role="tablist" aria-label="Whose look">
+        <button role="tab" data-p="dad">Dad</button><button role="tab" data-p="mum">Mum</button><button role="tab" data-p="girl">P</button><button role="tab" data-p="boy">Dude</button>
+      </div>
+      <div class="avatar-body">
+        <canvas class="avatar-preview" id="avatarPreview" width="240" height="300" aria-label="Preview of the look"></canvas>
+        <div class="avatar-controls" id="avatarControls"></div>
+      </div>
+      <div class="avatar-birthday">
+        <label for="avatarBirthday">Birthday</label>
+        <input type="date" id="avatarBirthday">
+        <p class="avatar-age" id="avatarAge"></p>
+      </div>
+      <div class="avatar-server">
+        <h2>Family server</h2>
+        <p class="avatar-server-status" id="serverStatus"></p>
+        <div class="avatar-server-row" id="serverConnect">
+          <input type="password" id="serverToken" autocomplete="off" placeholder="Game token" aria-label="Game token">
+          <button class="avatar-chip" id="serverConnectBtn">Connect</button>
+        </div>
+        <button class="linkbtn" id="serverDisconnect" hidden>Disconnect this device</button>
+      </div>
+      <p class="avatar-note">Looks, birthdays and the token are saved on this device only.</p>
+      <div class="avatar-actions">
+        <button class="linkbtn" id="avatarReset">Back to how they were</button>
+        <button class="btn" id="avatarDone">Done</button>
+      </div>
     </div>
   </div>
 

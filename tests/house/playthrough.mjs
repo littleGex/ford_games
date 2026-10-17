@@ -483,8 +483,10 @@ for (const who of ['dad', 'girl']) {
   if ((who === 'dad') !== /fridge/.test(first)) errors.push(`food shopping (${who}): starts with "${first}"`);
   while (job.i < job.steps.length && job.steps[job.i].kind !== 'wait') { const r = doStep(job); if (r !== true) { errors.push(`food shopping (${who}): ${r}`); break; } }
   for (let k = 0; k < 4000 && job.steps[job.i].kind === 'wait'; k++) frame();
-  for (let k = 0; k < 400 && !/food delivery is at the front door/.test(G.deliveries.banner() || ''); k++) frame();
-  if (!/food delivery is at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): the driver never rang`);
+  // the wait for a delivery only ends when the driver rings (the banner may show a parcel courier instead,
+  // if one of the day's random parcels turns up at the same moment)
+  if (job.steps[job.i].kind === 'wait') errors.push(`food shopping (${who}): the driver never rang`);
+  else if (!/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door`);
   playDay(`food shopping (${who})`);
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
   G.days.setCharacter('dad');
@@ -766,6 +768,78 @@ for (const who of ['dad', 'mum']) {
     if (B.on || G.stage.hemi.intensity < 0.7 || B.kid('girl').c.root.visible) errors.push(`${label}: still evening after going back to the day`);
     if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`${label}: the day didn't come back as it was`);
   }
+}
+
+// --- looks and birthdays (the avatar editor): a new look is worn straight away and saved on the device; a
+// birthday that makes P a teenager makes her taller and puts cooking on her list
+{
+  const P = G.players, scaleOf = () => G.player.character.scale;
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  if (P.stage('girl') !== 'child' || Math.abs(scaleOf() - 0.78) > 1e-9) errors.push(`looks: P should start as a child (stage ${P.stage('girl')}, height ${scaleOf()})`);
+  const before = G.player.character;
+  P.setLook('girl', { hair: 'ponytail', hairColor: '#b8402a', glasses: true });
+  if (G.player.character === before) errors.push("looks: P's figure wasn't rebuilt after changing her look");
+  const saved = JSON.parse(store.get('fordHouse.players.v1') || '{}');
+  if (!saved.girl || saved.girl.look.hair !== 'ponytail' || saved.girl.look.glasses !== true) errors.push("looks: P's new look wasn't saved on the device");
+  const y = new Date().getFullYear();
+  P.setBirthday('girl', `${y - 14}-01-01`);
+  if (P.stage('girl') !== 'teen' || Math.abs(scaleOf() - 0.88) > 1e-9) errors.push(`looks: at 14 P should be a taller teenager (stage ${P.stage('girl')}, height ${scaleOf()})`);
+  G.days.next();
+  if (!G.board.find('cook')) errors.push("growing up: P the teenager hasn't got cooking on her list");
+  playDay('a day as teenage P');
+  G.days.next();
+  P.setBirthday('girl', null); P.resetLook('girl');
+  if (P.stage('girl') !== 'child' || Math.abs(scaleOf() - 0.78) > 1e-9) errors.push('looks: P back to a child after clearing her birthday');
+  G.days.next();
+  if (G.board.find('cook')) errors.push('growing up: P the child still has cooking on her list');
+  // a beard: Dad has one, and Dude can once he's 18, not before (and never Mum or P)
+  const { specFor } = await import(new URL('../../house/js/characters/looks.js', import.meta.url));
+  if (!specFor('dad', P.look('dad'), 'adult').beard || P.look('dad').hair !== 'bald') errors.push('looks: Dad should be bald with a beard');
+  if (specFor('boy', { beard: true }, 'teen').beard) errors.push('looks: Dude has a beard as a teenager');
+  if (!specFor('boy', { beard: true }, 'adult').beard) errors.push("looks: Dude can't have a beard at 18");
+  if (specFor('mum', { beard: true }, 'adult').beard || specFor('girl', { beard: true }, 'adult').beard) errors.push('looks: only Dad and Dude get beards');
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+}
+
+// --- a birthday (P's, set with ?birthday=girl): Dad decorates, gets the cake out, sings, wraps a present and
+// lets Grandma and Grandpa in; then P's own birthday, where she blows out her candles and opens her presents
+{
+  const { BD } = await import(new URL('../../house/js/systems/birthday.js', import.meta.url));
+  const party = ['bdayDecorate', 'bdayCake', 'bdayPresents', 'bdayGuests'];
+  globalThis.location.search = '?season=autumn&birthday=girl';
+  for (const who of ['dad', 'girl']) {
+    const label = `P's birthday (as ${who})`;
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.days.next();
+    const plan = G.board.jobs.map(j => j.id);
+    if (!party.every(id => plan.includes(id))) errors.push(`${label}: party jobs missing from the planned day (${party.filter(id => !plan.includes(id))})`);
+    G.days.plan(party);
+    if (G.birthday.who !== 'girl') errors.push(`${label}: not P's birthday`);
+    const presents = G.board.find('bdayPresents');
+    if ((who === 'girl') !== /Open your presents/.test(presents.title)) errors.push(`${label}: presents job is "${presents.title}"`);
+    let rang = false;
+    const realIn = G.birthday.guestsIn;
+    G.birthday.guestsIn = () => { rang = G.birthday.guests === 'waiting'; realIn(); };
+    playDay(label);
+    G.birthday.guestsIn = realIn;
+    const cake = G.items.cake, c = cake.userData.cake;
+    if (cake.parent !== G.stage.scene || Math.hypot(cake.position.x - BD.table.cake[0], cake.position.z - BD.table.cake[2]) > 0.01 || !c.slice.visible || c.flames.some(f => f.visible)) errors.push(`${label}: the cake isn't on the table, cut, with the candles out`);
+    if (!rang) errors.push(`${label}: Grandma and Grandpa weren't at the door when it was opened`);
+    if (who === 'dad') {
+      const gift = G.items.giftBox;
+      if (gift.parent !== G.stage.scene || !gift.visible) errors.push(`${label}: the wrapped present isn't on the table`);
+    }
+    G.days.next();
+  }
+  globalThis.location.search = '?season=autumn&birthday=none';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.plan(['hands']);
+  if (G.birthday.who || G.items.cake.visible || G.items.giftBox.visible) errors.push('after the birthday: decorations, the cake or the present still about');
+  playDay('the day after the birthday');
+  G.days.next();
+  globalThis.location.search = '?season=autumn';
+  console.log("P's birthday: party as Dad and as P, cake, presents, Grandma and Grandpa");
 }
 
 // a fire drill straight after the urgent call: the call's deadline moves on by however long the drill took

@@ -10,6 +10,24 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.10.0] - 2026-10-17
+
+### Added
+- Ford House: **looks and birthdays** for the four players, from the home screen (#77). Change each player's
+  skin, hair style and colour, glasses, beard (Dad, and Dude once he's 18), top, trousers and shoes, with a
+  turning preview. Give them a birthday: P and Dude grow up with it, a teenager at 13 (taller, and cooking
+  dinner too) and a grown-up at 18. Saved on the device only (#94).
+- Ford House: **birthdays** (#74). On a player's birthday: balloons and a "Happy birthday" banner with their
+  name, a cake with candles to light, everyone singing, blowing them out and cutting it, presents to open
+  (or to wrap, for everyone else), and Grandma and Grandpa at the door with another present (#95).
+- Ford House: the birthdays can come from the family server (fordDbs): a parent types the game token in once
+  per device in the looks card. The game never waits for the server and uses the saved birthdays offline (#95).
+
+### Changed
+- Ford House: Dad is bald with a beard (the beanie is still in the editor) (#94).
+- Ford House: the offline cache only handles the game's own files (and three.js), so requests to the family
+  server always go to the network (#95).
+
 ## [4.9.0] - 2026-10-17
 
 ### Added

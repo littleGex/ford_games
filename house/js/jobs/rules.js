@@ -2,8 +2,9 @@
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
 //   week: N   on the first N days of every 7 (homework on the five school days)
 //   season: [...]   only in these seasons ('spring', 'summer', 'autumn', 'winter'; see seasons.js)
-//   holiday: '...'  only on that special day ('halloween' on 31 October; see holidays.js)
+//   holiday: '...'  only on that special day ('halloween' on 31 October, see holidays.js; 'birthday' on anyone's birthday)
 //   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
+//   teen: true   (with who) also for P or Dude once they're teenagers (their birthdays, players.js)
 // Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
 // character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
 // appointments: they fill the day next, the most overdue first, and are never early (on a full day one can
@@ -40,7 +41,7 @@ export const POOL_RULES = [
   { id: 'feedDragon', every: 1, who: ['girl'] },   // P's bearded dragon
   { id: 'playDragon', every: 2, who: ['girl'] },
   { id: 'cleanDragon', every: 3, who: ['girl'] },
-  { id: 'cook', every: 1, who: ['dad', 'mum'] },
+  { id: 'cook', every: 1, who: ['dad', 'mum'], teen: true },   // and P or Dude once they're teenagers
   { id: 'work', week: 5, who: ['mum'] },
   { id: 'sofabed', every: 3, who: ['mum'] },
   { id: 'fixBike', every: 6, who: ['dad'] },     // the shed
@@ -63,6 +64,11 @@ export const POOL_RULES = [
   { id: 'pumpkin', every: 1, must: true, holiday: 'halloween' },
   { id: 'decorate', every: 1, must: true, holiday: 'halloween' },
   { id: 'trickOrTreat', every: 1, must: true, holiday: 'halloween' },
+  // someone's birthday (players.js): decorations, the cake, presents, and Grandma and Grandpa at the door
+  { id: 'bdayDecorate', every: 1, must: true, holiday: 'birthday' },
+  { id: 'bdayCake', every: 1, must: true, holiday: 'birthday' },
+  { id: 'bdayPresents', every: 1, must: true, holiday: 'birthday' },
+  { id: 'bdayGuests', every: 1, must: true, holiday: 'birthday' },
   { id: 'hooverUp', every: 4 },
   { id: 'hooverAttic', every: 5 },
   { id: 'plants', every: 3 },

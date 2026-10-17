@@ -1,6 +1,6 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'house-cache-v28';
+const CACHE_NAME = 'house-cache-v30';
 const urlsToCache = [
   './',
   './index.html',
@@ -13,10 +13,13 @@ const urlsToCache = [
   './js/state.js',
   './js/seasons.js',
   './js/holidays.js',
+  './js/players.js',
+  './js/familyserver.js',
   './js/characters/character.js',
   './js/characters/family.js',
   './js/characters/player.js',
   './js/characters/costumes.js',
+  './js/characters/looks.js',
   './js/core/audio.js',
   './js/core/build.js',
   './js/core/collision.js',
@@ -49,10 +52,12 @@ const urlsToCache = [
   './js/systems/waiting.js',
   './js/systems/halloween.js',
   './js/systems/bedtime.js',
+  './js/systems/birthday.js',
   './js/ui/home.js',
   './js/ui/hud.js',
   './js/ui/sorting.js',
   './js/ui/laptop.js',
+  './js/ui/avatar.js',
   './js/world/index.js',
   './js/world/rooms.js',
   './js/world/structure.js',
@@ -101,6 +106,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // only the game's own files and what's on the list above (three.js from the CDN): anything else (the family
+  // server, fonts) goes straight to the network as usual, so server answers are never cached or held up here
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET') return;
+  if (url.origin !== self.location.origin && !urlsToCache.includes(event.request.url)) return;
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
