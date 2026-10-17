@@ -10,37 +10,37 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.12.0] - 2026-10-17
+
 ### Added
 - Ford House: **names** for the players, at the top of the names, looks and birthdays card. A new name shows
-  everywhere: the buttons, job titles, missions, the Advent calendars and the room names (#78).
-- Ford House: **jobs on or off**, in a new "Jobs, and sharing" card on the home screen: switch off the bearded
+  everywhere: the buttons, job titles, missions, the Advent calendars and the room names (#78, #102).
+- Ford House: **jobs on or off**, in a new "Rooms, jobs, and sharing" card on the home screen: switch off the bearded
   dragon, keyboard practice, the clarinet, the bike, the solar panels, the car, shaving, the loft, Halloween,
-  Christmas or birthday parties if they don't fit (#78).
+  Christmas or birthday parties if they don't fit (#78, #102).
 - Ford House: **share the link** copies everyone's names, looks, birthdays and the job switches to another
   phone or tablet; opening it asks first. Nothing goes to a server, and the family server token is never in
-  it (#78).
+  it (#78, #102).
 - Ford House: **who sleeps where**: P and Dude can swap bedrooms in the rooms, jobs and sharing card. Their
   bed, wardrobe and desk go with them, for homework, the beds, the washing, the school run, bedtime, Halloween,
-  Christmas and the 3D printing; the room names change too, and the swap goes in the share link (#78).
+  Christmas and the 3D printing; the room names change too, and the swap goes in the share link (#78, #103).
 - Ford House: `house/ARCHITECTURE.md`, the plan for splitting the game into an engine and a house pack. The kids'
-  rooms are the first slice, in `js/pack/kidrooms.js` (#78).
-
+  rooms are the first slice, in `js/pack/kidrooms.js` (#78, #103).
 - Ford House: **the same settings on every device**: with the game token, the names, looks, jobs on or off and
-  who sleeps where are kept on the family server (fordDbs 2.8.0, `/v1/game/settings`). Changes go up a moment
+  who sleeps where are kept on the family server (fordDbs 2.9.0, `/v1/game/settings`). Changes go up a moment
   after they're made and come down when the game opens; if two devices change things at the same time, both
-  changes are kept. The rooms, jobs, and sharing card shows when they were last synced (#78).
-
+  changes are kept. The rooms, jobs, and sharing card shows when they were last synced (#78, #104).
 - Ford House: **she, he or they** for each player, in the names, looks and birthdays card. Jobs and missions
-  say "their bed", "her teeth" and so on to match (#78).
+  say "their bed", "her teeth" and so on to match (#78, #105).
 - Ford House: **a family with one grown-up**: leave Mum or Dad out in the same card. Their buttons and missions
   go, the other grown-up does their household jobs (the bike, the solar panels, the sofa bed) and the 3D
   printing, and texts say just the one name. Both settings go in the share link and sync through the family
-  server (fordDbs 2.10.0 or newer; older servers sync everything else) (#78).
+  server (with littleGex/fordDbs#25; an older server syncs everything else) (#78, #105).
 
 ### Changed
-- Ford House: any grown-up can have a beard now (Mum, and P or Dude from 18), not just Dad and Dude.
+- Ford House: any grown-up can have a beard now (Mum, and P or Dude from 18), not just Dad and Dude (#105).
 - Ford House: when two jobs are at the same desk, the one you've started comes first (the present you just made
-  at the attic desk, not the wish list still waiting there).
+  at the attic desk, not the wish list still waiting there) (#103).
 
 ## [4.11.0] - 2026-10-17
 
@@ -353,7 +353,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.11.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.12.0...HEAD
+[4.12.0]: https://github.com/littleGex/ford_games/compare/v4.11.0...v4.12.0
 [4.11.0]: https://github.com/littleGex/ford_games/compare/v4.10.0...v4.11.0
 [4.10.0]: https://github.com/littleGex/ford_games/compare/v4.9.0...v4.10.0
 [4.9.0]: https://github.com/littleGex/ford_games/compare/v4.8.1...v4.9.0
