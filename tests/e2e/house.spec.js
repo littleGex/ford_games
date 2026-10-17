@@ -245,6 +245,43 @@ test("Halloween: on 31 October the house is decorated and there's a jack-o'-lant
   expect(after).toEqual({ deco: false, jobs: false });
 });
 
+test('Christmas: the Advent calendar opens one more door each real day, and keeps the gifts', async ({ page }) => {
+  await page.goto('/house/?date=2026-12-03');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await expect(page.locator('#adventBtn')).toBeVisible();   // on the home screen in December
+  await page.locator('.home-who [data-c="girl"]').click();
+  await play(page);
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+  // 3 December, before the decorations: the calendars are up, but no tree yet
+  expect(await page.evaluate(() => ({ cal: window.house.world.christmas.calendars.visible, tree: window.house.world.christmas.all.visible }))).toEqual({ cal: true, tree: false });
+  expect(await page.evaluate(() => window.house.board.jobs.map(j => j.id))).toContain('adventDoor');
+  await planToday(page, ['adventDoor']);
+  await page.evaluate(() => window.house.player.group.position.set(2.45, 0, 3.68));
+  await expect(page.locator('#actBtn')).toHaveText('Open a door on your Advent calendar');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#advent')).toBeVisible();
+  await expect(page.locator('#adventGrid .advent-door')).toHaveCount(24);
+  await expect(page.locator('#adventGrid .advent-door.ready')).toHaveCount(3);
+  await page.locator('#adventGrid [data-door="4"]').click();   // not yet
+  await expect(page.locator('#adventStatus')).toHaveText('Door 4 opens on 4 December. No peeking! 👀');
+  await page.locator('#adventGrid [data-door="3"]').click();
+  await expect(page.locator('#adventStatus')).toHaveText('Door 3: ✏️ a glitter pencil!');
+  await expect(page.locator('#adventGifts li')).toHaveText(['3 ✏️ a glitter pencil']);
+  await page.locator('#advent [data-k="boy"]').click();   // Dude's: P can look, but not open
+  await page.locator('#adventGrid [data-door="1"]').click();
+  await expect(page.locator('#adventStatus')).toHaveText("Only Dude can open Dude's doors: play as Dude to open it.");
+  await page.locator('#adventDone').click();
+  await expect(page.locator('#advent')).toBeHidden();
+
+  // after a reload door 3 is still open; on 4 December door 4 is ready, and the ones P missed
+  await page.reload();
+  await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/);
+  expect(await page.evaluate(() => window.house.advent.opened('girl'))).toEqual([3]);
+  await page.goto('/house/?date=2026-12-04');
+  await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/);
+  expect(await page.evaluate(() => window.house.advent.ready('girl'))).toEqual([1, 2, 4]);
+});
+
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {
   await page.goto('/house/');
   await expect(page.locator('#home')).toBeVisible();   // the game opens on it

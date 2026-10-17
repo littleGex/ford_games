@@ -10,7 +10,7 @@
 //                         ones every 2+ days go in after the daily routine while the day has room.
 //   teen: true            (with who) also for P or Dude as teenagers (state.stage).
 //   season: [...]         only in these seasons (raking leaves in autumn, clearing snow in winter).
-//   holiday: '...'        only on that special day (Halloween, see holidays.js).
+//   holiday: '...'        only on days with that tag (Halloween, Christmas...; see holidays.js).
 //
 // A day gets between DAY_JOBS.min and DAY_JOBS.max jobs:
 //   1. jobs that must happen today, and the daily jobs and homework just for whoever is playing,
@@ -40,8 +40,9 @@ export function overdue(job, state) {
 export const isFor = (job, character, stage) => !job.who || job.who.includes(character) || (!!job.teen && (stage === 'teen' || stage === 'adult'));
 /** Is this job in season? Jobs without `season` (or a state without one) are all year round. */
 export const inSeason = (job, season) => !job.season || !season || job.season.includes(season);
-/** Is it this job's special day? Jobs without `holiday` are on any day; 'birthday' ones on anyone's birthday. */
-export const onHoliday = (job, holiday, birthday) => !job.holiday || (job.holiday === 'birthday' ? !!birthday : job.holiday === holiday);
+/** Is it this job's special day? Jobs without `holiday` are on any day; 'birthday' ones on anyone's birthday;
+ *  the rest when today's tags (a list, or one name) include theirs. */
+export const onHoliday = (job, holiday, birthday) => !job.holiday || (job.holiday === 'birthday' ? !!birthday : [].concat(holiday || []).includes(job.holiday));
 
 /** The jobs that are only for this character and are due today. */
 export function personalDue(pool, state) {
@@ -50,7 +51,7 @@ export function personalDue(pool, state) {
 
 /**
  * @param pool   job definitions (only `id`, `every`, `week`, `after`, `must`, `who`, `season`, `holiday` are used)
- * @param state  { day, lastDone: { [jobId]: dayNumber }, character, stage, season, holiday, birthday }
+ * @param state  { day, lastDone: { [jobId]: dayNumber }, character, stage, season, holiday (today's tags), birthday }
  * @param rng    () => number in [0, 1)
  * @returns job ids for the day, in pool order
  */

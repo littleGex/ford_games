@@ -156,6 +156,24 @@ the path and ring; P and Dude pick a costume from their wardrobe (witch, vampire
 dress up and ring both neighbours' bells with their pumpkin bucket. Add `?holiday=halloween` to the address to
 try it on any day (`?holiday=none` switches it off). Jobs say which day they belong to with `holiday: '...'`.
 
+At Christmas (12 December to 5 January, `js/holidays.js`) the house is decorated: a tree in the living room
+corner by the bookshelf (fairy lights, baubles, a star, presents underneath), the Advent wreath on the dining
+table with one more candle lit each Advent Sunday, paper stars in the dining room window, a wreath by the front
+door, and fairy lights along the front of the house. Christmas jobs: decorate the tree (the box of decorations
+lives in the cupboard under the stairs), bake biscuits (mix, pick a cutter, cut out, bake, take them to the
+table), wrap a present for under the tree (P and Dude make one at their desk), and for the kids a wish list on
+the windowsill for the Christkind. On Christmas Eve the presents appear under the tree when the little bell
+rings, and everyone opens theirs; on 5 January it all comes down and the tree goes out by the street.
+
+**The Advent calendars** (`js/advent.js`, `js/ui/advent.js`): P's and Dude's hang on the TV wall from 1 December.
+One more door can be opened for every real day of December (doors they missed can be opened later, never one
+whose day hasn't come). P and Dude get "Open your Advent calendar" on their list while a door is waiting; anyone
+can look at both calendars on the wall or from the home screen, and the card lists every gift found so far.
+What's been opened is saved on the device; a new Advent starts with the doors shut.
+
+Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
+`?holiday=christmas` for a day like 15 December.
+
 When the last job is done a "Day N complete" screen shows how long it took and
 what's coming tomorrow, then the next day starts.
 
