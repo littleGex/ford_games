@@ -5,22 +5,30 @@ import { WALK_SPEED } from '../config.js';
 import { S } from '../state.js';
 import { blocked } from '../core/collision.js';
 import { makeCharacter, animateWalk } from './character.js';
-import { FAMILY } from './family.js';
+import { specFor } from './looks.js';
 import { dressUp, undress } from './costumes.js';
 
-export function createPlayer(scene, items) {
+export function createPlayer(scene, items, players) {
   const group = new THREE.Group();
   const reset = () => { S.level = 0; group.position.set(3.92, 0, 10.6); group.rotation.y = Math.PI; };   // on the front path, facing the door
   reset();
   scene.add(group);
 
-  const looks = Object.fromEntries(Object.entries(FAMILY).map(([k, spec]) => [k, makeCharacter(spec)]));
-  let cur = null, phase = 0;
+  // each player's figure, from their look and life stage (players.js); rebuilt when the editor changes it
+  const build = key => makeCharacter(specFor(key, players.look(key), players.stage(key)));
+  const looks = Object.fromEntries(['dad', 'mum', 'girl', 'boy'].map(k => [k, build(k)]));
+  let cur = null, curKey = null, phase = 0;
 
   function setCharacter(key) {
     if (cur) group.remove(cur.root);
-    cur = looks[key];
+    cur = looks[key]; curKey = key;
     group.add(cur.root);
+  }
+
+  /** A player's look or birthday changed: build their figure again (and wear it, if it's them playing). */
+  function refresh(key) {
+    looks[key] = build(key);
+    if (curKey === key) setCharacter(key);
   }
 
   /** Where a carried item sits, in player space (also used for the charging cable). */
@@ -73,7 +81,7 @@ export function createPlayer(scene, items) {
   return {
     group,
     get character() { return cur; },
-    setCharacter, stepFromInput, animate, handPosition, reset,
+    setCharacter, refresh, stepFromInput, animate, handPosition, reset,
     /** Put on a Halloween costume (characters/costumes.js), or null to take it off. */
     dressUp(id) { if (id) dressUp(cur, id); else undress(cur); },
     /** The costume being worn, if any. */

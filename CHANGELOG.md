@@ -10,6 +10,15 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **looks and birthdays** for the four players, from the home screen (#77). Change each player's
+  skin, hair style and colour, glasses, beard (Dad, and Dude once he's 18), top, trousers and shoes, with a
+  turning preview. Give them a birthday: P and Dude grow up with it, a teenager at 13 (taller, and cooking
+  dinner too) and a grown-up at 18. Saved on the device only.
+
+### Changed
+- Ford House: Dad is bald with a beard (the beanie is still in the editor).
+
 ## [4.9.0] - 2026-10-17
 
 ### Added

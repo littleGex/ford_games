@@ -88,5 +88,20 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   }
 }
 
+// growing up: P cooks dinner once she's a teenager, not before (her birthday decides, players.js)
+{
+  const rng = seededRandom(9), state = { day: 1, lastDone: {}, character: 'girl', season: 'autumn' };
+  const days = stage => { let n = 0; for (let day = 1; day <= 10; day++) { state.day = day; state.stage = stage; const ids = planDay(POOL_RULES, state, rng); if (ids.includes('cook')) n++; ids.forEach(id => { state.lastDone[id] = day; }); } return n; };
+  check(days('child') === 0, 'growing up: P cooked as a child');
+  check(days('teen') === 10, 'growing up: P as a teenager should cook dinner every day like Mum and Dad');
+}
+{
+  const { ageOn, stageFor, daysToBirthday } = await import('../../house/js/players.js');
+  const on = new Date(2026, 9, 17);
+  check(ageOn('2014-10-18', on) === 11 && ageOn('2014-10-17', on) === 12 && ageOn('', on) === null, 'ages from birthdays');
+  check(stageFor(12) === 'child' && stageFor(13) === 'teen' && stageFor(17) === 'teen' && stageFor(18) === 'adult', 'life stages from ages');
+  check(daysToBirthday('2014-10-17', on) === 0 && daysToBirthday('2014-10-18', on) === 1 && daysToBirthday('2014-10-16', on) === 364, 'days to the next birthday');
+}
+
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');
 process.exitCode = fail.length ? 1 : 0;

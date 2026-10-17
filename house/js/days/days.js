@@ -4,7 +4,7 @@ import { DAY_COMPLETE_DELAY } from '../config.js';
 import { S } from '../state.js';
 import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
-import { planDay, personalDue, seededRandom } from './planner.js';
+import { planDay, personalDue, seededRandom, isFor } from './planner.js';
 import { currentSeason } from '../seasons.js';
 import { currentHoliday } from '../holidays.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
@@ -16,14 +16,18 @@ function binParams(save) {
   return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHoliday() };
 }
 
+// a player's life stage (players.js: from their birthday), set up by createDays
+let stageOf = () => undefined;
+
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
   const pool = createJobs({ ...params, character: save.character });
-  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, season: currentSeason(), holiday: params.holiday }, seededRandom(save.day * 7919 + 13));
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: params.holiday }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
   const { board, hud, items, clock } = ctx;
+  stageOf = key => (ctx.players ? ctx.players.stage(key) : undefined);
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
@@ -116,11 +120,11 @@ export function createDays(ctx) {
     for (const job of pool.filter(j => j.who)) {
       if (!today.plan.includes(job.id) || today.done.includes(job.id)) continue;
       if (S.sitting && S.sitting.job.id === job.id) ctx.sitting.standUp();
-      if (job.who.includes(who)) { board.replace(job); continue; }   // still theirs, but maybe somewhere else: start it afresh
+      if (isFor(job, who, stageOf(who))) { board.replace(job); continue; }   // still theirs, but maybe somewhere else: start it afresh
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }
-    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, season: currentSeason(), holiday: today.params.holiday })) {
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, stage: stageOf(who), season: currentSeason(), holiday: today.params.holiday })) {
       if (today.plan.includes(job.id)) continue;
       today.plan.push(job.id);
       board.add(job);

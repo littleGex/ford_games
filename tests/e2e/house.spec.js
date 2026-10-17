@@ -447,6 +447,31 @@ test("Mum's office: drive there, zebra crossing, badge through the turnstiles, c
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
+test('looks and birthdays: change how P looks, give her a birthday, and it is kept after a reload', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#looksBtn').click();
+  await expect(page.locator('#avatar')).toBeVisible();
+  await page.locator('.avatar-who [data-p="girl"]').click();
+  await expect(page.locator('.avatar-who [data-p="girl"]')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#avatarAge')).toHaveText(/No birthday yet · P plays as a child/);
+  await page.locator('.avatar-chip', { hasText: 'Ponytail' }).click();
+  await page.locator('.avatar-swatch[aria-label="Hair colour: #b8402a"]').click();
+  const year = new Date().getFullYear() - 14;
+  await page.locator('#avatarBirthday').fill(`${year}-01-01`);
+  await expect(page.locator('#avatarAge')).toHaveText(/^14 years old · a teenager/);
+  await page.locator('#avatarDone').click();
+  await expect(page.locator('#avatar')).toBeHidden();
+  expect(await page.evaluate(() => window.house.players.stage('girl'))).toBe('teen');
+
+  await page.reload();
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/, { timeout: 20000 });
+  const kept = await page.evaluate(() => ({ look: window.house.players.look('girl'), birthday: window.house.players.birthday('girl') }));
+  expect(kept.look.hair).toBe('ponytail');
+  expect(kept.look.hairColor).toBe('#b8402a');
+  expect(kept.birthday).toBe(`${year}-01-01`);
+});
+
 test('bedtime: starts in the evening with both kids on the sofa, and the iPads go off', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();
