@@ -44,6 +44,9 @@ import { createFamilyServer } from './familyserver.js';
 import { createChristmas } from './systems/christmas.js';
 import { createAdvent } from './advent.js';
 import { createAdventCard } from './ui/advent.js';
+import { createSettings } from './settings.js';
+import { createSettingsCard } from './ui/settings.js';
+import { showNames } from './names.js';
 import { XMAS } from './world/christmas.js';
 
 const stage = createStage(document.getElementById('scene'));
@@ -51,7 +54,7 @@ const world = buildWorld(stage.scene);
 const items = createItems(stage.scene, world.upstairs, world.attic);
 const players = createPlayers();   // looks and birthdays, saved on this device
 const player = createPlayer(stage.scene, items, players);
-players.onChange(key => player.refresh(key));
+players.onChange(key => { player.refresh(key); showNames(); if (ctx.christmas) ctx.christmas.redrawCalendars(); });
 const hud = createHud();
 const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs, world.attic] });
 
@@ -86,6 +89,7 @@ ctx.bedtime = createBedtime(ctx);
 ctx.birthday = createBirthday(ctx);
 ctx.familyServer = createFamilyServer(players);   // the real birthdays, if this device has the game token
 ctx.advent = createAdvent();   // P's and Dude's Advent calendar doors (saved on this device)
+ctx.settings = createSettings();   // which jobs are on (saved on this device)
 ctx.christmas = createChristmas(ctx);
 ctx.christmas.useAdvent(ctx.advent);
 board.setContext(ctx);
@@ -118,13 +122,15 @@ player.setCharacter(ctx.days.character);
 markCharacter(ctx.days.character);
 ctx.days.start();
 ctx.home = createHome(ctx);
-ctx.avatar = createAvatar(ctx);   // looks and birthdays, from the home screen
+ctx.avatar = createAvatar(ctx);   // names, looks and birthdays, from the home screen
+ctx.settingsCard = createSettingsCard(ctx);   // jobs on or off, and the share link
 // ask the family server for the birthdays in the background (never waits; offline keeps the saved ones). If
 // that turns today into someone's birthday before anything's been done, today's list is planned again.
 ctx.familyServer.sync().then(() => ctx.days.replanIfUntouched()).catch(() => {});
 ctx.missions = createMissions(ctx);
 systems.push(ctx.missions);
 ctx.home.open();   // the game opens on the home screen
+ctx.settingsCard.checkLink();   // opened from a share link: ask before using its settings
 
 let drawn = false, room = null;
 function frame() {

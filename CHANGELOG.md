@@ -10,6 +10,16 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **names** for the players, at the top of the names, looks and birthdays card. A new name shows
+  everywhere: the buttons, job titles, missions, the Advent calendars and the room names (#78).
+- Ford House: **jobs on or off**, in a new "Jobs, and sharing" card on the home screen: switch off the bearded
+  dragon, keyboard practice, the clarinet, the bike, the solar panels, the car, shaving, the loft, Halloween,
+  Christmas or birthday parties if they don't fit (#78).
+- Ford House: **share the link** copies everyone's names, looks, birthdays and the job switches to another
+  phone or tablet; opening it asks first. Nothing goes to a server, and the family server token is never in
+  it (#78).
+
 ## [4.11.0] - 2026-10-17
 
 ### Added

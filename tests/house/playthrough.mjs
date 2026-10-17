@@ -483,10 +483,10 @@ for (const who of ['dad', 'girl']) {
   if ((who === 'dad') !== /fridge/.test(first)) errors.push(`food shopping (${who}): starts with "${first}"`);
   while (job.i < job.steps.length && job.steps[job.i].kind !== 'wait') { const r = doStep(job); if (r !== true) { errors.push(`food shopping (${who}): ${r}`); break; } }
   for (let k = 0; k < 4000 && job.steps[job.i].kind === 'wait'; k++) frame();
-  // the wait for a delivery only ends when the driver rings (the banner may show a parcel courier instead,
-  // if one of the day's random parcels turns up at the same moment)
+  // the wait for a delivery only ends when the driver rings. The banner says so, unless one of the day's
+  // random parcels (for us, or for the neighbours) has a courier at the door at the same moment: that banner wins
   if (job.steps[job.i].kind === 'wait') errors.push(`food shopping (${who}): the driver never rang`);
-  else if (!/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door`);
+  else if (!S.courierWaiting && !/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door (${G.deliveries.banner()})`);
   playDay(`food shopping (${who})`);
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
   G.days.setCharacter('dad');
@@ -628,6 +628,38 @@ for (const who of ['dad', 'girl']) {
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
   console.log(`Christmas: tree, biscuits, presents, Advent doors 1-15 for P, Christmas Eve, down on 5 January`);
+}
+
+// --- names and switched-off jobs (#78): P called Pia and Dad called Alan show in job titles, labels, the room
+// chip and the buttons; with the dragon and the clarinet off they never come up, and a day still finishes
+{
+  const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.plan(['fixBike', 'fold', 'shave']);
+  G.players.setName('girl', 'Pia'); G.players.setName('dad', 'Alan');
+  G.days.retitle();
+  const fix = G.board.find('fixBike'), fold = G.board.find('fold');
+  if (fix.title !== "Fix Pia's bike" || !fold.steps.some(st => st.label === "Pick up Pia's clothes") || !fold.steps.some(st => st.label === "Pick up Mum and Alan's clothes")) errors.push(`names: "${fix.title}", ${fold.steps.map(st => st.label).filter(Boolean).join(' / ')}`);
+  if (roomAt(1.5, 7, 1).name !== "Pia's room" || roomAt(44.5, 7.5, 0).name !== 'Alans Büro') errors.push(`names: room chips ${roomAt(1.5, 7, 1).name}, ${roomAt(44.5, 7.5, 0).name}`);
+  playDay('a day with new names');
+  G.days.next();
+  G.players.setName('girl', ''); G.players.setName('dad', '');
+
+  G.settings.set('dragon', false); G.settings.set('clarinet', false);
+  for (const who of ['girl', 'boy']) {
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    for (let n = 0; n < 3; n++) {
+      G.days.next();
+      const plan = G.board.jobs.map(j => j.id);
+      if (plan.some(id => /Dragon|clarinet/.test(id))) errors.push(`jobs off: ${who} still got ${plan.filter(id => /Dragon|clarinet/.test(id))}`);
+      if (plan.length < DAY_JOBS.min) errors.push(`jobs off: ${who}'s day only has ${plan.length} jobs`);
+    }
+  }
+  playDay('a day with the dragon and clarinet off');
+  G.settings.set('dragon', true); G.settings.set('clarinet', true);
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('names and jobs off: Pia and Alan in titles, labels and rooms; no dragon or clarinet when switched off');
 }
 
 // --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day

@@ -1,7 +1,10 @@
-// The four players (Dad, Mum, P and Dude): how each one looks and their birthday, saved on this device only
+// The four players (Dad, Mum, P and Dude): what they're called, how each one looks and their birthday, saved on
+// this device only
 // (localStorage), never in the repository. Their age follows from the birthday, and the age sets their life
 // stage: a child under 13, a teenager from 13 to 17, an adult from 18. Teenagers are a bit taller and get
 // some grown-up jobs (rules.js: `teen: true`).
+
+import { cleanName, useNames } from './names.js';
 
 export const PLAYER_KEYS = ['dad', 'mum', 'girl', 'boy'];
 // how the family looks by default (the figures are built from a look in characters/looks.js)
@@ -12,6 +15,8 @@ export const DEFAULT_LOOKS = {
   boy: { skin: '#f5d6c1', hair: 'swept', hairColor: '#7a5434', top: 'own', pants: '#2d3037', shoes: '#3a3d45', glasses: false, beard: false },
 };
 export const DEFAULT_STAGE = { dad: 'adult', mum: 'adult', girl: 'child', boy: 'child' };
+// the hair styles (characters/looks.js builds them), for checking looks that come in a share link
+export const HAIR_STYLES = ['long', 'shoulder', 'ponytail', 'bun', 'swept', 'short', 'spiky', 'beanie', 'bald'];
 const KEY = 'fordHouse.players.v1';
 export const STAGE_NAMES = { child: 'child', teen: 'teenager', adult: 'grown-up' };
 
@@ -47,12 +52,18 @@ export function createPlayers() {
   const data = Object.fromEntries(PLAYER_KEYS.map(k => [k, {
     look: { ...DEFAULT_LOOKS[k], ...((saved[k] && saved[k].look) || {}) },
     birthday: (saved[k] && saved[k].birthday) || null,
+    name: cleanName(saved[k] && saved[k].name) || null,   // null: the usual name (names.js)
   }]));
+  useNames(key => (data[key] && data[key].name) || null);
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* private mode */ } };
   const changed = key => listeners.forEach(fn => fn(key));
 
   return {
     look: key => data[key].look,
+    /** A name they've been given here (null: the usual one, Dad, Mum, P or Dude). */
+    customName: key => data[key].name,
+    /** Give a player a name (cleaned up: letters, numbers, spaces, - ' . only); empty goes back to the usual one. */
+    setName(key, name) { data[key].name = cleanName(name) || null; save(); changed(key); },
     birthday: key => data[key].birthday,
     age: (key, date) => ageOn(data[key].birthday, date),
     /** The life stage now: from the birthday, or the usual one without a birthday. Parents are always grown-ups. */
@@ -63,7 +74,7 @@ export function createPlayers() {
     setLook(key, change) { Object.assign(data[key].look, change); save(); changed(key); },
     resetLook(key) { data[key].look = { ...DEFAULT_LOOKS[key] }; save(); changed(key); },
     setBirthday(key, birthday) { data[key].birthday = birthday || null; save(); changed(key); },
-    /** fn(key) after a player's look or birthday changes. */
+    /** fn(key) after a player's name, look or birthday changes. */
     onChange(fn) { listeners.push(fn); },
   };
 }

@@ -7,13 +7,13 @@ import { S } from '../state.js';
 import { makeCharacter } from '../characters/character.js';
 import { HAIR, PALETTE, specFor } from '../characters/looks.js';
 import { daysToBirthday, STAGE_NAMES } from '../players.js';
+import { DEFAULT_NAMES, NAMES, showNames } from '../names.js';
 
-const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
 
 export function createAvatar({ players, days, familyServer }) {
   const $ = id => document.getElementById(id);
   const el = { box: $('avatar'), controls: $('avatarControls'), preview: $('avatarPreview'), birthday: $('avatarBirthday'), age: $('avatarAge'),
-               done: $('avatarDone'), reset: $('avatarReset'), open: $('looksBtn'),
+               done: $('avatarDone'), reset: $('avatarReset'), open: $('looksBtn'), name: $('avatarName'), nameHint: $('avatarNameHint'),
                status: $('serverStatus'), token: $('serverToken'), connect: $('serverConnectBtn'), connectRow: $('serverConnect'), disconnect: $('serverDisconnect') };
   const tabs = [...document.querySelectorAll('.avatar-who [data-p]')];
   let key = 'dad', figure = null, spin = 0, raf = null;
@@ -76,6 +76,9 @@ export function createAvatar({ players, days, familyServer }) {
     );
     // the extras chips show as pressed when they're on
     el.controls.querySelectorAll('.avatar-chip').forEach(b => { if (b.dataset.value === 'glasses') b.setAttribute('aria-pressed', String(!!look.glasses)); if (b.dataset.value === 'beard') b.setAttribute('aria-pressed', String(!!look.beard)); });
+    if (globalThis.document && document.activeElement !== el.name) el.name.value = players.customName(key) || '';
+    el.name.placeholder = DEFAULT_NAMES[key];
+    el.nameHint.textContent = `Shown everywhere in the game. Leave it empty for "${DEFAULT_NAMES[key]}".`;
     el.birthday.value = players.birthday(key) || '';
     const fromServer = !!(familyServer && familyServer.connected && familyServer.status && familyServer.status.ok);
     el.birthday.readOnly = fromServer;
@@ -117,10 +120,16 @@ export function createAvatar({ players, days, familyServer }) {
 
   function close() {
     S.avatar = false; el.box.hidden = true;
+    if (renamed) { renamed = false; days.retitle(); }   // today's jobs with the new names
     if (el.open && el.open.focus) el.open.focus();
   }
 
   tabs.forEach(t => t.addEventListener('click', () => { key = t.dataset.p; render(); }));
+  // a new name: saved as it's typed (cleaned up: letters, numbers, spaces, - ' and . only), shown on the
+  // buttons at once, and in today's job titles when the card closes
+  let renamed = false;
+  el.name.addEventListener('input', () => { players.setName(key, el.name.value); renamed = true; showNames(); });
+  el.name.addEventListener('change', () => { el.name.value = players.customName(key) || ''; render(); });
   if (familyServer && el.connect) {
     el.connect.addEventListener('click', async () => {
       if (!el.token.value.trim()) return;

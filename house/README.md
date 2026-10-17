@@ -20,6 +20,20 @@ shoes. Give each a birthday: the age decides whether P and Dude are children (un
 Everything is saved on the device only (`js/players.js`, `localStorage`), never in this repository. Dad is
 bald with a beard by default.
 
+**Names** (`js/names.js`): each player's name can be changed at the top of the names, looks and birthdays card
+(Dad, Mum, P and Dude by default). The game knows them as dad, mum, girl and boy; everything that shows a name
+asks `names.js` when it builds its text, so a new name shows on the buttons, in job titles ("Fix Pia's bike"),
+missions, the Advent calendars and the room chips. Names are cleaned up (letters, numbers, spaces, - ' and .,
+at most 16 characters), so they can never carry markup.
+
+**Jobs, and sharing** (`js/settings.js`, `js/ui/settings.js`, from the home screen): switch groups of jobs off
+that don't fit a family (the bearded dragon, keyboard practice, the clarinet, the bike, the solar panels, the
+car, shaving, the loft) and the special days (Halloween, Christmas and the Advent calendars, birthday parties).
+They're never planned while they're off. **Share the link** makes a link with everyone's names, looks,
+birthdays and the switches, in the part after `#` (which never reaches a server); opening it on another phone
+or tablet asks first, then copies them there. The family server token is never in it, and everything in a
+link is checked before it's used.
+
 **Birthdays** (`js/systems/birthday.js`): on a player's birthday the dining room has balloons and a "Happy
 birthday" banner with their name, and four jobs come on the list: decorate (blow up the balloons, hang the
 banner), the cake (from the fridge to the table, candles, everyone sings, blow them out, cut it), presents
