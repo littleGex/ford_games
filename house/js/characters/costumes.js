@@ -82,6 +82,16 @@ const BUILD = {
   },
 };
 
+// Pyjamas for bedtime (not on the costume card): a top and long trousers over their clothes
+function pyjamas(c, torso, color, dots) {
+  const top = suitOver(torso, color);
+  [[-0.09, 0.32], [0.08, 0.22], [-0.04, 0.12], [0.11, 0.36], [0.0, 0.27]].forEach(([x, y]) => add(top, new THREE.SphereGeometry(0.018, 8, 6), M(dots), [x, y, 0.195], [1, 1, 0.4]));
+  const legs = c.legs.map(hip => { const g = new THREE.Group(); hip.add(g); add(g, new THREE.CylinderGeometry(0.083, 0.083, 0.34, 12), M(color), [0, -0.19, 0]); return g; });
+  return [top, ...legs];
+}
+BUILD['pyjamas-girl'] = (c, torso) => pyjamas(c, torso, '#f4b6cf', '#ffffff');
+BUILD['pyjamas-boy'] = (c, torso) => pyjamas(c, torso, '#7fb2e8', '#f2d24a');
+
 /** Put a costume on a character (from makeCharacter). Takes off any costume it already had. */
 export function dressUp(c, id) {
   undress(c);

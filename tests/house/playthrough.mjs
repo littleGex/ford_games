@@ -28,7 +28,7 @@ globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) 
 const errors = [];
 await import(new URL('../../house/js/main.js', import.meta.url));
 const { blocked } = await import(new URL('../../house/js/core/collision.js', import.meta.url));
-const { REACH, LEVEL_HEIGHT } = await import(new URL('../../house/js/config.js', import.meta.url));
+const { REACH, LEVEL_HEIGHT, WALK_SPEED } = await import(new URL('../../house/js/config.js', import.meta.url));
 const { DAY_JOBS } = await import(new URL('../../house/js/days/planner.js', import.meta.url));
 const { SWEEPS } = await import(new URL('../../house/js/systems/sweeping.js', import.meta.url));
 const { TRIM_SPOTS } = await import(new URL('../../house/js/systems/trimming.js', import.meta.url));
@@ -134,7 +134,35 @@ function standNear(p, level = S.level) {
 }
 
 // --- getting about: walk to the stairs and use the button, like a player would
-const goTo = cell => { G.player.group.position.x = cell[0]; G.player.group.position.z = cell[1]; };
+// On a mission with a clock, getting somewhere takes the time it takes to walk there: the shortest path over
+// the walkable floor (0.1 m grid) at walking speed is added to the clock. The bot otherwise jumps straight
+// to each spot, which would hide a day that can't be done in time.
+const GRID = cellsOn.map(cells => { const m = new Set(); for (const [x, z] of cells) m.add(Math.round(x * 10) + ',' + Math.round(z * 10)); return m; });
+function pathLength(level, from, to) {
+  const key = (i, k) => i + ',' + k, g = GRID[level];
+  const s = [Math.round(from[0] * 10), Math.round(from[1] * 10)], t = [Math.round(to[0] * 10), Math.round(to[1] * 10)];
+  if (s[0] === t[0] && s[1] === t[1]) return 0;
+  const dist = new Map([[key(...s), 0]]), q = [s];
+  for (let h = 0; h < q.length; h++) {
+    const [i, k] = q[h], d = dist.get(key(i, k));
+    for (const [di, dk] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const n = key(i + di, k + dk), step = di && dk ? Math.SQRT2 : 1;
+      if (dist.has(n) || !g.has(n) || (di && dk && (!g.has(key(i + di, k)) || !g.has(key(i, k + dk))))) continue;
+      if (i + di === t[0] && k + dk === t[1]) return (d + step) / 10;
+      dist.set(n, d + step); q.push([i + di, k + dk]);
+    }
+  }
+  return Math.hypot(to[0] - from[0], to[1] - from[1]) * 1.3;   // off the grid (shouldn't happen): a fair guess
+}
+let walked = 0;
+const goTo = cell => {
+  const p = G.player.group.position;
+  if (S.mission && S.mission.clock && !S.mission.done) {
+    const m = pathLength(S.level, [p.x, p.z], cell);
+    if (m < 60) { S.mission.t += m / WALK_SPEED; walked += m; }   // (60+ m: a different place, got there by car or bike)
+  }
+  p.x = cell[0]; p.z = cell[1];
+};
 const STAIRS = {
   '0>1': { at: [4.4, 6.05], label: 'Go upstairs' }, '1>0': { at: [4.15, 4.45], label: 'Go downstairs' },
   '1>2': { at: [4.6, 6.5], label: 'Go up to the attic' }, '2>1': { at: [4.3, 4.55], label: 'Go downstairs' },
@@ -205,8 +233,10 @@ function doStep(job) {
   travel(G.board.levelOf(s));
   const p = stepAt(s), { cell, dist } = standNear(p);
   if (dist > REACH - 0.02) return `can't get within reach of [${p.map(v => v.toFixed(2))}] (closest ${dist.toFixed(2)} m)`;
+  const jobsBefore = G.board.jobs.length;
   goTo(cell); frame();
   const n = G.board.nearestAction(G.player.group.position);
+  if (S.mission && (G.board.jobs.length !== jobsBefore || S.mission.drill || (n && n.job && n.job.due !== undefined)) && (!n || n.step !== s)) return 'retry';   // the phone rang or the alarm went off on the way
   if (!n || n.step !== s) return `button shows "${n ? n.step.label : 'nothing'}" instead of "${s.label}"`;
   G.board.act(n);
   if (s.kind === 'sort') {   // the sorting card: pick the right pile every time (and try a wrong one first)
@@ -219,6 +249,7 @@ function doStep(job) {
   if (s.kind === 'choose') {   // the laptop close-up: pick tile number `laptopPick` (1 = first)
     if (!S.laptop) return 'the laptop never opened';
     G.laptop.choose(Math.min(laptopPick, G.laptop.options().length));
+    for (let k = 2; k <= 4 && S.laptop; k++) G.laptop.choose(Math.min(k, G.laptop.options().length));   // "Not that one!": another
     frame();
     return job.steps[job.i] !== s || 'nothing was chosen on the laptop';
   }
@@ -233,6 +264,7 @@ function doStep(job) {
     if (!onFloor()) return 'left the floor when starting';
     for (let k = 0; k < 2000 && job.steps[job.i] === s; k++) {
       if (!S.powerOn && (s.screen || s.power)) { G.sitting.standUp(); fixPower(); return doStep(job); }
+      if (S.mission && S.mission.drill && !s.drill && !S.sitting) return 'retry';   // the fire alarm got us up
       frame();
     }
     if (job.steps[job.i] === s) return 'sitting never finished';
@@ -576,16 +608,31 @@ for (const who of ['girl', 'boy']) {
 /** Play a working-day mission (work from home, the office) like a sensible worker: one step at a time,
  *  the fire drill first when it's on, then whatever can be done now and is due soonest. */
 function playWorkDay(label, seen) {
-  for (let k = 0; k < 500 && !S.mission.done; k++) {
+  for (let k = 0; k < 2000 && !S.mission.done; k++) {
     const notYet = j => (j.steps[j.i].notBefore || 0) > G.missions.minutes();
     const open = G.board.jobs.filter(j => j.i < j.steps.length && !(j.optional && S.mission.breaks && S.mission.breaks[j.key] >= 1))
       .filter(j => !S.mission.drill || j.steps[j.i].drill)
+      .filter(j => !j.steps[j.i].can || j.steps[j.i].can(G))   // e.g. a child's teeth only once they're in pyjamas
       .sort((a, b) => (notYet(a) - notYet(b)) || ((a.due ?? 1e9) - (b.due ?? 1e9)));
     open.forEach(j => seen.add(j.key || j.title));
-    if (!open.length) { frame(); continue; }
-    const job = open[0], before = job.i, r = doStep(job);
+    // don't start something long when a meeting opens before it would be done: do something quick, or wait
+    const spm = S.mission.clock ? S.mission.clock.secondsPerMinute : 1, now = G.missions.minutes();
+    const opensSoon = Math.min(...open.filter(j => notYet(j) && j.due !== undefined).map(j => j.steps[j.i].notBefore));
+    const fits = j => j.due !== undefined || notYet(j) || now + (j.steps[j.i].dur || 0) / spm + 4 < opensSoon;
+    const ready = open.filter(fits);
+    if (!ready.length || notYet(ready[0])) { for (let w = 0; w < 40; w++) frame(); continue; }   // (time passes)
+    const job = ready[0], before = job.i, r = doStep(job);
     if (r !== true && r !== 'retry') { errors.push(`${label} "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; }
   }
+}
+
+/** A working day played well, walking included, should leave plenty of time to spare: a kid stopping to look
+ *  round costs two minutes of the day per second (1.5 on Mum's slower office clock). */
+const SPARE = 120;
+function checkSpare(label) {
+  const end = S.mission.clock.end, at = G.missions.minutes(), spare = end - at;
+  console.log(`${label}: done at ${Math.floor(at / 60)}:${String(Math.floor(at % 60)).padStart(2, '0')} after walking ${Math.round(walked)} m, ${Math.round(spare)} min to spare`);
+  if (spare < SPARE) errors.push(`${label}: played well it only finishes ${Math.round(spare)} min before ${end / 60}:00, want ${SPARE}+ to spare`);
 }
 
 // --- work from home, as Dad and as Mum: the morning in order, then the working day in any order, with a
@@ -597,13 +644,14 @@ for (const who of ['dad', 'mum']) {
   const planBefore = G.board.jobs.map(j => j.id).join();
   G.missions.start('wfh', who);
   S.mission.callAt = 10 * 60;   // make sure the phone rings
+  walked = 0;
   const seen = new Set();
   playWorkDay(`work from home (${who})`, seen);
   if (!S.mission.done) errors.push(`work from home (${who}): the day never finished`);
   for (const k of ['meet9', 'mail', 'doc', 'lunch', 'water', 'meet14', 'code', 'coffee', 'snack', 'urgent', 'finish'])
     if (!seen.has(k)) errors.push(`work from home (${who}): never had "${k}" on the list`);
   if (S.mission.done && G.missions.best('wfh', who).stars !== 3) errors.push(`work from home (${who}): a good day only got ${G.missions.best('wfh', who).stars} stars (due ${JSON.stringify(S.mission.due)}, done ${JSON.stringify(S.mission.doneAt)})`);
-  if (S.mission.done) console.log(`work from home as ${who}: done at ${Math.round(G.missions.minutes())} min, best`, G.missions.best('wfh', who));
+  if (S.mission.done) checkSpare(`work from home as ${who}`);
   G.missions.end();
   if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`work from home (${who}): the day didn't come back as it was`);
 }
@@ -615,6 +663,7 @@ for (const who of ['dad', 'mum']) {
   const planBefore = G.board.jobs.map(j => j.id).join(), seen = new Set();
   G.missions.start('office', 'dad');
   S.mission.callAt = 11 * 60; S.mission.drillAt = 11.5 * 60;
+  walked = 0;
   playWorkDay('office (dad)', seen);
   if (!S.mission.done) errors.push('office: the day never finished');
   for (const key of ['clockIn', 'boss', 'mail', 'doc', 'lunch', 'water', 'team', 'code', 'coffee', 'snack', 'loo', 'urgent', 'drill', 'finish', 'home'])
@@ -623,7 +672,7 @@ for (const who of ['dad', 'mum']) {
   if (S.mission.done) {
     if (Math.hypot(bike.position.x - h[0], bike.position.z - h[2]) > 0.01) errors.push("office: Dad's bike isn't back on the terrace");
     if (G.missions.best('office', 'dad').stars !== 3) errors.push(`office: a good day only got ${G.missions.best('office', 'dad').stars} stars (due ${JSON.stringify(S.mission.due)}, done ${JSON.stringify(S.mission.doneAt)})`);
-    else console.log('office day: home at', Math.round(G.missions.minutes()), 'min, best', G.missions.best('office', 'dad'));
+    checkSpare("Dad's office day");
   }
   if (S.mission && S.mission.drill) errors.push('office: still in a fire drill at the end');
   G.missions.end();
@@ -640,6 +689,7 @@ for (const who of ['dad', 'mum']) {
   const planBefore = G.board.jobs.map(j => j.id).join(), seen = new Set();
   G.missions.start('officeMum', 'mum');
   S.mission.callAt = 11 * 60; S.mission.drillAt = 11.5 * 60;
+  walked = 0;
   let liftRefused = false;
   playWorkDay("Mum's office", seen);
   if (!S.mission.done) errors.push("Mum's office: the day never finished");
@@ -648,7 +698,7 @@ for (const who of ['dad', 'mum']) {
   if (S.mission.done) {
     const b = G.missions.best('officeMum', 'mum');
     if (b.stars !== 3) errors.push(`Mum's office: a good day only got ${b.stars} stars (due ${JSON.stringify(S.mission.due)}, done ${JSON.stringify(S.mission.doneAt)})`);
-    else console.log("Mum's office: home at", Math.round(b.minutes), 'min');
+    checkSpare("Mum's office day");
     if (!G.world.car.visible || G.world.mumCar.visible) errors.push("Mum's office: the car isn't back home");
   }
   void liftRefused;
@@ -668,6 +718,75 @@ for (const who of ['dad', 'mum']) {
   S.mission.drill = false;
   G.board.act(G.board.nearestAction(G.player.group.position));
   if (S.level !== 1) errors.push("Mum's office: the lift didn't take Mum up");
+  G.missions.end();
+}
+
+// --- bedtime, as Mum and as Dad, with every kind of trouble between the two evenings: off the iPads, up to
+// the bathroom, a shower, pyjamas and teeth each, a story, into bed and lights out, then back downstairs
+{
+  const { MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  const { BED, SEARCH } = await import(new URL('../../house/js/systems/bedtime.js', import.meta.url));
+  const B = G.bedtime, PJ = { girl: 'pyjamasGirl', boy: 'pyjamasBoy' };
+  for (const [who, first, trouble] of [
+    ['mum', 1, { pyjamas: { who: 'girl', spot: 0 }, book: { who: 'boy' }, dance: { who: 'boy', at: 0 }, water: { who: 'girl' } }],
+    ['dad', 2, { dragon: { who: 'girl' }, ipad: { who: 'boy', at: 0 }, hide: { who: 'girl', spot: 2, at: 0 }, pyjamas: { who: 'boy', spot: 1 } }]]) {
+    const label = `bedtime (${who})`, spot = MISSIONS.bedtime.spot(who);
+    if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push(`${label}: starts inside something`);
+    const planBefore = G.board.jobs.map(j => j.id).join(), seen = new Set();
+    G.missions.start('bedtime', who);
+    // tonight's trouble, set for the test: the lost pyjamas go where they were "lost", the others in the wardrobes
+    S.mission.trouble = trouble;
+    for (const k of ['girl', 'boy']) { const it = G.items[PJ[k]], h = it.userData.home; h.parent.attach(it); it.position.fromArray(h.pos); it.userData.level = h.level; it.visible = true; }
+    const lost = G.items[PJ[trouble.pyjamas.who]];
+    G.world.upstairs.attach(lost); lost.position.set(...SEARCH.pyjamas[trouble.pyjamas.spot].place); lost.userData.level = 1;
+    if (!B.on || G.stage.hemi.intensity > 0.3) errors.push(`${label}: not evening`);
+    if (!B.is('girl', 'sofa') || !B.is('boy', 'sofa')) errors.push(`${label}: the kids aren't on the sofa with their iPads`);
+    laptopPick = first;   // who showers first: 1 P, 2 Dude
+    walked = 0;
+    playWorkDay(label, seen);
+    if (!S.mission.done) { errors.push(`${label}: never finished (on "${(G.board.jobs.find(j => j.i < j.steps.length) || { title: '?' }).title}")`); G.missions.end(); continue; }
+    for (const key of ['ipad-girl', 'ipad-boy', 'first', 'shower-girl', 'shower-boy', 'pyjamas-girl', 'pyjamas-boy', 'story', 'bed-girl', 'bed-boy', 'down'])
+      if (!seen.has(key)) errors.push(`${label}: never had "${key}" on the list`);
+    for (const name of Object.keys(trouble)) {
+      if (S.mission.trouble[name].skipped) errors.push(`${label}: the ${name} trouble never happened`);
+      if (['dance', 'ipad', 'hide'].includes(name) && !seen.has(name === 'ipad' ? 'ipadAgain' : name)) errors.push(`${label}: no "${name}" job`);
+    }
+    if (trouble.book && !trouble.book.refused) errors.push(`${label}: the first story pick wasn't refused`);
+    const [a, b] = first === 1 ? ['girl', 'boy'] : ['boy', 'girl'];
+    if (!(S.mission.doneAt[`shower-${a}`] < S.mission.doneAt[`shower-${b}`])) errors.push(`${label}: the child chosen to go first didn't`);
+    for (const k of ['girl', 'boy']) {
+      if (!B.is(k, 'bed') || !B.kid(k).dressed) errors.push(`${label}: ${k} isn't in bed in pyjamas`);
+      if (B.kid(k).level !== BED.bed[k].level) errors.push(`${label}: ${k} is in bed on the wrong floor`);
+    }
+    if (S.level !== 0) errors.push(`${label}: not back downstairs at the end`);
+    const r = G.missions.best('bedtime', who), out = Math.max(S.mission.lightsOut.girl, S.mission.lightsOut.boy);
+    console.log(`${label}: lights out at ${Math.floor(out / 60)}:${String(Math.floor(out % 60)).padStart(2, '0')} after walking ${Math.round(walked)} m, ${r.stars} stars`);
+    if (r.stars !== 3 || out > 20.5 * 60 - 12) errors.push(`${label}: played well with four lots of trouble, lights out only at ${Math.round(out)} min (want by 20:18, for three stars with room to spare)`);
+    G.missions.end();
+    if (B.on || G.stage.hemi.intensity < 0.7 || B.kid('girl').c.root.visible) errors.push(`${label}: still evening after going back to the day`);
+    if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`${label}: the day didn't come back as it was`);
+  }
+}
+
+// a fire drill straight after the urgent call: the call's deadline moves on by however long the drill took
+{
+  G.missions.start('office', 'dad');
+  for (let k = 0; k < 400 && !G.board.jobs.some(j => j.key === 'boss'); k++) {   // up, ready, to the office, clocked in
+    const j = G.board.jobs.find(x => x.i < x.steps.length && !x.optional); if (!j) { frame(); continue; }
+    const r = doStep(j); if (r !== true && r !== 'retry') { errors.push('drill and call: ' + r); break; }
+  }
+  S.mission.callAt = G.missions.minutes(); frame();
+  const call = G.board.jobs.find(j => j.key === 'urgent');
+  S.mission.drillAt = G.missions.minutes(); frame();
+  const drill = G.board.jobs.find(j => j.key === 'drill');
+  if (!call || !drill) errors.push(`drill and call: call ${!!call}, drill ${!!drill}`);
+  else {
+    const due = call.due, from = G.missions.minutes();
+    while (drill.i < drill.steps.length) { const r = doStep(drill); if (r !== true) { errors.push('drill and call: ' + r); break; } }
+    const took = G.missions.minutes() - from;
+    if (Math.abs(call.due - (due + took)) > 2 || S.mission.due.urgent !== call.due) errors.push(`drill and call: the call was due ${Math.round(due)}, drill took ${Math.round(took)} min, now due ${Math.round(call.due)}`);
+    if (!call.title.includes(String(Math.floor(call.due / 60)))) errors.push(`drill and call: the call's title wasn't updated (${call.title})`);
+  }
   G.missions.end();
 }
 

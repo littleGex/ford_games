@@ -252,7 +252,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(5);   // the school run, work from home, the office, 3D printing, bedtime (coming soon)
+  await expect(page.locator('.mission')).toHaveCount(5);   // the school run, work from home, the office, 3D printing, bedtime
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
@@ -445,6 +445,23 @@ test("Mum's office: drive there, zebra crossing, badge through the turnstiles, c
   await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and answer your emails');
   await page.evaluate(() => window.house.missions.end());
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
+test('bedtime: starts in the evening with both kids on the sofa, and the iPads go off', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="bedtime"][data-kid="mum"]').click();
+  await expect(page.locator('#dayLabel')).toHaveText('Bedtime · 19:45');
+  await expect(page.locator('#taskList')).toContainText('P: iPad off');
+  await expect(page.locator('#taskList')).toContainText('Dude: iPad off');
+  expect(await page.evaluate(() => window.house.bedtime.is('girl', 'sofa') && window.house.bedtime.is('boy', 'sofa'))).toBe(true);
+  await page.evaluate(() => window.house.player.group.position.set(1.1, 0, 1.8));
+  await expect(page.locator('#actBtn')).toHaveText('Tell P to switch off her iPad');
+  await page.locator('#actBtn').click();
+  expect(await page.evaluate(() => window.house.bedtime.kid('girl').mode)).toBe('follow');
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+  expect(await page.evaluate(() => window.house.bedtime.on)).toBe(false);
 });
 
 test('the 3D printing mission: pick a design on the laptop close-up', async ({ page }) => {
