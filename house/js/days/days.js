@@ -4,31 +4,35 @@ import { DAY_COMPLETE_DELAY } from '../config.js';
 import { S } from '../state.js';
 import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
-import { planDay, personalDue, seededRandom, isFor } from './planner.js';
+import { planDay, personalDue, seededRandom, isFor, onHoliday } from './planner.js';
 import { currentSeason } from '../seasons.js';
-import { currentHoliday, currentBirthday } from '../holidays.js';
+import { currentHolidays, currentBirthday } from '../holidays.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
 function binParams(save) {
   const last = save.lastBinPair, birthday = birthdayOf();
-  // day: where the loft box is; holiday: Halloween jobs and decorations (kept for the day once it's planned)
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHoliday(), birthday };
+  // day: where the loft box is; holiday: today's tags, for Halloween and Christmas jobs and decorations (kept
+  // for the day once it's planned)
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: currentHolidays(), birthday };
 }
 
-// a player's life stage (players.js: from their birthday), and whose birthday it is today; set up by createDays
-let stageOf = () => undefined, birthdayOf = () => null;
+// a player's life stage (players.js: from their birthday), whose birthday it is today, and the day's tags for
+// one of the family (P or Dude get 'adventDoor' while there's a door on their Advent calendar to open); set up
+// by createDays
+let stageOf = () => undefined, birthdayOf = () => null, tagsFor = (who, holiday) => [].concat(holiday || []);
 
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
   const pool = createJobs({ ...params, character: save.character });
-  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: params.holiday, birthday: params.birthday }, seededRandom(save.day * 7919 + 13));
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: tagsFor(save.character, params.holiday), birthday: params.birthday }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
   const { board, hud, items, clock } = ctx;
   stageOf = key => (ctx.players ? ctx.players.stage(key) : undefined);
   birthdayOf = () => currentBirthday(ctx.players);
+  tagsFor = (who, holiday) => [...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : [])];
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
@@ -42,6 +46,7 @@ export function createDays(ctx) {
     board.clear();
     resetItems(items);
     ctx.halloween.reset(today.params.holiday);   // decorations up on Halloween (the decorating job takes some down again)
+    if (ctx.christmas) ctx.christmas.reset(today.params.holiday);   // the tree, lights, Advent calendars... at Christmas
     if (ctx.birthday) ctx.birthday.reset(today.params.birthday);   // someone's birthday: balloons, banner, presents
 
     // every job in the house either needs doing today, or is shown done
@@ -122,11 +127,12 @@ export function createDays(ctx) {
     for (const job of pool.filter(j => j.who || j.personal)) {   // (personal: birthday jobs say whose birthday it is)
       if (!today.plan.includes(job.id) || today.done.includes(job.id)) continue;
       if (S.sitting && S.sitting.job.id === job.id) ctx.sitting.standUp();
-      if (isFor(job, who, stageOf(who))) { board.replace(job); continue; }   // still theirs, but maybe somewhere else: start it afresh
+      // still theirs (and their special day: P's Advent door isn't Dude's), but maybe somewhere else: start it afresh
+      if (isFor(job, who, stageOf(who)) && onHoliday(job, tagsFor(who, today.params.holiday), today.params.birthday)) { board.replace(job); continue; }
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }
-    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, stage: stageOf(who), season: currentSeason(), holiday: today.params.holiday, birthday: today.params.birthday })) {
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, stage: stageOf(who), season: currentSeason(), holiday: tagsFor(who, today.params.holiday), birthday: today.params.birthday })) {
       if (today.plan.includes(job.id)) continue;
       today.plan.push(job.id);
       board.add(job);

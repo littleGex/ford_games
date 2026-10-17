@@ -2,7 +2,7 @@
 //   every: N days (1 = daily)        after: { job, days } follow-up job        must: always included when due
 //   week: N   on the first N days of every 7 (homework on the five school days)
 //   season: [...]   only in these seasons ('spring', 'summer', 'autumn', 'winter'; see seasons.js)
-//   holiday: '...'  only on that special day ('halloween' on 31 October, see holidays.js; 'birthday' on anyone's birthday)
+//   holiday: '...'  only on days with that tag ('halloween', 'christmas', 'christmasEve'... see holidays.js; 'birthday' on anyone's birthday)
 //   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
 //   teen: true   (with who) also for P or Dude once they're teenagers (their birthdays, players.js)
 // Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
@@ -69,6 +69,14 @@ export const POOL_RULES = [
   { id: 'bdayCake', every: 1, must: true, holiday: 'birthday' },
   { id: 'bdayPresents', every: 1, must: true, holiday: 'birthday' },
   { id: 'bdayGuests', every: 1, must: true, holiday: 'birthday' },
+  // Christmas (holidays.js): decorations from 12 December to 5 January, and P and Dude's Advent calendars
+  { id: 'adventDoor', every: 1, must: true, who: ['girl', 'boy'], holiday: 'adventDoor' },   // a door to open (real days only)
+  { id: 'xmasTree', every: 10, must: true, holiday: 'christmasTime' },   // fetch the decorations and do the tree (the first day, then now and then)
+  { id: 'biscuits', every: 4, holiday: 'christmasTime' },         // bake Christmas biscuits
+  { id: 'xmasGift', every: 3, holiday: 'beforeChristmas' },       // wrap a present (or make one, for the kids)
+  { id: 'wishList', every: 6, who: ['girl', 'boy'], holiday: 'beforeChristmas' },
+  { id: 'bescherung', every: 1, must: true, holiday: 'christmasEve' },   // the Christmas bell, presents under the tree
+  { id: 'xmasDown', every: 1, must: true, holiday: 'christmasEnd' },     // everything down, the tree out for collection
   { id: 'hooverUp', every: 4 },
   { id: 'hooverAttic', every: 5 },
   { id: 'plants', every: 3 },

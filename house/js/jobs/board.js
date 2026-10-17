@@ -147,7 +147,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     // fixed actions (the stairs) only when standing right there, and closer to them than to any job step,
     // so a job just behind a wall can't hide the stairs and the stairs can't hide a job you're standing at
     for (const f of fixed) {
-      if (f.level !== S.level) continue;
+      if (f.level !== S.level || (f.can && !f.can())) continue;
       const d = Math.hypot(pos.x - f.at[0], pos.z - f.at[1]);
       if (d < FIXED_REACH && d < bd) { bd = d; best = { fixed: f, step: f }; }
     }
@@ -201,7 +201,8 @@ export function createJobBoard({ scene, items, hud, levels }) {
 
   return {
     jobs, add, remove, replace, clear, advance, act, tidy, nearestAction, updateMarkers, refresh, step, finished, levelOf,
-    /** An action that's always there, like going up or down the stairs: { at, level, label, act }. */
+    /** An action that's always there, like going up or down the stairs: { at, level, label, act, can? }
+     *  (can: only while this is true, like the Advent calendars in December). */
     addFixed(f) { fixed.push(f); },
     allDone: () => jobs.length > 0 && jobs.every(finished),
     /** fn(job) runs whenever a job is finished. */

@@ -3,6 +3,7 @@
 // trick-or-treaters walking up from the street to ring the bell, or for P and Dude the neighbours opening
 // their door with a handful of sweets. The tea lights and the string of lights flicker; the ghost sways.
 import { S } from '../state.js';
+import { hasHoliday } from '../holidays.js';
 import { dingDong } from '../core/audio.js';
 import { makeCharacter } from '../characters/character.js';
 import { dressUp } from '../characters/costumes.js';
@@ -102,7 +103,7 @@ export function createHalloween({ stage, world, items, board, hud, player }) {
     get visitors() { return visit ? visit.state : null; },
     /** Start of a day: decorations up on Halloween, all hidden otherwise; nobody in costume. */
     reset(holiday) {
-      on = holiday === 'halloween';
+      on = hasHoliday(holiday, 'halloween');
       deco.all.visible = on;
       ['window', 'door', 'ghost'].forEach(k => { deco[k].visible = true; });
       sendHome(); player.undressAll();

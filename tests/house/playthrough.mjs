@@ -541,6 +541,95 @@ for (const who of ['dad', 'girl']) {
   console.log('Halloween: pumpkin carved and lit, house decorated, trick or treat as Dad, P and Dude');
 }
 
+// --- Christmas (?date=...): a whole planned day on 15 December as Dad, then the tree, baking (hearts) and a
+// present to wrap; P's Advent calendar (doors only up to today's real date), wish list and a present she
+// makes; Christmas Eve's bell and presents as Dad and Dude; everything down and the tree out on 5 January;
+// nothing up on 6 January
+{
+  const { XMAS } = await import(new URL('../../house/js/world/christmas.js', import.meta.url));
+  const { colliders } = await import(new URL('../../house/js/core/build.js', import.meta.url));
+  const deco = G.world.christmas, near = (o, [x, , z]) => Math.hypot(o.position.x - x, o.position.z - z) < 0.01;
+  const treeBlocks = () => colliders.includes(deco.treeCollider);
+  const realOpen = G.adventCard.open;
+  let openedDoors = [];
+  G.adventCard.open = who => { realOpen(who); for (const n of G.advent.ready(who)) openedDoors.push(n, G.adventCard.choose(n)); G.adventCard.close(); };
+
+  globalThis.location.search = '?season=winter&date=2026-12-15';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  const planned = G.board.jobs.map(j => j.id);
+  if (!planned.includes('xmasTree')) errors.push(`15 December: the tree isn't on Dad's list (${planned})`);
+  if (planned.includes('adventDoor') || planned.includes('wishList')) errors.push("15 December: Dad has P and Dude's Christmas jobs");
+  if (!G.christmas.on || !deco.all.visible || !deco.calendars.visible || !treeBlocks()) errors.push('15 December: decorations or Advent calendars not up, or you can walk through the tree');
+  if (deco.flames.filter(f => f.visible).length !== 3) errors.push(`15 December: ${deco.flames.filter(f => f.visible).length} Advent candles lit, want 3`);
+  playDay('15 December (dad, a planned day)');
+  G.days.next();
+
+  G.days.plan(['xmasTree', 'biscuits', 'xmasGift']);
+  if (deco.star.visible || deco.baubles.visible || !G.items.xmasBox.visible) errors.push('decorating the tree: it isn\'t bare with the box in the cupboard');
+  laptopPick = 3;   // hearts
+  playDay('Christmas jobs (dad)');
+  if (!deco.star.visible || !deco.baubles.visible || !deco.lights[0].userData.on || G.items.xmasBox.visible || !near(G.items.xmasBox, G.items.xmasBox.userData.home.pos)) errors.push('the tree isn\'t done, or the box isn\'t back in the cupboard');
+  if (G.christmas.cutter !== 'heart' || !near(G.items.biscuits, XMAS.table.plate) || !G.items.biscuits.visible) errors.push(`the biscuits (${G.christmas.cutter}) aren't on the dining table`);
+  if (G.items.xmasGift.parent !== G.stage.scene || !near(G.items.xmasGift, XMAS.giftPlace)) errors.push('the wrapped present isn\'t under the tree');
+  G.days.next();
+
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.next();
+  if (!G.board.find('adventDoor') || !G.board.find('wishList')) errors.push(`15 December: no Advent calendar or wish list on P's list (${G.board.jobs.map(j => j.id)})`);
+  G.days.plan(['adventDoor', 'wishList', 'xmasGift']);
+  openedDoors = [];
+  playDay('Christmas jobs (girl)');
+  const doors = G.advent.opened('girl');
+  if (doors.length !== 15 || doors.includes(16) || !G.advent.isOpen('girl', 15) || G.advent.opened('boy').length) errors.push(`P's Advent calendar: opened ${doors}, want 1-15 (and none of Dude's)`);
+  if (!near(G.items.wishLetter, XMAS.windowsill.place) || G.items.wishLetter.userData.level !== 0) errors.push("P's wish list isn't on the dining room windowsill");
+  if (!near(G.items.xmasGift, XMAS.giftPlace) || G.items.xmasGift.userData.level !== 0) errors.push("P's present isn't under the tree");
+  G.days.next();
+  if (G.board.find('adventDoor')) errors.push('the same real day: P gets another Advent door');
+  G.days.setCharacter('boy'); G.player.setCharacter('boy');
+  if (!G.board.find('adventDoor')) errors.push('swapping to Dude: no Advent calendar job for him');
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  if (G.board.find('adventDoor')) errors.push('swapping back to P: the Advent job came back');
+  globalThis.location.search = '?season=winter&date=2026-12-16';
+  G.days.next();
+  if (!G.board.find('adventDoor') || G.advent.ready('girl').join() !== '16') errors.push(`16 December: no new door for P (${G.advent.ready('girl')})`);
+
+  globalThis.location.search = '?season=winter&date=2026-12-24';
+  for (const who of ['dad', 'boy']) {
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.days.next();
+    if (!G.board.find('bescherung')) errors.push(`Christmas Eve (${who}): no presents job`);
+    G.days.plan(['bescherung']);
+    if (deco.presents.some(p => p.visible)) errors.push(`Christmas Eve (${who}): presents under the tree before the bell`);
+    playDay(`Christmas Eve (${who})`);
+    if (deco.presents.filter(p => p.visible).length !== 2) errors.push(`Christmas Eve (${who}): ${deco.presents.filter(p => p.visible).length} presents left under the tree, want 2 for the others`);
+    G.days.next();
+  }
+
+  globalThis.location.search = '?season=winter&date=2027-01-05';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  if (!G.board.find('xmasDown') || G.board.find('xmasTree') || G.board.find('biscuits')) errors.push(`5 January: ${G.board.jobs.map(j => j.id)}`);
+  G.days.plan(['xmasDown']);
+  playDay('5 January (dad)');
+  const t = deco.tree;
+  if (!t.visible || deco.pot.visible || Math.abs(t.rotation.z - Math.PI / 2) > 1e-6 || Math.hypot(t.position.x - XMAS.kerb[0], t.position.z - XMAS.kerb[1]) > 0.5 || treeBlocks()) errors.push('5 January: the tree isn\'t lying by the street');
+  if (deco.stars.visible || deco.doorWreath.visible || deco.wreath.visible || deco.bulbs.some(b => b.visible) || G.items.xmasBox.visible) errors.push('5 January: decorations still up, or the box left out');
+  G.days.next();
+
+  globalThis.location.search = '?season=winter&date=2027-01-06';
+  G.days.next();
+  if (G.christmas.on || deco.all.visible || deco.calendars.visible || treeBlocks() || G.board.jobs.some(j => ['xmasTree', 'adventDoor', 'xmasDown'].includes(j.id))) errors.push('6 January: Christmas still about');
+  G.days.plan(['hands']);
+  playDay('6 January');
+  G.days.next();
+  G.adventCard.open = realOpen;
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log(`Christmas: tree, biscuits, presents, Advent doors 1-15 for P, Christmas Eve, down on 5 January`);
+}
+
 // --- the school run mission, as P and as Dude: every step reachable, the results card, back to the day
 const { KIDS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
 for (const [who, kid] of Object.entries(KIDS)) {   // each kid starts on open floor, not inside the furniture

@@ -134,5 +134,63 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   check(!fs.connected && !store.has('fordHouse.gameToken.v1'), 'family server: the token is still saved after disconnecting');
 }
 
+// Christmas and Advent: the tags each date gets, the Advent candles, which jobs come on which days, and the
+// Advent calendar doors (one more each real day, never ahead; a new Advent starts shut)
+{
+  const { holidaysOf, adventCandles } = await import('../../house/js/holidays.js');
+  const d = (m, day, y = 2026) => new Date(y, m - 1, day, 12);
+  const tags = date => holidaysOf(date).join(',');
+  check(tags(d(10, 31)) === 'halloween', `31.10: ${tags(d(10, 31))}`);
+  check(tags(d(11, 30)) === '', `30.11: ${tags(d(11, 30))}`);
+  check(tags(d(12, 1)) === 'advent', `1.12: ${tags(d(12, 1))}`);
+  check(tags(d(12, 11)) === 'advent', `11.12: ${tags(d(12, 11))}`);
+  check(tags(d(12, 12)) === 'advent,christmas,christmasTime,beforeChristmas', `12.12: ${tags(d(12, 12))}`);
+  check(tags(d(12, 24)) === 'advent,christmas,christmasTime,christmasEve', `24.12: ${tags(d(12, 24))}`);
+  check(tags(d(12, 25)) === 'christmas,christmasTime', `25.12: ${tags(d(12, 25))}`);
+  check(tags(d(1, 4, 2027)) === 'christmas,christmasTime', `4.1: ${tags(d(1, 4, 2027))}`);
+  check(tags(d(1, 5, 2027)) === 'christmas,christmasEnd', `5.1: ${tags(d(1, 5, 2027))}`);
+  check(tags(d(1, 6, 2027)) === '', `6.1: ${tags(d(1, 6, 2027))}`);
+  // Advent 2026: Sundays 29 November, 6, 13 and 20 December (Christmas is a Friday)
+  const candles = [[d(11, 28), 0], [d(11, 29), 1], [d(12, 5), 1], [d(12, 6), 2], [d(12, 13), 3], [d(12, 19), 3], [d(12, 20), 4], [d(12, 31), 4], [d(1, 3, 2027), 4]];
+  for (const [date, n] of candles) check(adventCandles(date) === n, `Advent candles on ${date.toDateString()}: ${adventCandles(date)}, want ${n}`);
+  check(adventCandles(d(12, 18, 2022)) === 4 && adventCandles(d(12, 17, 2022)) === 3, 'Advent candles when Christmas Day is a Sunday (2022)');
+
+  const xmas = ['xmasTree', 'biscuits', 'xmasGift', 'wishList', 'bescherung', 'xmasDown', 'adventDoor'];
+  const plan = (character, holiday, lastDone = {}) => planDay(POOL_RULES, { day: 30, lastDone, character, season: 'winter', holiday }, seededRandom(3)).filter(id => xmas.includes(id));
+  check(plan('dad', []).length === 0 && plan('girl', ['advent']).length === 0, `ordinary days and early Advent have no Christmas jobs (${plan('girl', ['advent'])})`);
+  check(plan('girl', ['advent', 'adventDoor']).join() === 'adventDoor', `a door to open: ${plan('girl', ['advent', 'adventDoor'])}`);
+  check(!plan('dad', ['advent', 'adventDoor']).includes('adventDoor'), 'Dad has no Advent calendar job');
+  check(plan('dad', holidaysOf(d(12, 12))).includes('xmasTree'), `12.12: the tree gets done (${plan('dad', holidaysOf(d(12, 12)))})`);
+  check(plan('girl', holidaysOf(d(12, 12))).includes('xmasTree'), 'P helps with the tree too');
+  check(!plan('dad', holidaysOf(d(12, 12)), { xmasTree: 25 }).includes('xmasTree'), 'the tree isn\'t done again a few days later');
+  check(plan('dad', holidaysOf(d(12, 24))).includes('bescherung') && !plan('dad', holidaysOf(d(12, 23))).includes('bescherung'), 'presents on Christmas Eve only');
+  check(plan('dad', holidaysOf(d(1, 5, 2027))).join() === 'xmasDown', `5.1: down they come, nothing else Christmassy (${plan('dad', holidaysOf(d(1, 5, 2027)))})`);
+  check(!plan('dad', holidaysOf(d(12, 15))).includes('wishList'), 'no wish list for Dad');
+  check(!plan('girl', holidaysOf(d(12, 24))).includes('wishList') && !plan('girl', holidaysOf(d(12, 24))).includes('xmasGift'), 'no wish lists or presents to make on Christmas Eve');
+
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const { createAdvent, doorsUpTo } = await import('../../house/js/advent.js');
+  check(doorsUpTo(d(11, 30)) === 0 && doorsUpTo(d(12, 1)) === 1 && doorsUpTo(d(12, 17)) === 17 && doorsUpTo(d(12, 30)) === 24 && doorsUpTo(d(1, 5, 2027)) === 24 && doorsUpTo(d(1, 6, 2027)) === 0, 'doors open up one a day');
+  let now = d(12, 3);
+  const a = createAdvent({ now: () => now });
+  check(a.hasNew('girl') && !a.hasNew('dad'), 'P has doors to open on 3 December, Dad has no calendar');
+  check(a.open('girl', 4) === null, 'door 4 opened on 3 December');
+  check(a.open('girl', 3)[1] === 'a glitter pencil' && a.isOpen('girl', 3) && !a.isOpen('boy', 3), 'opening door 3 (P only)');
+  check(a.open('girl', 3) === null, 'door 3 opened twice');
+  check(a.ready('girl').join() === '1,2', `missed doors can still be opened (${a.ready('girl')})`);
+  a.open('girl', 1); a.open('girl', 2);
+  check(!a.hasNew('girl'), 'nothing left for P on 3 December');
+  now = d(12, 4);
+  check(a.hasNew('girl') && a.ready('girl').join() === '4', 'a new real day, a new door');
+  const again = createAdvent({ now: () => now });
+  check(again.opened('girl').join() === '1,2,3', `opened doors are kept on the device (${again.opened('girl')})`);
+  now = d(1, 5, 2027);
+  check(again.isOpen('girl', 3), 'last Advent\'s doors are still open on 5 January');
+  now = d(12, 1, 2027);
+  const next = createAdvent({ now: () => now });
+  check(next.opened('girl').length === 0 && next.ready('girl').join() === '1', 'a new Advent starts with every door shut');
+}
+
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');
 process.exitCode = fail.length ? 1 : 0;

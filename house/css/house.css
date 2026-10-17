@@ -205,3 +205,27 @@ button, a, [role="button"] { touch-action: manipulation; }
 .avatar-server-row { display: flex; gap: 8px; }
 .avatar-server-row input { flex: 1; min-width: 0; font: 600 14px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; }
 .avatar-birthday input[readonly] { opacity: .7; }
+
+/* the Advent calendars up close (ui/advent.js): P's red, Dude's blue; doors whose day has come glow */
+.advent { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(8, 12, 20, .72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 14; }
+.advent-card { width: min(460px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; touch-action: pan-y; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 18px 18px 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, .45); animation: pop .3s ease-out; }
+.advent h1 { margin: 0 0 10px; font-family: var(--f-display); font-weight: 800; font-size: 26px; color: var(--marigold); text-align: center; }
+.advent-status { margin: 0 0 10px; min-height: 2.6em; font-size: 14px; text-align: center; }
+.advent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; border-radius: 16px; background: #a8303a; }
+.advent-grid:has(.boy) { background: #24508e; }
+.advent-door { position: relative; aspect-ratio: 1.9; border: 0; border-radius: 8px; cursor: pointer; font: 800 20px var(--f-display); color: #a8303a; background: #f1e6cf; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .18); }
+.advent-door.boy { color: #24508e; }
+.advent-door.ready { background: #fff3d6; box-shadow: inset 0 0 0 3px var(--marigold), 0 0 12px rgba(255, 176, 46, .7); animation: advent-glow 1.6s ease-in-out infinite; }
+.advent-door.open { background: #2a1c14; color: #f1e6cf; }
+.advent-door .advent-num { position: absolute; top: 3px; left: 6px; font-size: 11px; opacity: .7; }
+.advent-door .advent-gift { font-size: 24px; line-height: 1; }
+.advent-door.just-opened { animation: advent-open .5s ease-out; }
+.advent-door:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
+@keyframes advent-glow { 50% { box-shadow: inset 0 0 0 3px var(--marigold), 0 0 4px rgba(255, 176, 46, .3); } }
+@keyframes advent-open { from { transform: perspective(300px) rotateY(-80deg); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .advent-door.ready, .advent-door.just-opened { animation: none; } }
+.advent-count { margin: 12px 0 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.advent-gifts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.advent-gifts li { font-size: 12px; padding: 4px 9px; border-radius: 999px; background: rgba(255, 255, 255, .07); border: 1px solid var(--line); }
+.advent-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.advent-actions .btn { padding: 10px 26px; }

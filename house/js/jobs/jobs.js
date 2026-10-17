@@ -15,6 +15,7 @@ import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { HALLOWEEN as HW } from '../world/halloween.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
 import { BD, NAMES as BD_NAMES, GIFTS } from '../systems/birthday.js';
+import { XMAS, XMAS_GIFTS } from '../world/christmas.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -41,7 +42,7 @@ const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic ha
  * @param binPair  which pair goes out on bin day (0 blue + yellow, 1 black + brown)
  * @param binsBack which pair is waiting at the kerb to come back in (null if none)
  * @param character who is playing ('dad', 'mum', 'girl', 'boy'); some jobs happen somewhere different for each of them
- * @param holiday  'halloween' on 31 October (see holidays.js): adds that day's jobs
+ * @param holiday  today's tags (holidays.js): 'halloween' adds that day's jobs, the Christmas ones Christmas's
  * @param birthday whose birthday it is today ('girl'...), or null: adds the party jobs
  */
 export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null, birthday = null } = {}) {
@@ -328,7 +329,9 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'pileGrown', level: 1, at: [4.0, 2.0], place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
       setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
   ];
-  if (holiday === 'halloween') jobs.push(...halloweenJobs(character, grownUp));
+  const tags = [].concat(holiday || []);
+  if (tags.includes('halloween')) jobs.push(...halloweenJobs(character, grownUp));
+  if (tags.includes('advent') || tags.includes('christmas')) jobs.push(...christmasJobs(character, grownUp, tags));
   if (birthday) jobs.push(...birthdayJobs(character, birthday, grownUp));
   return jobs.map(job => ({ ...rulesFor(job.id), ...job }));
 }
@@ -409,4 +412,76 @@ function birthdayJobs(character, who, grownUp) {
       { kind: 'wait', dur: 40, label: 'Wait for Grandma and Grandpa', doneMessage: 'Ding-dong! Grandma and Grandpa are here' },
       { kind: 'use', at: BD.door, label: 'Open the door to Grandma and Grandpa', onDone: c => c.birthday.guestsIn() }] },
   ];
+}
+
+/** Christmas (holidays.js) and Advent: P and Dude's calendar door, doing the tree, baking biscuits, a present to
+ *  wrap (or make), the kids' wish list, the Christmas bell and presents on Christmas Eve, and taking it all down
+ *  on 5 January. Only the ones whose day it is go in the pool (so their tidy doesn't run on other days).
+ *  systems/christmas.js does the rest. */
+function christmasJobs(character, grownUp, tags) {
+  const desk = HOMEWORK_SPOT[character] || KINDERZIMMER_DESK, deskPlace = HW.room[character] || HW.room.girl, t = XMAS.table, tree = XMAS.tree.at;
+  const jobs = [
+    { id: 'adventDoor', title: 'Open your Advent calendar', personal: true, steps: [
+      { kind: 'use', at: XMAS.calendars, label: 'Open a door on your Advent calendar', onDone: c => c.adventCard.open(character) }] },
+    { id: 'xmasTree', title: 'Decorate the Christmas tree', steps: [
+      { kind: 'pick', item: 'xmasBox', label: 'Get the box of Christmas decorations from the cupboard under the stairs' },
+      { kind: 'drop', item: 'xmasBox', at: tree, place: XMAS.boxPlace, label: 'Put it down by the tree' },
+      { kind: 'use', at: tree, label: 'Wind the fairy lights round the tree', onDone: c => c.christmas.treeLights() },
+      { kind: 'sit', stand: true, at: tree, seat: [tree[0], 0, tree[1], -Math.PI / 2], dur: 8, what: 'Hanging the baubles', label: 'Hang the baubles on the tree',
+        onDone: c => c.christmas.hangBaubles() },
+      { kind: 'use', at: tree, label: grownUp ? 'Put the star on top' : 'Put the star on top (a grown-up lifts you up)', onDone: c => c.christmas.topStar() },
+      { kind: 'pick', item: 'xmasBox', label: 'Pick up the empty box' },
+      { kind: 'drop', item: 'xmasBox', home: true, label: 'Put it back in the cupboard under the stairs', onDone: c => { c.items.xmasBox.visible = false; } }],
+      setup: c => { c.christmas.bareTree(); c.christmas.boxOut(); }, tidy: c => c.christmas.treeDone() },
+    { id: 'biscuits', title: 'Bake Christmas biscuits', steps: [
+      { kind: 'sit', stand: true, at: XMAS.counter.at, seat: XMAS.counter.seat, dur: 8, what: 'Mixing the dough', label: 'Mix the biscuit dough on the worktop' },
+      { kind: 'choose', choose: 'cutter', at: t.at, label: 'Pick a biscuit cutter', message: o => `${o.label} it is!`, onChoose: (id, c) => c.christmas.chooseCutter(id) },
+      { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 8, what: 'Cutting out the biscuits', label: 'Roll out the dough and cut out the biscuits',
+        onDone: c => c.christmas.cutOut() },
+      { kind: 'pick', item: 'biscuits', label: 'Pick up the tray' },
+      { kind: 'drop', item: 'biscuits', at: XMAS.oven.at, place: XMAS.oven.out, label: grownUp ? 'Put the tray in the oven' : 'Put the tray in the oven (with a grown-up)',
+        onDone: c => c.christmas.intoOven() },
+      { kind: 'wait', dur: 25, label: 'The biscuits are baking', doneMessage: 'Ding! The biscuits are ready' },
+      { kind: 'use', at: XMAS.oven.at, label: grownUp ? 'Take the biscuits out of the oven' : 'Take the biscuits out (oven gloves on!)', onDone: c => c.christmas.baked() },
+      { kind: 'pick', item: 'biscuits', label: 'Pick up the biscuits' },
+      { kind: 'drop', item: 'biscuits', at: t.at, place: XMAS.table.plate, label: 'Put them on the dining table for everyone' }],
+      tidy: c => c.christmas.biscuitsOnTable() },
+    grownUp
+      ? { id: 'xmasGift', title: 'Wrap a Christmas present', personal: true, steps: [
+        { kind: 'pick', item: 'xmasGift', label: 'Get a present from the oak wardrobe in the dressing room' },
+        { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 8, what: 'Wrapping the present', label: 'Wrap it in Christmas paper at the dining table' },
+        { kind: 'drop', item: 'xmasGift', at: tree, place: XMAS.giftPlace, label: 'Put it under the tree' }],
+        setup: c => c.christmas.giftAt(null) }
+      : { id: 'xmasGift', title: 'Make a present for Mum and Dad', personal: true, steps: [
+        { kind: 'sit', ...desk, dur: 10, what: 'Making a present', label: 'Sit at your desk and make a present for Mum and Dad', onDone: c => c.christmas.made() },
+        { kind: 'pick', item: 'xmasGift', label: 'Pick up your present' },
+        { kind: 'drop', item: 'xmasGift', at: tree, place: XMAS.giftPlace, label: 'Put it under the tree' }],
+        setup: c => c.christmas.giftAt(deskPlace) },
+    { id: 'wishList', title: 'Write your wish list', steps: [   // P and Dude only (rules.js)
+      { kind: 'sit', ...desk, dur: 10, what: 'Writing your wish list', label: 'Sit at your desk and write your wish list', onDone: c => c.christmas.letterWritten() },
+      { kind: 'pick', item: 'wishLetter', label: 'Pick up your wish list' },
+      { kind: 'drop', item: 'wishLetter', at: XMAS.windowsill.at, place: XMAS.windowsill.place, label: 'Put it on the dining room windowsill for the Christkind' }],
+      setup: c => c.christmas.letterAt(deskPlace) },
+    { id: 'bescherung', title: 'Christmas Eve: presents!', personal: true, steps: [
+      ...(grownUp ? [
+        { kind: 'use', at: tree, label: 'Put the presents under the tree', onDone: c => c.christmas.presentsArrive() },
+        { kind: 'use', at: tree, label: 'Ring the little Christmas bell', onDone: c => c.christmas.ringBell() },
+      ] : [
+        { kind: 'wait', dur: 30, label: 'Wait for the Christmas bell', doneMessage: 'Ding-a-ling! The Christkind has been! 🔔',
+          onDone: c => { c.christmas.presentsArrive(); c.christmas.ringBell(); } },
+      ]),
+      ...[0, 1, 2].map(i => ({ kind: 'use', at: tree, label: ['Open your first present', 'Open your second present', 'Open your third present'][i], onDone: c => c.christmas.unwrap(character), gift: XMAS_GIFTS[character] && XMAS_GIFTS[character][i] }))],
+      setup: c => c.christmas.presentsOpened(), tidy: c => c.christmas.presentsOpened() },
+    { id: 'xmasDown', title: 'Take the Christmas decorations down', steps: [
+      { kind: 'use', at: tree, label: 'Take the baubles and lights off the tree', onDone: c => { c.christmas.stripTree(); c.christmas.boxByTree(); } },
+      { kind: 'use', at: XMAS.windowsill.at, label: 'Take the stars down and pack away the Advent wreath', onDone: c => c.christmas.packAway() },
+      { kind: 'pick', item: 'xmasBox', label: 'Pick up the box of decorations' },
+      { kind: 'drop', item: 'xmasBox', home: true, label: 'Put it back in the cupboard under the stairs', onDone: c => { c.items.xmasBox.visible = false; } },
+      { kind: 'use', at: tree, label: grownUp ? 'Carry the tree outside' : 'Help carry the tree outside', onDone: c => c.christmas.treeOut() },
+      { kind: 'use', at: XMAS.kerb, label: 'Leave it by the street for the Christmas tree collection', onDone: c => c.christmas.treeAtKerb() }],
+      tidy: c => c.christmas.allDown() },
+  ];
+  // only the jobs whose day it is (the Advent calendar door: in Advent and over Christmas, for missed doors)
+  const today = id => (id === 'adventDoor' ? tags.includes('advent') || tags.includes('christmas') : tags.includes(rulesFor(id).holiday));
+  return jobs.filter(job => today(job.id));
 }

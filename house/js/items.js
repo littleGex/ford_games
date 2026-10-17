@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { add, mat, castShadows } from './core/build.js';
 import { makePumpkin } from './world/halloween.js';
 import { makeCake, makePresent } from './systems/birthday.js';
+import { makeBiscuitTray } from './world/christmas.js';
 
 function item(build, pos, opts = {}) {
   const g = new THREE.Group();
@@ -319,6 +320,20 @@ export function createItems(scene, upstairs, attic) {
     // birthdays: the cake waiting in the fridge, and a present to wrap (in the oak wardrobe upstairs)
     cake: item(g => { g.userData.cake = makeCake(g); }, [4.3, 0.9, 3.4], { hidden: true }),
     giftBox: item(g => makePresent(g, 1), [3.45, 0.9, 2.0], { level: 1, hidden: true }),
+    // Christmas: the box of decorations in the cupboard under the stairs, the biscuit tray, a present to wrap
+    // (in the oak wardrobe; the kids make theirs at their desk), and the kids' wish list
+    xmasBox: item(g => {
+      add(g, new THREE.BoxGeometry(0.44, 0.26, 0.34), mat('#b8323c'), [0, 0.13, 0]);
+      add(g, new THREE.BoxGeometry(0.45, 0.04, 0.35), mat('#24502c'), [0, 0.27, 0]);
+      add(g, new THREE.SphereGeometry(0.045, 10, 8), mat('#e2b33c'), [0.1, 0.31, 0.05]);     // a bauble peeking out
+      add(g, new THREE.SphereGeometry(0.04, 10, 8), mat('#c9ccd1'), [-0.05, 0.3, -0.06]);
+    }, [4.98, 0, 4.45], { hidden: true }),
+    biscuits: item(g => { g.userData.tray = makeBiscuitTray(g); }, [1.6, 0.75, 6.75], { hidden: true }),
+    xmasGift: item(g => makePresent(g, 2), [3.45, 0.9, 2.3], { level: 1, hidden: true }),
+    wishLetter: item(g => {
+      add(g, new THREE.BoxGeometry(0.16, 0.006, 0.11), mat('#fff6e6'), [0, 0.003, 0]);
+      add(g, new THREE.BoxGeometry(0.03, 0.007, 0.03), mat('#c0282d'), [0.05, 0.004, 0.03]);   // a little drawing of a star
+    }, [2.95, 0.73, 8.0], { level: 1, hidden: true }),
     // the box that goes up into the loft and comes back down (moved about by the loft jobs)
     box: item(g => {
       add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);
