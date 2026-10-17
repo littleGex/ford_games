@@ -613,6 +613,52 @@ test('the family server: connect with the game token, and the birthdays come in 
   expect(await page.evaluate(() => localStorage.getItem('fordHouse.gameToken.v1'))).toBe('test-token');
 });
 
+test('the family server keeps the settings the same on every device: they come down when connecting, and changes go up', async ({ page }) => {
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'GET, PUT' };
+  // what another device saved: Dude is called Max and the dragon is off
+  const server = { version: 1, settings: { players: { boy: { name: 'Max', look: { hair: 'spiky' } } }, off: ['dragon'] } };
+  const puts = [];
+  await page.route('**/v1/game/family', route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ players: [] }) });
+  });
+  await page.route('**/v1/game/settings', route => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (req.method() === 'PUT') {
+      const body = req.postDataJSON();
+      puts.push(body);
+      if (body.base_version !== server.version) return route.fulfill({ status: 409, contentType: 'application/json', headers: cors, body: JSON.stringify({ detail: 'changed', version: server.version, settings: server.settings }) });
+      server.settings = body.settings; server.version++;
+    }
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ version: server.version, updated_at: '2026-10-17T18:00:00Z', settings: server.settings }) });
+  });
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#looksBtn').click();
+  await page.locator('#serverToken').fill('test-token');
+  await page.locator('#serverConnectBtn').click();
+  await expect(page.locator('.avatar-who [data-p="boy"]')).toHaveText('Max');
+  await page.locator('#avatarDone').click();
+  await expect(page.locator('.home-who [data-c="boy"]')).toHaveText('Max');
+  expect(await page.evaluate(() => [window.house.settings.isOn('dragon'), window.house.players.look('boy').hair])).toEqual([false, 'spiky']);
+
+  // a change here goes up a moment later, with the version it was based on
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#syncStatus')).toContainText('Family server:');
+  // (connecting already saved once: the other device's copy had only Dude in it, so this one filled in the rest)
+  const before = server.version;
+  await page.locator('.settings-switch[data-group="bike"]').click();
+  await expect.poll(() => puts.filter(p => p.settings.off.includes('bike')).length, { timeout: 10000 }).toBe(1);
+  const last = puts.find(p => p.settings.off.includes('bike'));
+  expect(last.base_version).toBe(before);
+  expect(last.settings.off.sort()).toEqual(['bike', 'dragon']);
+  expect(last.settings.players.boy.name).toBe('Max');
+  expect(last.settings.players.girl.name).toBe(null);
+  await expect(page.locator('#syncStatus')).toContainText('Saved on the family server');
+  expect(server.version).toBe(before + 1);
+});
+
 test('bedtime: starts in the evening with both kids on the sofa, and the iPads go off', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();

@@ -6,6 +6,8 @@ export const FAMILY_URL = 'https://api-pocket-money.ford-home-apps.com/v1/game/f
 const TOKEN_KEY = 'fordHouse.gameToken.v1', STATUS_KEY = 'fordHouse.familySync.v1';
 const KEYS = ['dad', 'mum', 'girl', 'boy'];
 const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+/** The game token saved on this device (null without one); settingsync.js uses it too. */
+export const gameToken = () => get(TOKEN_KEY);
 const put = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* private mode */ } };
 
 export function createFamilyServer(players, { fetch = globalThis.fetch && globalThis.fetch.bind(globalThis), url = FAMILY_URL, timeout = 6000, now = () => new Date() } = {}) {

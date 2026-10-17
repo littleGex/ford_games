@@ -25,6 +25,11 @@ pull request; at release time that section becomes the new version (see "Releasi
 - Ford House: `house/ARCHITECTURE.md`, the plan for splitting the game into an engine and a house pack. The kids'
   rooms are the first slice, in `js/pack/kidrooms.js` (#78).
 
+- Ford House: **the same settings on every device**: with the game token, the names, looks, jobs on or off and
+  who sleeps where are kept on the family server (fordDbs 2.8.0, `/v1/game/settings`). Changes go up a moment
+  after they're made and come down when the game opens; if two devices change things at the same time, both
+  changes are kept. The rooms, jobs, and sharing card shows when they were last synced (#78).
+
 ### Changed
 - Ford House: when two jobs are at the same desk, the one you've started comes first (the present you just made
   at the attic desk, not the wish list still waiting there).

@@ -1,5 +1,6 @@
-// The "Jobs, and sharing" card from the home screen: switch groups of jobs on or off (settings.js), and share a
-// link that copies the family's names, looks, birthdays and these switches to another phone or tablet. Also
+// The "Rooms, jobs, and sharing" card from the home screen: who sleeps where, switch groups of jobs on or off
+// (settings.js), whether the family server keeps them the same on every device (settingsync.js), and share a
+// link that copies the family's names, looks, birthdays and these settings to another phone or tablet. Also
 // the card that asks first when such a link is opened here.
 import { S } from '../state.js';
 import { DEFAULT_NAMES, NAMES, nameOf, showNames } from '../names.js';
@@ -9,7 +10,7 @@ import { JOB_GROUPS, applyShare, linkCode, readShareCode, shareCode } from '../s
 export function createSettingsCard(ctx) {
   const { players, settings, days, hud } = ctx;
   const $ = id => document.getElementById(id);
-  const el = { box: $('settings'), list: $('settingsJobs'), rooms: $('settingsRooms'), swap: $('swapRooms'), done: $('settingsDone'), open: $('settingsBtn'), share: $('shareBtn'), link: $('shareLink'), status: $('shareStatus'),
+  const el = { box: $('settings'), list: $('settingsJobs'), rooms: $('settingsRooms'), swap: $('swapRooms'), done: $('settingsDone'), open: $('settingsBtn'), share: $('shareBtn'), sync: $('syncStatus'), link: $('shareLink'), status: $('shareStatus'),
                ask: $('shareImport'), askList: $('shareImportList'), yes: $('shareYes'), no: $('shareNo') };
   let changed = false, pending = null;
 
@@ -18,6 +19,16 @@ export function createSettingsCard(ctx) {
     const first = kidIn('first'), attic = kidIn('attic');
     el.rooms.textContent = `${nameOf(first)} sleeps in the room on the first floor, ${nameOf(attic)} in the attic room.`;
     el.swap.textContent = `Swap: ${nameOf(attic)} downstairs, ${nameOf(first)} in the attic`;
+    // the family server keeps them the same on every device with the game token
+    const sync = ctx.settingsSync;
+    if (el.sync) {
+      const st = sync && sync.connected && sync.status;
+      el.sync.textContent = !sync || !sync.connected
+        ? 'With the game token (in the names, looks and birthdays card), these settings and the names and looks stay the same on every phone and tablet.'
+        : st ? `Family server: ${st.message} (${new Date(st.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`
+        : 'Family server: keeping these the same on every device with the game token.';
+      el.sync.classList.toggle('bad', !!(st && !st.ok));
+    }
     el.list.replaceChildren(...JOB_GROUPS.map(g => {
       const li = document.createElement('li'), b = document.createElement('button'), on = settings.isOn(g.id);
       b.type = 'button'; b.className = 'settings-switch'; b.dataset.group = g.id;
@@ -108,5 +119,8 @@ export function createSettingsCard(ctx) {
     if (!el.ask.hidden) answer(false); else close();
   }, true);
 
-  return { open, close, render, checkLink, answer, linkUrl, get isOpen() { return !el.box.hidden; } };
+  /** Settings came from the family server: the same as a change made here. */
+  function refresh() { afterChange(); if (!el.box.hidden) render(); }
+
+  return { open, close, render, refresh, checkLink, answer, linkUrl, get isOpen() { return !el.box.hidden; } };
 }
