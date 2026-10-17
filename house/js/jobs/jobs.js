@@ -11,6 +11,7 @@
 // Pick steps don't need `at` - they use wherever the item currently is.
 import { rulesFor } from './rules.js';
 import { nameOf, possessive } from '../names.js';
+import { kidIn, roomFor, roomOf } from '../pack/kidrooms.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { HALLOWEEN as HW } from '../world/halloween.js';
@@ -21,21 +22,19 @@ import { XMAS, XMAS_GIFTS } from '../world/christmas.js';
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
 
-// Where each of the kids does their homework: the floor, where to stand, the seat [x, seat height, z, facing].
-// P at the desk in her room, Dude at his own desk in the attic.
-const KINDERZIMMER_DESK = { level: 1, at: [2.3, 8.05], seat: [2.3, 0.48, 8.05, Math.PI / 2], label: 'Sit at the desk and do your homework' };
-const DUDES_DESK = { level: 2, at: [4.62, 2.27], seat: [4.62, 0.45, 2.27, Math.PI / 2], label: 'Sit at your desk and do your homework' };
-const HOMEWORK_SPOT = { girl: KINDERZIMMER_DESK, boy: DUDES_DESK };
+// Where each of the kids does their homework: the desk in the room they sleep in (pack/kidrooms.js: P on the
+// first floor and Dude in the attic, unless they've swapped). The floor, where to stand, the seat.
+const deskFor = kid => { const r = roomFor(kid); return { level: r.level, at: r.desk.at, seat: r.desk.seat, label: 'Sit at your desk and do your homework' }; };
 
 // Where the loft box is (or goes to) around the house: the floor, the spot on the floor, a name for the list.
 // A different one each week; the box goes up into the loft through the hatch in the attic hall.
 export const BOX_SPOTS = [
   { level: 0, at: [3.7, 4.35], name: 'the hall' },
-  { level: 2, at: [3.95, 3.35], get name() { return `${possessive('boy')} room`; } },
+  { level: 2, at: [3.95, 3.35], get name() { return `${possessive(kidIn('attic'))} room`; } },
   { level: 1, at: [2.55, 4.6], name: 'the bedroom' },
   { level: 0, at: [2.75, 5.0], name: 'the living room' },
   { level: 2, at: [2.4, 4.75], name: 'the office' },
-  { level: 1, at: [2.2, 6.2], get name() { return `${possessive('girl')} room`; } },
+  { level: 1, at: [2.2, 6.2], get name() { return `${possessive(kidIn('first'))} room`; } },
 ];
 const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic hall
 
@@ -221,8 +220,8 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     // Obergeschoss (level: 1 on everything that happens upstairs; pick steps follow the item)
     { id: 'beds', title: 'Make the beds', steps: [
       { kind: 'use', level: 1, at: [2.35, 1.9], label: 'Make the big bed', onDone: c => c.world.bigBed.make() },
-      { kind: 'use', level: 1, at: [1.25, 6.9], label: `Make ${possessive('girl')} bed`, onDone: c => c.world.daybed.make() },
-      { kind: 'use', level: 2, at: [1.8, 2.75], label: `Make ${possessive('boy')} bed`, onDone: c => c.world.dudeBed.make() }],
+      ...['first', 'attic'].map(room => { const b = roomFor(kidIn(room)).bed;   // whoever sleeps in each room
+        return { kind: 'use', level: roomFor(kidIn(room)).level, at: b.at, label: `Make ${possessive(kidIn(room))} bed`, onDone: c => c.world[b.handle].make() }; })],
       setup: c => { c.world.bigBed.mess(); c.world.daybed.mess(); c.world.dudeBed.mess(); },
       tidy: c => { c.world.bigBed.make(); c.world.daybed.make(); c.world.dudeBed.make(); } },
     { id: 'teeth', title: 'Brush your teeth', steps: [
@@ -234,7 +233,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     { id: 'shave', title: 'Have a shave', steps: [   // Dad only (see rules.js)
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 12, what: 'Shaving', label: 'Have a shave at the basin' }] },
     { id: 'homework', title: 'Do your homework', steps: [   // P and Dude only, each at their own spot
-      { kind: 'sit', dur: 30, what: 'Doing homework', ...(HOMEWORK_SPOT[character] || KINDERZIMMER_DESK) }] },
+      { kind: 'sit', dur: 30, what: 'Doing homework', ...deskFor(character) }] },
     { id: 'shower', title: 'Have a shower', steps: [
       { kind: 'sit', stand: true, level: 1, fx: 'shower', at: [4.7, 7.85], seat: [5.2, 0, 8.5, 0], dur: 15, what: 'Showering', label: 'Have a shower' }] },
     { id: 'towel', title: 'Hang up the towel', steps: [
@@ -276,7 +275,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'sit', stand: true, level: 2, at: [4.75, 1.38], seat: [4.75, 0, 1.38, Math.PI / 2], dur: 18, fx: 'clarinetNotes', sound: 'clarinet',
         what: 'Playing the clarinet', label: 'Play your clarinet at the music stand' },
       { kind: 'drop', item: 'clarinet', home: true, label: 'Put the clarinet back on its stand' }] },
-    { id: 'tidyDude', title: 'Tidy your room', steps: [   // Dude only
+    { id: 'tidyDude', title: roomOf('boy') === 'attic' ? 'Tidy your room' : 'Tidy up your Lego in the attic', steps: [   // Dude only (his Lego stays in the attic)
       { kind: 'pick', item: 'lego', label: 'Pick up the Lego' },
       { kind: 'drop', item: 'lego', level: 2, at: [2.1, 1.95], place: [2.1, 0.2, 1.47], label: 'Put it in the Lego drawer' },
       { kind: 'pick', item: 'socks', label: 'Pick up the dirty socks' },
@@ -323,9 +322,9 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
         ['pileDude', 'pileP', 'pileGrown'].forEach(id => { c.items[id].visible = true; });
       } },
       { kind: 'pick', item: 'pileDude', label: `Pick up ${possessive('boy')} clothes` },
-      { kind: 'drop', item: 'pileDude', level: 2, at: [0.35, 2.9], place: [0.35, 0.9, 3.5], label: `Put them in ${possessive('boy')} wardrobe`, onDone: c => { c.items.pileDude.visible = false; } },
+      { kind: 'drop', item: 'pileDude', level: roomFor('boy').level, at: roomFor('boy').wardrobe.at, place: roomFor('boy').wardrobe.clothes, label: `Put them in ${possessive('boy')} wardrobe`, onDone: c => { c.items.pileDude.visible = false; } },
       { kind: 'pick', item: 'pileP', label: `Pick up ${possessive('girl')} clothes` },
-      { kind: 'drop', item: 'pileP', level: 1, at: [2.3, 6.95], place: [2.9, 0.9, 6.95], label: `Put them in ${possessive('girl')} wardrobe`, onDone: c => { c.items.pileP.visible = false; } },
+      { kind: 'drop', item: 'pileP', level: roomFor('girl').level, at: roomFor('girl').wardrobe.at, place: roomFor('girl').wardrobe.clothes, label: `Put them in ${possessive('girl')} wardrobe`, onDone: c => { c.items.pileP.visible = false; } },
       { kind: 'pick', item: 'pileGrown', label: `Pick up ${nameOf('mum')} and ${possessive('dad')} clothes` },
       { kind: 'drop', item: 'pileGrown', level: 1, at: [4.0, 2.0], place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
       setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
@@ -420,7 +419,7 @@ function birthdayJobs(character, who, grownUp) {
  *  on 5 January. Only the ones whose day it is go in the pool (so their tidy doesn't run on other days).
  *  systems/christmas.js does the rest. */
 function christmasJobs(character, grownUp, tags) {
-  const desk = HOMEWORK_SPOT[character] || KINDERZIMMER_DESK, deskPlace = HW.room[character] || HW.room.girl, t = XMAS.table, tree = XMAS.tree.at;
+  const desk = deskFor(character), deskPlace = HW.room[character] || HW.room.girl, t = XMAS.table, tree = XMAS.tree.at;
   const jobs = [
     { id: 'adventDoor', title: 'Open your Advent calendar', personal: true, steps: [
       { kind: 'use', at: XMAS.calendars, label: 'Open a door on your Advent calendar', onDone: c => c.adventCard.open(character) }] },

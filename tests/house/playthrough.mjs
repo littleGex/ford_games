@@ -1038,6 +1038,82 @@ if (ids().includes('shave') || ids().filter(id => id === 'homework').length !== 
 G.days.setCharacter('dad');
 if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push('who is playing was not saved');
 
+// --- who sleeps where (#78): P and Dude swap rooms. Their beds, wardrobes and desks follow them (homework,
+// making the beds, the folded washing, the school run, bedtime, Halloween costumes, the Christmas wish list and
+// present, the 3D-printed dragon and rocket); the room chips and labels say whose room is whose. Then back.
+{
+  const { roomFor, kidIn } = await import(new URL('../../house/js/pack/kidrooms.js', import.meta.url));
+  const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
+  const { DESIGNS } = await import(new URL('../../house/js/systems/printing.js', import.meta.url));
+  const { KIDS: kidsNow, MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  G.settings.setRoomsSwapped(true);
+  if (kidIn('attic') !== 'girl' || kidIn('first') !== 'boy' || roomFor('girl').level !== 2) errors.push('rooms swapped: P should be in the attic, Dude on the first floor');
+  if (roomAt(1.5, 7, 1).name !== "Dude's room" || roomAt(2, 2, 2).name !== 'Ps Zimmer') errors.push(`rooms swapped: room chips ${roomAt(1.5, 7, 1).name}, ${roomAt(2, 2, 2).name}`);
+  if (DESIGNS[0].goes.level !== 2 || DESIGNS[3].goes.level !== 1) errors.push("rooms swapped: the printed dragon and rocket don't go to the new desks");
+  for (const [who, kid] of Object.entries({ girl: kidsNow.girl, boy: kidsNow.boy })) {
+    if (blocked(kid.start[0], kid.start[1], kid.level)) errors.push(`rooms swapped: ${who} wakes up inside something`);
+  }
+  const seenAt = [];
+  for (const who of ['girl', 'boy']) {
+    const label = `rooms swapped (${who})`, r = roomFor(who);
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.days.plan(['homework', 'beds', 'fold']);
+    const hw = G.board.find('homework').steps[0];
+    if (G.board.levelOf(hw) !== r.level || hw.at !== r.desk.at) errors.push(`${label}: homework isn't at the desk in the new room`);
+    const beds = G.board.find('beds').steps.map(st => st.label).join(' / ');
+    if (!beds.includes("Make Dude's bed") || !beds.includes("Make P's bed")) errors.push(`${label}: beds "${beds}"`);
+    playDay(`${label}: homework, beds, washing`);
+    const pile = G.items[who === 'girl' ? 'pileP' : 'pileDude'];
+    seenAt.push(pile.userData.level);
+    G.days.next();
+    // Halloween: the costume from the wardrobe in the new room, the sweets up to the new desk
+    globalThis.location.search = '?season=autumn&holiday=halloween';
+    G.days.plan(['trickOrTreat']);
+    laptopPick = 1;
+    playDay(`${label}: Halloween`);
+    if (G.items.treatPail.userData.level !== r.level) errors.push(`${label}: the sweets went to the old room`);
+    G.days.next();
+    // Christmas: the wish list and the present made at the desk in the new room
+    globalThis.location.search = '?season=winter&date=2026-12-15';
+    G.days.plan(['wishList', 'xmasGift']);
+    playDay(`${label}: Christmas`);
+    G.days.next();
+    globalThis.location.search = '?season=autumn';
+    // the school run, waking up in the new room
+    G.missions.start('schoolRun', who);
+    for (let round = 0; round < 30 && !S.mission.done; round++) {
+      for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+        let guard = 0;
+        while (job.i < job.steps.length && guard++ < 10) {
+          const before = job.i, res = doStep(job);
+          if (res !== true) { errors.push(`${label} school run "${job.title}" step ${before + 1}: ${res}`); job.i = job.steps.length; S.carrying = null; break; }
+        }
+      }
+      frame();
+    }
+    if (!S.mission.done) errors.push(`${label}: never got to school`);
+    G.missions.end();
+  }
+  if (seenAt.join() !== '2,1') errors.push(`rooms swapped: the folded clothes went to floors ${seenAt}, want P's in the attic and Dude's downstairs`);
+  // bedtime: each tucked into the bed in their new room
+  {
+    const B = G.bedtime, seen = new Set();
+    G.missions.start('bedtime', 'mum');
+    S.mission.trouble = {};
+    laptopPick = 1;
+    playWorkDay('rooms swapped bedtime', seen);
+    if (!S.mission.done) errors.push('rooms swapped bedtime: never finished');
+    for (const k of ['girl', 'boy']) if (!B.is(k, 'bed') || B.kid(k).level !== roomFor(k).level) errors.push(`rooms swapped bedtime: ${k} isn't in bed in the new room`);
+    G.missions.end();
+    void MISSIONS;
+  }
+  G.settings.setRoomsSwapped(false);
+  if (kidIn('first') !== 'girl' || roomAt(1.5, 7, 1).name !== "P's room") errors.push('rooms back: P should be on the first floor again');
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('who sleeps where: swapped rooms for homework, beds, washing, Halloween, Christmas, the school run and bedtime');
+}
+
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);
 console.log('trips up or down the stairs:', stairTrips);
 if (!stairTrips) errors.push('never used the stairs');

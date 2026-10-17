@@ -6,6 +6,10 @@
 import * as THREE from 'three';
 import { add, group, mat } from '../core/build.js';
 import { canvasTex } from '../core/textures.js';
+import { roomFor } from '../pack/kidrooms.js';
+
+const wardrobeOf = kid => { const r = roomFor(kid); return { level: r.level, at: r.wardrobe.at, seat: r.wardrobe.seat }; };
+const deskOf = kid => { const r = roomFor(kid); return { level: r.level, at: r.desk.at, place: r.desk.place, name: 'your desk' }; };
 
 // Where things happen, plan coordinates [x, z] (all on the ground floor).
 export const HALLOWEEN = {
@@ -16,10 +20,9 @@ export const HALLOWEEN = {
   ghost: [3.95, 6.9],                                         // in the hall, under where the ghost hangs
   bowlBy: { at: [3.92, 8.3], place: [4.15, 0, 8.05] },        // the sweets bowl, by the front door in the porch
   openDoor: [3.92, 9.3],                                      // standing in the open front door
-  wardrobe: { girl: { level: 1, at: [2.3, 6.95], seat: [2.3, 0, 6.95, Math.PI / 2] },     // P's wardrobe
-              boy: { level: 2, at: [0.35, 2.9], seat: [0.35, 0, 2.9, 0] } },             // Dude's wardrobe
-  room: { girl: { level: 1, at: [2.3, 8.05], place: [2.95, 0.73, 8.0], name: 'your desk' },
-          boy: { level: 2, at: [4.62, 2.27], place: [5.25, 0.76, 2.1], name: 'your desk' } },
+  // the kids' wardrobes and desks: in the room each sleeps in (pack/kidrooms.js)
+  wardrobe: { get girl() { return wardrobeOf('girl'); }, get boy() { return wardrobeOf('boy'); } },
+  room: { get girl() { return deskOf('girl'); }, get boy() { return deskOf('boy'); } },
 };
 
 // The faces to carve: drawn white on a clear canvas (the pumpkin colours them: dark, or glowing when lit).

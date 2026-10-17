@@ -184,6 +184,12 @@ export function createDays(ctx) {
       }
       board.refresh();
     },
+    /** Where things are changed (P and Dude swapped rooms): set today up again with the jobs where they are now.
+     *  What's done stays done. */
+    rebuild() {
+      if (!today || S.mission) return;
+      setupDay();
+    },
     /** For tests and trying things out: replace today's list with these job ids. */
     plan(ids) {
       today = save.today = { day: save.day, params: binParams(save), plan: ids, done: [], completed: false };

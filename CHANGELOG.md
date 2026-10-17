@@ -19,6 +19,15 @@ pull request; at release time that section becomes the new version (see "Releasi
 - Ford House: **share the link** copies everyone's names, looks, birthdays and the job switches to another
   phone or tablet; opening it asks first. Nothing goes to a server, and the family server token is never in
   it (#78).
+- Ford House: **who sleeps where**: P and Dude can swap bedrooms in the rooms, jobs and sharing card. Their
+  bed, wardrobe and desk go with them, for homework, the beds, the washing, the school run, bedtime, Halloween,
+  Christmas and the 3D printing; the room names change too, and the swap goes in the share link (#78).
+- Ford House: `house/ARCHITECTURE.md`, the plan for splitting the game into an engine and a house pack. The kids'
+  rooms are the first slice, in `js/pack/kidrooms.js` (#78).
+
+### Changed
+- Ford House: when two jobs are at the same desk, the one you've started comes first (the present you just made
+  at the attic desk, not the wish list still waiting there).
 
 ## [4.11.0] - 2026-10-17
 

@@ -174,7 +174,7 @@ test('each character has their own jobs: Dad shaves, Mum works, P and Dude do ho
   // P does her homework at the desk in her room, Dude at his own desk in the attic
   await page.locator('.who button[data-c="girl"]').click();
   await page.evaluate(() => { window.house.levels.go(1); window.house.player.group.position.set(1.9, 2.3, 8.05); });
-  await expect(page.locator('#actBtn')).toHaveText('Sit at the desk and do your homework');
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
   await page.locator('.who button[data-c="boy"]').click();
   await page.evaluate(() => { window.house.levels.go(2); window.house.player.group.position.set(4.1, 4.6, 2.27); });
   await expect(page.locator('#actBtn')).toHaveText('Sit at your desk and do your homework');
@@ -329,6 +329,34 @@ test('names, jobs on or off, and a link that copies them to another device', asy
   await expect(tablet.locator('.home-who [data-c="girl"]')).toHaveText('Pia');
   expect(await tablet.evaluate(() => window.house.settings.isOn('dragon'))).toBe(false);
   await other.close();
+});
+
+test('who sleeps where: P and Dude swap rooms, and the homework goes to the desk in the new room', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#settingsRooms')).toHaveText('P sleeps in the room on the first floor, Dude in the attic room.');
+  await expect(page.locator('#swapRooms')).toHaveText('Swap: Dude downstairs, P in the attic');
+  await page.locator('#swapRooms').click();
+  await expect(page.locator('#settingsRooms')).toHaveText('Dude sleeps in the room on the first floor, P in the attic room.');
+  await page.locator('#settingsDone').click();
+  await play(page);
+
+  // P's homework is at the attic desk now, and the rooms have new names
+  await page.locator('.hud.bottom .who [data-c="girl"]').click();
+  await planToday(page, ['homework', 'beds']);
+  const where = await page.evaluate(() => {
+    const h = window.house, step = h.board.find('homework').steps[0];
+    return { level: h.board.levelOf(step), at: step.at, beds: h.board.find('beds').steps.map(s => s.label) };
+  });
+  expect(where.level).toBe(2);
+  expect(where.at).toEqual([4.62, 2.27]);
+  expect(where.beds).toContain("Make Dude's bed");
+
+  // kept after a reload
+  await page.reload();
+  await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/, { timeout: 20000 });
+  expect(await page.evaluate(() => window.house.settings.roomsSwapped())).toBe(true);
 });
 
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { S } from '../state.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
 import { nameOf, possessive } from '../names.js';
+import { roomFor } from '../pack/kidrooms.js';
 
 export const COLOURS = [
   { id: 'red', label: 'Red', hex: '#e04848' }, { id: 'blue', label: 'Blue', hex: '#2f6fd6' },
@@ -22,7 +23,7 @@ export const DESIGNS = [
     layer: i => i < 7 ? [box(0.05 - Math.abs(i - 3) * 0.004, 0.09 - Math.abs(i - 3) * 0.006), box(0.012, 0.05, 0, -0.06)]   // body and tail
       : i < 13 ? [box(0.03, 0.035, 0, 0.03 + (i - 7) * 0.004)]                                                       // neck up to the head
       : [box(0.034, 0.045, 0, 0.06), ...(i === 15 ? [box(0.008, 0.01, -0.01, 0.05), box(0.008, 0.01, 0.01, 0.05)] : [])],   // head and horns
-    goes: { level: 1, at: [2.3, 8.05], place: [2.95, 0.72, 8.3], get label() { return `Put the dragon on ${possessive('girl')} desk`; } } },
+    get goes() { const r = roomFor('girl'); return { level: r.level, at: r.desk.at, place: r.desk.model, label: `Put the dragon on ${possessive('girl')} desk` }; } },
   { id: 'pot', label: 'A plant pot', name: 'plant pot', icon: '🪴',
     layer: i => [disc(i === LAYERS - 1 ? 0.058 : 0.034 + i * 0.0014)],
     goes: { level: 0, at: [1.9, 6.9], place: [1.6, 0.76, 6.95], label: 'Put the plant pot on the dining table' } },
@@ -32,7 +33,7 @@ export const DESIGNS = [
   { id: 'rocket', get label() { return `A rocket for ${nameOf('boy')}`; }, name: 'rocket', icon: '🚀',
     layer: i => i < 4 ? [disc(0.02), box(0.08, 0.012), box(0.012, 0.08)]            // fins
       : i < 12 ? [disc(0.02)] : [disc(0.02 * (LAYERS - i) / 5)],                       // body, then the nose cone
-    goes: { level: 2, at: [4.62, 2.27], place: [5.25, 0.76, 2.45], get label() { return `Put the rocket on ${possessive('boy')} desk`; } } },
+    get goes() { const r = roomFor('boy'); return { level: r.level, at: r.desk.at, place: r.desk.model, label: `Put the rocket on ${possessive('boy')} desk` }; } },
 ];
 
 export function createPrinting({ world, items, board }) {

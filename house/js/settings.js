@@ -1,6 +1,7 @@
 // House settings, saved on this device: which jobs are on (a family without a bearded dragon switches the
-// dragon off; Halloween, Christmas and birthday parties can be switched off too), and the share link that
-// copies the family's names, looks, birthdays and these settings to another phone or tablet.
+// dragon off; Halloween, Christmas and birthday parties can be switched off too), who sleeps in which of the
+// kids' rooms (pack/kidrooms.js), and the share link that copies the family's names, looks, birthdays and these
+// settings to another phone or tablet.
 //
 // The share link carries everything in the part after # (which browsers never send to a server, so it doesn't
 // reach GitHub Pages either). It never includes the family server's game token. Whatever comes in a link is
@@ -8,6 +9,7 @@
 // real dates, and known job groups.
 import { cleanName, nameOf, possessive } from './names.js';
 import { PLAYER_KEYS, HAIR_STYLES } from './players.js';
+import { useRoomSwap } from './pack/kidrooms.js';
 
 // The jobs that can be switched off, in groups as they'd be thought of
 export const JOB_GROUPS = [
@@ -29,10 +31,11 @@ const KEY = 'fordHouse.settings.v1';
 
 export function createSettings() {
   const listeners = [];
-  let off = new Set();
-  try { off = new Set((JSON.parse(localStorage.getItem(KEY)) || {}).off || []); } catch (e) { /* nothing saved */ }
+  let off = new Set(), swap = false;
+  try { const saved = JSON.parse(localStorage.getItem(KEY)) || {}; off = new Set(saved.off || []); swap = saved.swapRooms === true; } catch (e) { /* nothing saved */ }
   off = new Set([...off].filter(id => GROUP_IDS.includes(id)));
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ off: [...off] })); } catch (e) { /* private mode */ } };
+  useRoomSwap(() => swap);
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ off: [...off], swapRooms: swap })); } catch (e) { /* private mode */ } };
   const groups = () => JOB_GROUPS.filter(g => off.has(g.id));
 
   return {
@@ -47,6 +50,9 @@ export function createSettings() {
     /** A day's tags without the special days that are switched off. */
     filterTags(tags) { const no = new Set(groups().flatMap(g => g.tags || [])); return [].concat(tags || []).filter(t => !no.has(t)); },
     birthdaysOn: () => !off.has('birthdays'),
+    /** Have P and Dude swapped rooms (P in the attic, Dude on the first floor)? */
+    roomsSwapped: () => swap,
+    setRoomsSwapped(on) { swap = !!on; save(); listeners.forEach(fn => fn()); },
     onChange(fn) { listeners.push(fn); },
   };
 }
@@ -63,7 +69,8 @@ const fromBase64Url = code => {
   return new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0)));
 };
 
-/** The code for the link: everyone's name (if they have their own), look and birthday, and the jobs that are off. */
+/** The code for the link: everyone's name (if they have their own), look and birthday, the jobs that are off, and
+ *  whether the kids have swapped rooms. */
 export function shareCode(players, settings) {
   const p = {};
   for (const k of PLAYER_KEYS) {
@@ -71,7 +78,7 @@ export function shareCode(players, settings) {
     if (players.customName(k)) p[k].n = players.customName(k);
     if (players.birthday(k)) p[k].b = players.birthday(k);
   }
-  return toBase64Url(JSON.stringify({ v: 1, p, off: settings.offGroups() }));
+  return toBase64Url(JSON.stringify({ v: 1, p, off: settings.offGroups(), ...(settings.roomsSwapped() ? { sw: true } : {}) }));
 }
 
 /** A look as it may come in a link: only the fields a look has, each a value it can really take. */
@@ -103,7 +110,7 @@ export function readShareCode(code) {
     players[k] = { name: typeof p.n === 'string' ? cleanName(p.n) || null : null, look: cleanLook(p.l), birthday: realDate(p.b) };
   }
   const off = Array.isArray(data.off) ? data.off.filter(id => GROUP_IDS.includes(id)) : [];
-  return { players, off };
+  return { players, off, swapRooms: data.sw === true };
 }
 
 /** Use settings from a link on this device. */
@@ -114,6 +121,7 @@ export function applyShare(shared, players, settings) {
     if (p.birthday) players.setBirthday(k, p.birthday);
   }
   settings.setOffGroups(shared.off);
+  settings.setRoomsSwapped(shared.swapRooms);
 }
 
 /** The code in this page's address (…/house/#family=CODE), if there is one. */
