@@ -9,6 +9,7 @@ import { buildWorld } from './world/index.js';
 import { roomAt } from './world/rooms.js';
 import { createItems } from './items.js';
 import { createPlayer } from './characters/player.js';
+import { createPlayers } from './players.js';
 import { createHud } from './ui/hud.js';
 import { createJobBoard } from './jobs/board.js';
 import { createPower } from './systems/power.js';
@@ -29,6 +30,7 @@ import { createSorting } from './ui/sorting.js';
 import { createLaptop } from './ui/laptop.js';
 import { createPrinting } from './systems/printing.js';
 import { createHome } from './ui/home.js';
+import { createAvatar } from './ui/avatar.js';
 import { createMissions } from './missions/missions.js';
 import { preventZoom } from './core/nozoom.js';
 import { createSweeping } from './systems/sweeping.js';
@@ -41,7 +43,9 @@ import { createBedtime } from './systems/bedtime.js';
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
 const items = createItems(stage.scene, world.upstairs, world.attic);
-const player = createPlayer(stage.scene, items);
+const players = createPlayers();   // looks and birthdays, saved on this device
+const player = createPlayer(stage.scene, items, players);
+players.onChange(key => player.refresh(key));
 const hud = createHud();
 const board = createJobBoard({ scene: stage.scene, items, hud, levels: [stage.scene, world.upstairs, world.attic] });
 
@@ -49,7 +53,7 @@ const clock = new THREE.Clock();
 
 // ctx is what job hooks and systems can reach
 let yaw = 0, yawTarget = 0, nearest = null;
-const ctx = { S, stage, world, items, player, hud, board, clock };
+const ctx = { S, stage, world, items, player, players, hud, board, clock };
 ctx.season = currentSeason();   // spring, summer, autumn or winter, from the date (or ?season=)
 ctx.view = { reset() { yaw = yawTarget = 0; } };
 ctx.power = createPower(ctx);
@@ -100,6 +104,7 @@ player.setCharacter(ctx.days.character);
 markCharacter(ctx.days.character);
 ctx.days.start();
 ctx.home = createHome(ctx);
+ctx.avatar = createAvatar(ctx);   // looks and birthdays, from the home screen
 ctx.missions = createMissions(ctx);
 systems.push(ctx.missions);
 ctx.home.open();   // the game opens on the home screen

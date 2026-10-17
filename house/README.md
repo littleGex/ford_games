@@ -12,6 +12,14 @@ The game opens on a home screen (`js/ui/home.js`): carry on with today's day, pi
 missions, start over from day 1, or go back to Game Zone. The
 ☰ button in the top corner (or Escape) brings it back. The game is paused while it's open.
 
+**Looks and birthdays** (`js/ui/avatar.js`, from the home screen): change how each of the four players looks,
+with a turning preview: skin, hair style (long, shoulder, ponytail, bun, swept, short, spiky, a beanie or
+bald) and colour, glasses, a beard (Dad, and Dude once he's 18), top (their own or a colour), trousers and
+shoes. Give each a birthday: the age decides whether P and Dude are children (under 13), teenagers (13 to
+17) or grown-ups (18 and over). Teenagers are taller and cook dinner too (`teen: true` in `rules.js`).
+Everything is saved on the device only (`js/players.js`, `localStorage`), never in this repository. Dad is
+bald with a beard by default.
+
 ## Missions
 
 Missions are one-off storylines, started from the home screen (`js/missions/missions.js`). A mission puts
@@ -175,7 +183,7 @@ house/
     world/              the house: structure.js (walls, floors, stairs), rooms/*, outside/*, tv.js, rooms.js
       upstairs/         the first floor: structure.js (slab, walls, stairwell), one file per room
       attic/            the attic: structure.js (roof, knee walls, stairwell), one file per room
-    characters/         figure builder, family looks, the player
+    characters/         figure builder, looks (the editor's options), family, the player
     items.js            everything you can pick up
     jobs/
       rules.js          how often each job comes round (tune the game here)

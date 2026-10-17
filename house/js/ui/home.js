@@ -53,7 +53,7 @@ export function createHome(ctx) {
   el.menu.addEventListener('click', open);
   el.restartYes.addEventListener('click', () => setTimeout(close));   // starting over goes straight to day 1
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !S.sorting) { e.preventDefault(); S.menuOpen ? close() : open(); }
+    if (e.key === 'Escape' && !S.sorting && !S.avatar) { e.preventDefault(); S.menuOpen ? close() : open(); }
   });
 
   return { open, close, render, get isOpen() { return S.menuOpen; } };

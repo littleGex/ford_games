@@ -768,6 +768,38 @@ for (const who of ['dad', 'mum']) {
   }
 }
 
+// --- looks and birthdays (the avatar editor): a new look is worn straight away and saved on the device; a
+// birthday that makes P a teenager makes her taller and puts cooking on her list
+{
+  const P = G.players, scaleOf = () => G.player.character.scale;
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  if (P.stage('girl') !== 'child' || Math.abs(scaleOf() - 0.78) > 1e-9) errors.push(`looks: P should start as a child (stage ${P.stage('girl')}, height ${scaleOf()})`);
+  const before = G.player.character;
+  P.setLook('girl', { hair: 'ponytail', hairColor: '#b8402a', glasses: true });
+  if (G.player.character === before) errors.push("looks: P's figure wasn't rebuilt after changing her look");
+  const saved = JSON.parse(store.get('fordHouse.players.v1') || '{}');
+  if (!saved.girl || saved.girl.look.hair !== 'ponytail' || saved.girl.look.glasses !== true) errors.push("looks: P's new look wasn't saved on the device");
+  const y = new Date().getFullYear();
+  P.setBirthday('girl', `${y - 14}-01-01`);
+  if (P.stage('girl') !== 'teen' || Math.abs(scaleOf() - 0.88) > 1e-9) errors.push(`looks: at 14 P should be a taller teenager (stage ${P.stage('girl')}, height ${scaleOf()})`);
+  G.days.next();
+  if (!G.board.find('cook')) errors.push("growing up: P the teenager hasn't got cooking on her list");
+  playDay('a day as teenage P');
+  G.days.next();
+  P.setBirthday('girl', null); P.resetLook('girl');
+  if (P.stage('girl') !== 'child' || Math.abs(scaleOf() - 0.78) > 1e-9) errors.push('looks: P back to a child after clearing her birthday');
+  G.days.next();
+  if (G.board.find('cook')) errors.push('growing up: P the child still has cooking on her list');
+  // a beard: Dad has one, and Dude can once he's 18, not before (and never Mum or P)
+  const { specFor } = await import(new URL('../../house/js/characters/looks.js', import.meta.url));
+  if (!specFor('dad', P.look('dad'), 'adult').beard || P.look('dad').hair !== 'bald') errors.push('looks: Dad should be bald with a beard');
+  if (specFor('boy', { beard: true }, 'teen').beard) errors.push('looks: Dude has a beard as a teenager');
+  if (!specFor('boy', { beard: true }, 'adult').beard) errors.push("looks: Dude can't have a beard at 18");
+  if (specFor('mum', { beard: true }, 'adult').beard || specFor('girl', { beard: true }, 'adult').beard) errors.push('looks: only Dad and Dude get beards');
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+}
+
 // a fire drill straight after the urgent call: the call's deadline moves on by however long the drill took
 {
   G.missions.start('office', 'dad');
