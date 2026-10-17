@@ -10,17 +10,19 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.11.0] - 2026-10-17
+
 ### Added
 - Ford House: **Christmas**, from 12 December to 5 January (#75). A tree in the living room with fairy lights,
   baubles, a star and presents underneath; the Advent wreath on the dining table (one more candle each Advent
   Sunday); paper stars in the window, a wreath by the front door and fairy lights along the house. Jobs:
   decorate the tree, bake Christmas biscuits (pick a cutter), wrap a present for under the tree (P and Dude make
   one), and the kids' wish list on the windowsill. On Christmas Eve the little bell rings and the presents are
-  opened; on 5 January it all comes down and the tree goes out for the collection.
+  opened; on 5 January it all comes down and the tree goes out for the collection (#99).
 - Ford House: **Advent calendars** for P and Dude, on the living room wall from 1 December. One more door for
   every real day (missed doors can be opened later, future ones never); the gifts behind the doors are kept on
-  the device and listed on the calendar card, which anyone can look at from the wall or the home screen (#75).
-- Ford House: `?date=YYYY-MM-DD` in the address pretends it's that day, for trying the special days out.
+  the device and listed on the calendar card, which anyone can look at from the wall or the home screen (#99).
+- Ford House: `?date=YYYY-MM-DD` in the address pretends it's that day, for trying the special days out (#99).
 
 ## [4.10.0] - 2026-10-17
 
@@ -319,7 +321,12 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.7.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.11.0...HEAD
+[4.11.0]: https://github.com/littleGex/ford_games/compare/v4.10.0...v4.11.0
+[4.10.0]: https://github.com/littleGex/ford_games/compare/v4.9.0...v4.10.0
+[4.9.0]: https://github.com/littleGex/ford_games/compare/v4.8.1...v4.9.0
+[4.8.1]: https://github.com/littleGex/ford_games/compare/v4.8.0...v4.8.1
+[4.8.0]: https://github.com/littleGex/ford_games/compare/v4.7.0...v4.8.0
 [4.7.0]: https://github.com/littleGex/ford_games/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/littleGex/ford_games/compare/v4.5.9...v4.6.0
 [4.5.9]: https://github.com/littleGex/ford_games/compare/v4.5.8...v4.5.9
