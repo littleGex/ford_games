@@ -41,6 +41,10 @@ import { createHalloween } from './systems/halloween.js';
 import { createBedtime } from './systems/bedtime.js';
 import { createBirthday } from './systems/birthday.js';
 import { createFamilyServer } from './familyserver.js';
+import { createChristmas } from './systems/christmas.js';
+import { createAdvent } from './advent.js';
+import { createAdventCard } from './ui/advent.js';
+import { XMAS } from './world/christmas.js';
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
@@ -81,15 +85,21 @@ ctx.halloween = createHalloween(ctx);
 ctx.bedtime = createBedtime(ctx);
 ctx.birthday = createBirthday(ctx);
 ctx.familyServer = createFamilyServer(players);   // the real birthdays, if this device has the game token
+ctx.advent = createAdvent();   // P's and Dude's Advent calendar doors (saved on this device)
+ctx.christmas = createChristmas(ctx);
+ctx.christmas.useAdvent(ctx.advent);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
-const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween, ctx.bedtime, ctx.birthday];
+ctx.adventCard = createAdventCard(ctx);
+// the Advent calendars on the living room wall: anyone can have a look (P and Dude open theirs from their job)
+board.addFixed({ level: 0, at: XMAS.calendars, label: 'Look at the Advent calendars', can: () => ctx.christmas.calendarsUp, act: () => ctx.adventCard.open(ctx.days.character) });
+const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween, ctx.christmas, ctx.bedtime, ctx.birthday];
 
 // controls
 preventZoom();
 const turnView = () => { yawTarget += Math.PI / 2; };
 const doAction = () => {
-  if (S.dayOver || S.sorting || S.laptop || S.menuOpen) return;
+  if (S.dayOver || S.sorting || S.laptop || S.calendar || S.menuOpen) return;
   if (S.wiping) { ctx.wiping.stop(); return; }
   board.act(nearest);
 };
@@ -127,7 +137,7 @@ function frame() {
   let walking = false;
   if (S.dayOver) { /* the Day complete screen is up */ }
   else if (S.sitting) { if (axis.len > 0.3) ctx.sitting.standUp(); }
-  else if (S.wiping || S.sorting || S.laptop) { /* wiping a window uses the stick; sorting has its own card */ }
+  else if (S.wiping || S.sorting || S.laptop || S.calendar) { /* wiping a window uses the stick; sorting has its own card */ }
   else if (axis.len > 0.08) walking = player.stepFromInput(axis, yaw, dt);
   player.animate(dt, walking);
   if (S.wiping) ctx.wiping.feed(axis, dt);
@@ -137,7 +147,7 @@ function frame() {
   const pos = player.group.position;
   room = roomAt(pos.x, pos.z, S.level, room);
   hud.setRoom(room);
-  nearest = S.dayOver || S.sorting || S.laptop || S.wiping ? null : board.nearestAction(pos);
+  nearest = S.dayOver || S.sorting || S.laptop || S.calendar || S.wiping ? null : board.nearestAction(pos);
   hud.setAction(S.wiping ? 'Stop wiping' : nearest ? nearest.step.label : null);
   hud.banner(S.dayOver ? null : ctx.missions.banner() || ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
   board.updateMarkers(time);

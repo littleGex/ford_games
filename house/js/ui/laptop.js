@@ -1,12 +1,14 @@
 // The laptop close-up for the 3D printing mission: a 'choose' step opens it at Dad's desk with tiles to
 // pick from (a design, then a filament colour); tap one, or press its number. "Close the laptop" keeps your
 // place on the list. The same close-up, as a plain card instead of a laptop, picks a face to carve in the
-// Halloween pumpkin and a costume, and at bedtime who showers first and which story to read.
+// Halloween pumpkin and a costume, at bedtime who showers first and which story to read, and the cutter for
+// the Christmas biscuits.
 import { S } from '../state.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { FACES, faceImage } from '../world/halloween.js';
 import { COSTUMES } from '../characters/costumes.js';
 import { BOOKS } from '../systems/bedtime.js';
+import { CUTTERS } from '../world/christmas.js';
 
 const SCREENS = {
   design: { app: 'Printables', title: 'Pick something to print', options: () => DESIGNS.map(d => ({ id: d.id, label: d.label, icon: d.icon })) },
@@ -17,6 +19,7 @@ const SCREENS = {
   // bedtime: who goes in the shower first, and which story to read
   bedFirst: { card: true, title: 'Who goes in the shower first?', options: () => [{ id: 'girl', label: 'P', icon: '👧' }, { id: 'boy', label: 'Dude', icon: '👦' }] },
   book: { card: true, title: 'Pick a bedtime story', options: () => BOOKS.map(b => ({ id: b.id, label: b.label, icon: b.icon })) },
+  cutter: { card: true, title: 'Which biscuit cutter?', options: () => CUTTERS.map(c => ({ id: c.id, label: c.label, icon: c.icon })) },
 };
 
 export function createLaptop(ctx) {

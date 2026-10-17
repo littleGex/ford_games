@@ -21,6 +21,22 @@ export function dingDong() {
   } catch (e) { /* ignore */ }
 }
 
+/** The little Christmas bell (Christmas Eve): a quick tinkle of high, bright notes. */
+export function bell() {
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    [1568, 2093, 1760, 2349, 1568, 2093].forEach((f, i) => {
+      const t = i * 0.13, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, now + t);
+      g.gain.exponentialRampToValueAtTime(0.12, now + t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.6);
+      o.connect(g); g.connect(ctx.destination); o.start(now + t); o.stop(now + t + 0.62);
+    });
+  } catch (e) { /* ignore */ }
+}
+
 /** A short buzz: the hedge trimmer snipping through a bush. */
 export function buzz() {
   if (!ctx) return;

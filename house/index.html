@@ -49,6 +49,7 @@
         <button data-c="dad" aria-pressed="true">Dad</button><button data-c="mum" aria-pressed="false">Mum</button><button data-c="girl" aria-pressed="false">P</button><button data-c="boy" aria-pressed="false">Dude</button>
       </div>
       <button class="linkbtn home-looks" id="looksBtn">Change how everyone looks, and birthdays</button>
+      <button class="linkbtn home-looks" id="adventBtn" hidden>🎄 Look at the Advent calendars</button>
 
       <h2>Missions</h2>
       <ul class="missions">
@@ -126,6 +127,20 @@
       </div>
       <p class="sort-feedback" id="sortFeedback" role="status"></p>
       <button class="linkbtn" id="sortLater">Do it later</button>
+    </div>
+  </div>
+
+  <div class="advent" id="advent" role="dialog" aria-modal="true" aria-labelledby="adventTitle" hidden>
+    <div class="advent-card">
+      <h1 id="adventTitle">Advent calendars</h1>
+      <div class="avatar-who" role="tablist" aria-label="Whose calendar">
+        <button role="tab" data-k="girl">P</button><button role="tab" data-k="boy">Dude</button>
+      </div>
+      <p class="advent-status" id="adventStatus" aria-live="polite"></p>
+      <div class="advent-grid" id="adventGrid"></div>
+      <h2 class="advent-count" id="adventCount"></h2>
+      <ul class="advent-gifts" id="adventGifts"></ul>
+      <div class="advent-actions"><button class="btn" id="adventDone">Done</button></div>
     </div>
   </div>
 
