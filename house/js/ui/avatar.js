@@ -10,10 +10,11 @@ import { daysToBirthday, STAGE_NAMES } from '../players.js';
 
 const NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
 
-export function createAvatar({ players, days }) {
+export function createAvatar({ players, days, familyServer }) {
   const $ = id => document.getElementById(id);
   const el = { box: $('avatar'), controls: $('avatarControls'), preview: $('avatarPreview'), birthday: $('avatarBirthday'), age: $('avatarAge'),
-               done: $('avatarDone'), reset: $('avatarReset'), open: $('looksBtn') };
+               done: $('avatarDone'), reset: $('avatarReset'), open: $('looksBtn'),
+               status: $('serverStatus'), token: $('serverToken'), connect: $('serverConnectBtn'), connectRow: $('serverConnect'), disconnect: $('serverDisconnect') };
   const tabs = [...document.querySelectorAll('.avatar-who [data-p]')];
   let key = 'dad', figure = null, spin = 0, raf = null;
 
@@ -76,9 +77,25 @@ export function createAvatar({ players, days }) {
     // the extras chips show as pressed when they're on
     el.controls.querySelectorAll('.avatar-chip').forEach(b => { if (b.dataset.value === 'glasses') b.setAttribute('aria-pressed', String(!!look.glasses)); if (b.dataset.value === 'beard') b.setAttribute('aria-pressed', String(!!look.beard)); });
     el.birthday.value = players.birthday(key) || '';
+    const fromServer = !!(familyServer && familyServer.connected && familyServer.status && familyServer.status.ok);
+    el.birthday.readOnly = fromServer;
+    el.birthday.title = fromServer ? 'From the family server' : '';
+    renderServer();
     el.birthday.max = new Date().toISOString().slice(0, 10);
     el.age.textContent = ageText();
     showFigure();
+  }
+
+  // the family server: a token typed in once on this device brings the real birthdays
+  function renderServer() {
+    if (!familyServer || !el.status) return;
+    const on = familyServer.connected, st = familyServer.status;
+    const when = st && st.at ? new Date(st.at).toLocaleString([], { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    el.status.textContent = !on ? 'Not connected: birthdays are typed in here.'
+      : !st ? 'Connected, asking for the birthdays…'
+      : st.ok ? `Connected · ${st.message} (${when})` : `${st.message} (${when})`;
+    el.connectRow.hidden = on && !!st && st.ok;
+    el.disconnect.hidden = !on;
   }
 
   function ageText() {
@@ -104,6 +121,17 @@ export function createAvatar({ players, days }) {
   }
 
   tabs.forEach(t => t.addEventListener('click', () => { key = t.dataset.p; render(); }));
+  if (familyServer && el.connect) {
+    el.connect.addEventListener('click', async () => {
+      if (!el.token.value.trim()) return;
+      el.status.textContent = 'Connecting…';
+      await familyServer.connect(el.token.value);
+      el.token.value = '';
+      render();
+      if (days.replanIfUntouched) days.replanIfUntouched();
+    });
+    el.disconnect.addEventListener('click', () => { familyServer.disconnect(); render(); });
+  }
   el.birthday.addEventListener('change', () => { players.setBirthday(key, el.birthday.value); render(); });
   el.reset.addEventListener('click', () => { players.resetLook(key); render(); });
   el.done.addEventListener('click', close);

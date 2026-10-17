@@ -15,3 +15,15 @@ export function currentHoliday(date) {
   if (asked === 'none') return null;
   return HOLIDAYS.includes(asked) ? asked : holidayOf(date);
 }
+
+/** Whose birthday it is today ('dad', 'mum', 'girl', 'boy'), from the players' birthdays (players.js), or null.
+ *  Add ?birthday=girl (or dad, mum, boy) to the address to try a birthday out, ?birthday=none to switch it off. */
+export function currentBirthday(players, date = new Date()) {
+  const search = globalThis.location && globalThis.location.search;
+  const asked = search ? new URLSearchParams(search).get('birthday') : null;
+  if (asked === 'none') return null;
+  if (['dad', 'mum', 'girl', 'boy'].includes(asked)) return asked;
+  if (!players) return null;
+  const md = `-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return ['girl', 'boy', 'mum', 'dad'].find(k => (players.birthday(k) || '').endsWith(md)) || null;
+}

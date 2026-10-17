@@ -20,6 +20,18 @@ shoes. Give each a birthday: the age decides whether P and Dude are children (un
 Everything is saved on the device only (`js/players.js`, `localStorage`), never in this repository. Dad is
 bald with a beard by default.
 
+**Birthdays** (`js/systems/birthday.js`): on a player's birthday the dining room has balloons and a "Happy
+birthday" banner with their name, and four jobs come on the list: decorate (blow up the balloons, hang the
+banner), the cake (from the fridge to the table, candles, everyone sings, blow them out, cut it), presents
+(the birthday person opens theirs; everyone else wraps one), and Grandma and Grandpa at the door with another
+present. Add `?birthday=girl` (or `dad`, `mum`, `boy`) to the address to try one, `?birthday=none` to stop it.
+
+**The family server** (`js/familyserver.js`): the birthdays can come from fordDbs (`GET /v1/game/family`). A
+parent types the game token into the looks card once per device; it's kept on that device only. The game asks
+in the background with a short time limit and never waits: offline, or without a token, it uses the
+birthdays saved on the device. If the answer makes today someone's birthday before anything's been done, the
+day is planned again with the party jobs.
+
 ## Missions
 
 Missions are one-off storylines, started from the home screen (`js/missions/missions.js`). A mission puts

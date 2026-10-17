@@ -800,6 +800,46 @@ for (const who of ['dad', 'mum']) {
   G.days.next();
 }
 
+// --- a birthday (P's, set with ?birthday=girl): Dad decorates, gets the cake out, sings, wraps a present and
+// lets Grandma and Grandpa in; then P's own birthday, where she blows out her candles and opens her presents
+{
+  const { BD } = await import(new URL('../../house/js/systems/birthday.js', import.meta.url));
+  const party = ['bdayDecorate', 'bdayCake', 'bdayPresents', 'bdayGuests'];
+  globalThis.location.search = '?season=autumn&birthday=girl';
+  for (const who of ['dad', 'girl']) {
+    const label = `P's birthday (as ${who})`;
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.days.next();
+    const plan = G.board.jobs.map(j => j.id);
+    if (!party.every(id => plan.includes(id))) errors.push(`${label}: party jobs missing from the planned day (${party.filter(id => !plan.includes(id))})`);
+    G.days.plan(party);
+    if (G.birthday.who !== 'girl') errors.push(`${label}: not P's birthday`);
+    const presents = G.board.find('bdayPresents');
+    if ((who === 'girl') !== /Open your presents/.test(presents.title)) errors.push(`${label}: presents job is "${presents.title}"`);
+    let rang = false;
+    const realIn = G.birthday.guestsIn;
+    G.birthday.guestsIn = () => { rang = G.birthday.guests === 'waiting'; realIn(); };
+    playDay(label);
+    G.birthday.guestsIn = realIn;
+    const cake = G.items.cake, c = cake.userData.cake;
+    if (cake.parent !== G.stage.scene || Math.hypot(cake.position.x - BD.table.cake[0], cake.position.z - BD.table.cake[2]) > 0.01 || !c.slice.visible || c.flames.some(f => f.visible)) errors.push(`${label}: the cake isn't on the table, cut, with the candles out`);
+    if (!rang) errors.push(`${label}: Grandma and Grandpa weren't at the door when it was opened`);
+    if (who === 'dad') {
+      const gift = G.items.giftBox;
+      if (gift.parent !== G.stage.scene || !gift.visible) errors.push(`${label}: the wrapped present isn't on the table`);
+    }
+    G.days.next();
+  }
+  globalThis.location.search = '?season=autumn&birthday=none';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.plan(['hands']);
+  if (G.birthday.who || G.items.cake.visible || G.items.giftBox.visible) errors.push('after the birthday: decorations, the cake or the present still about');
+  playDay('the day after the birthday');
+  G.days.next();
+  globalThis.location.search = '?season=autumn';
+  console.log("P's birthday: party as Dad and as P, cake, presents, Grandma and Grandpa");
+}
+
 // a fire drill straight after the urgent call: the call's deadline moves on by however long the drill took
 {
   G.missions.start('office', 'dad');

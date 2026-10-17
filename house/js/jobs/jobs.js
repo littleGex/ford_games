@@ -14,6 +14,7 @@ import { FOOD_DELIVERY } from '../config.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { HALLOWEEN as HW } from '../world/halloween.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
+import { BD, NAMES as BD_NAMES, GIFTS } from '../systems/birthday.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -41,8 +42,9 @@ const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic ha
  * @param binsBack which pair is waiting at the kerb to come back in (null if none)
  * @param character who is playing ('dad', 'mum', 'girl', 'boy'); some jobs happen somewhere different for each of them
  * @param holiday  'halloween' on 31 October (see holidays.js): adds that day's jobs
+ * @param birthday whose birthday it is today ('girl'...), or null: adds the party jobs
  */
-export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null } = {}) {
+export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null, birthday = null } = {}) {
   const grownUp = character === 'dad' || character === 'mum';
   const boxSpot = BOX_SPOTS[Math.floor(day / 7) % BOX_SPOTS.length];
   const showBox = (c, level, x, z) => {
@@ -327,6 +329,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
   ];
   if (holiday === 'halloween') jobs.push(...halloweenJobs(character, grownUp));
+  if (birthday) jobs.push(...birthdayJobs(character, birthday, grownUp));
   return jobs.map(job => ({ ...rulesFor(job.id), ...job }));
 }
 
@@ -371,5 +374,39 @@ function halloweenJobs(character, grownUp) {
         { kind: 'use', at: NEIGHBOUR_HOUSES.left.step, label: 'Ring next door (on the left): trick or treat!', onDone: c => c.halloween.knock('left') },
         { kind: 'drop', item: 'treatPail', level: room.level, at: room.at, place: room.place, label: `Take your sweets up to ${room.name}` }],
         setup: c => { c.items.treatPail.visible = true; }, tidy: () => {} },
+  ];
+}
+
+/** Someone's birthday: balloons and the banner, the cake (candles, singing, blowing them out, slices), the
+ *  presents (opened by the birthday person, wrapped by everyone else), and Grandma and Grandpa at the door.
+ *  systems/birthday.js does the rest. */
+function birthdayJobs(character, who, grownUp) {
+  const N = BD_NAMES[who], mine = character === who, t = BD.table, whose = mine ? 'your' : `${N}'s`;
+  return [
+    { id: 'bdayDecorate', title: `Decorate for ${whose} birthday`, personal: true, steps: [
+      { kind: 'sit', at: BD.sofa.at, seat: BD.sofa.seat, dur: 8, what: 'Blowing up balloons', label: 'Sit on the sofa and blow up the balloons', onDone: c => c.birthday.show('balloons') },
+      { kind: 'use', at: BD.banner, label: `Hang the "Happy birthday, ${N}!" banner in the dining room`, onDone: c => c.birthday.show('banner') }],
+      setup: c => c.birthday.hide(['balloons', 'banner']), tidy: c => c.birthday.show(['balloons', 'banner']) },
+    { id: 'bdayCake', title: mine ? 'Your birthday cake' : `${N}'s birthday cake`, personal: true, steps: [
+      { kind: 'pick', item: 'cake', label: 'Get the birthday cake from the fridge' },
+      { kind: 'drop', item: 'cake', at: t.at, place: t.cake, label: 'Put it on the dining table' },
+      { kind: 'use', at: t.at, label: grownUp ? 'Put the candles on and light them' : 'Put the candles on (a grown-up lights them)', onDone: c => c.birthday.candles(true) },
+      { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 10, song: 'birthday', what: 'Singing happy birthday', label: mine ? 'Everyone sings happy birthday to you' : `Sing happy birthday to ${N}` },
+      { kind: 'use', at: t.at, label: mine ? 'Make a wish and blow out your candles!' : `${N} blows out the candles: make a wish!`,
+        onDone: c => { c.birthday.candles(false); c.hud.toast(mine ? 'Whoosh! All out in one go 🎉' : `Whoosh! ${N} blew them all out 🎉`); } },
+      { kind: 'use', at: t.at, label: 'Cut the cake and hand out the slices', onDone: c => c.birthday.slice() }],
+      setup: c => c.birthday.cakeInFridge(), tidy: c => c.birthday.cakeDone() },
+    mine
+      ? { id: 'bdayPresents', title: 'Open your presents', personal: true, steps: [0, 1, 2].map(i => (
+        { kind: 'use', at: t.at, label: ['Open the red present', 'Open the blue present', 'Open the yellow present'][i], onDone: c => c.birthday.unwrap(i), gift: GIFTS[who][i] })),
+        tidy: c => c.birthday.presentsOpened() }
+      : { id: 'bdayPresents', title: `Wrap a present for ${N}`, personal: true, steps: [
+        { kind: 'pick', item: 'giftBox', label: `Get ${N}'s present from the oak wardrobe in the dressing room` },
+        { kind: 'sit', stand: true, at: t.at, seat: t.seat, dur: 8, what: 'Wrapping the present', label: 'Wrap it up at the dining table' },
+        { kind: 'drop', item: 'giftBox', at: t.at, place: [1.75, 0.75, 7.05], label: 'Put it with the other presents' }],
+        setup: c => { c.items.giftBox.visible = true; } },
+    { id: 'bdayGuests', title: 'Grandma and Grandpa are coming', personal: true, steps: [
+      { kind: 'wait', dur: 40, label: 'Wait for Grandma and Grandpa', doneMessage: 'Ding-dong! Grandma and Grandpa are here' },
+      { kind: 'use', at: BD.door, label: 'Open the door to Grandma and Grandpa', onDone: c => c.birthday.guestsIn() }] },
   ];
 }

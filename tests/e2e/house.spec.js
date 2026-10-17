@@ -472,6 +472,31 @@ test('looks and birthdays: change how P looks, give her a birthday, and it is ke
   expect(kept.birthday).toBe(`${year}-01-01`);
 });
 
+test('the family server: connect with the game token, and the birthdays come in (a party if one is today)', async ({ page }) => {
+  const today = new Date(), md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  let auth = null;
+  await page.route('**/v1/game/family', route => {
+    auth = route.request().headers().authorization;
+    route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ players: [{ key: 'girl', birthday: `2014-${md}` }, { key: 'dad', birthday: '1980-01-02' }] }) });
+  });
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#looksBtn').click();
+  await expect(page.locator('#serverStatus')).toHaveText(/Not connected/);
+  await page.locator('#serverToken').fill('test-token');
+  await page.locator('#serverConnectBtn').click();
+  await expect(page.locator('#serverStatus')).toHaveText(/Connected · 2 birthdays from the family server/);
+  expect(auth).toBe('Bearer test-token');
+  await page.locator('.avatar-who [data-p="girl"]').click();
+  await expect(page.locator('#avatarBirthday')).toHaveValue(`2014-${md}`);
+  await expect(page.locator('#avatarAge')).toHaveText(/Happy birthday today/);
+  // nothing was done today yet, so today is planned again: it's P's birthday
+  await page.locator('#avatarDone').click();
+  await expect(page.locator('#taskList')).toContainText("P's birthday cake");
+  expect(await page.evaluate(() => localStorage.getItem('fordHouse.gameToken.v1'))).toBe('test-token');
+});
+
 test('bedtime: starts in the evening with both kids on the sofa, and the iPads go off', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();

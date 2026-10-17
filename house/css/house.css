@@ -199,3 +199,9 @@ button, a, [role="button"] { touch-action: manipulation; }
   .avatar-body { grid-template-columns: 1fr; }
   .avatar-preview { width: 140px; height: 170px; margin: 0 auto; display: block; }
 }
+.avatar-server { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.avatar-server h2 { margin: 0 0 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.avatar-server-status { margin: 0 0 6px; font-size: 13px; }
+.avatar-server-row { display: flex; gap: 8px; }
+.avatar-server-row input { flex: 1; min-width: 0; font: 600 14px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; }
+.avatar-birthday input[readonly] { opacity: .7; }
