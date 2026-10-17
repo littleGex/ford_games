@@ -12,6 +12,11 @@
 // glass of water), coffee and snacks whenever you like, and the phone ringing with an urgent call. Stars for
 // being on time to the meetings, finishing by 17:00, and taking a break.
 //
+// Bedtime (Mum or Dad), from 19:45: get both kids off their iPads and upstairs, choose who showers first,
+// shower, pyjamas and teeth for each, a story on P's bed, then tuck each into bed and switch their light off.
+// Two to four things go wrong each time (lost pyjamas, a fussy story pick, a dance party...). Stars for when
+// both lights are out: by 20:30 three, by 20:45 two. Going back downstairs ends it.
+//
 // 3D printing (Dad, no clock, just for fun): pick a design on the laptop, order a spool of filament, take the
 // parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
 // laptop, watch it grow, then take the model out and put it where it belongs.
@@ -23,6 +28,8 @@ import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { ring, alarm } from '../core/audio.js';
 import { OFFICE } from '../world/office.js';
 import { MUM } from '../world/mumoffice.js';
+import { BED, SEARCH, NAMES as KID, PRONOUN } from '../systems/bedtime.js';
+import { STAIRS } from '../systems/levels.js';
 
 const KEY = 'fordHouse.missions.v1';
 const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
@@ -119,6 +126,95 @@ function workResult(mission, arrived, meetingKeys, by, doneText) {
     stats: `${doneText} ${clockText(arrived)}. On time for ${onTime.length} of ${plural(meetings.length, 'meeting')}. Breaks: ${plural(coffees, 'coffee')}, ${plural(snacks, 'snack')}.`,
   };
 }
+
+// --- bedtime
+const PJ = { girl: 'pyjamasGirl', boy: 'pyjamasBoy' };
+const other = who => (who === 'girl' ? 'boy' : 'girl');
+const bothWithYou = c => c.bedtime.withYou('girl') && c.bedtime.withYou('boy');
+const shuffle = list => list.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+const TROUBLE_TEXT = {
+  pyjamas: n => `${n}'s pyjamas went missing`, book: n => `${n} didn't want that story`, dragon: () => 'goodnight to the dragon',
+  water: n => `a glass of water for ${n}`, dance: n => `${n}'s dance party`, ipad: n => `${n} back on the iPad`, hide: n => `${n} hiding`,
+};
+/** Two to four things that go wrong tonight, each for one of the kids (the dragon is P's). */
+function pickTroubles() {
+  const n = 2 + Math.floor(Math.random() * 3), t = {};
+  for (const name of shuffle(Object.keys(TROUBLE_TEXT)).slice(0, n)) {
+    t[name] = { who: name === 'dragon' ? 'girl' : Math.random() < 0.5 ? 'girl' : 'boy' };
+    if (name === 'pyjamas') t[name].spot = Math.floor(Math.random() * SEARCH.pyjamas.length);
+    if (name === 'hide') t[name].spot = Math.floor(Math.random() * SEARCH.hide.length);
+  }
+  return t;
+}
+/** One child's turn in the bathroom: shower then teeth, and (at the same time) the pyjamas. */
+function wash(who, m) {
+  const N = KID[who], his = PRONOUN[who], with_ = c => c.bedtime.withYou(who), w = BED.wardrobe[who], lost = m.trouble.pyjamas && m.trouble.pyjamas.who === who;
+  // lost pyjamas: not in the wardrobe, not in the first place you look either
+  const decoy = lost && SEARCH.pyjamas.find((p, i) => i !== m.trouble.pyjamas.spot);
+  const find = lost ? [
+    { kind: 'use', level: w.level, at: w.at, label: `Look in ${N}'s wardrobe for ${his} pyjamas`, onDone: c => c.hud.toast(`Not there! Where are ${N}'s pyjamas?`) },
+    { kind: 'use', level: 1, at: decoy.at, label: `Look by ${decoy.name}`, onDone: c => c.hud.toast('Not here either...') },
+    { kind: 'pick', item: PJ[who], label: `There they are! Take ${N}'s pyjamas` }]
+    : [{ kind: 'pick', item: PJ[who], label: `Get ${N}'s pyjamas from ${w.name}` }];
+  return [
+    { key: `shower-${who}`, title: `${N}: shower and teeth`, steps: [
+      { kind: 'use', level: 1, at: BED.shower.at, can: with_, label: `Send ${N} into the shower`, onDone: c => c.bedtime.place(who, 1, BED.shower.spot, 'shower') },
+      { kind: 'wait', dur: 8, label: `${N} is in the shower`, doneMessage: `${N} is out of the shower`, onDone: c => c.bedtime.follow(who) },
+      { kind: 'use', level: 1, at: BED.basin.at, can: c => with_(c) && c.bedtime.kid(who).dressed, label: `Help ${N} brush ${his} teeth`,
+        onDone: c => c.bedtime.place(who, 1, BED.basin.spot, 'teeth') },
+      { kind: 'wait', dur: 6, label: `${N} is brushing ${his} teeth`, doneMessage: 'Sparkly clean!', onDone: c => c.bedtime.follow(who) }] },
+    { key: `pyjamas-${who}`, title: `${N}: pyjamas`, steps: [
+      ...find,
+      { kind: 'drop', item: PJ[who], level: 1, at: BED.bathroom, place: [BED.bathroom[0], 0, BED.bathroom[1]], can: with_, label: `Give ${N} ${his} pyjamas`,
+        onDone: c => { c.items[PJ[who]].visible = false; c.bedtime.pyjamas(who); } }] },
+  ];
+}
+/** Into bed and lights out, for one child (the dragon and a drink of water if that's tonight's trouble). */
+function bedJob(who, m) {
+  const N = KID[who], b = BED.bed[who], sw = BED.switch[who], t = m.trouble, with_ = c => c.bedtime.withYou(who);
+  const water = t.water && t.water.who === who, inBed = c => c.bedtime.is(who, 'bed');
+  const side = who === 'girl' ? [1.05, 0, 7.75] : [2.85, 0, 3.6];
+  return { key: `bed-${who}`, title: `${N}: bed and lights out`, steps: [
+    ...(who === 'girl' && t.dragon ? [{ kind: 'use', level: 1, at: BED.terrarium, can: with_, label: 'Say goodnight to the dragon with P',
+      onDone: c => c.hud.toast('P: "Night night, little dragon!"') }] : []),
+    { kind: 'use', level: b.level, at: b.at, can: with_, label: `Tuck ${N} into ${b.name}`, onDone: c => {
+      c.bedtime.place(who, b.level, b.lie, 'bed');
+      if (water) { c.items.waterGlass.visible = true; c.hud.toast(`${N}: "I need a drink of water!"`); }
+    } },
+    ...(water ? [
+      { kind: 'pick', item: 'waterGlass', label: 'Fetch a glass of water from the bathroom' },
+      { kind: 'drop', item: 'waterGlass', level: b.level, at: b.at, place: side, label: `Give ${N} the water` }] : []),
+    { kind: 'use', level: sw.level, at: sw.at, can: inBed, label: `Switch off the light in ${sw.name}`, onDone: c => {
+      c.bedtime.light(who, false); m.lightsOut[who] = c.missions.minutes(); c.hud.toast(`Night night, ${N}!`);
+    } }] };
+}
+/** Trouble that takes a child off on their own; done() when it's sorted. */
+const INTERRUPT = {
+  dance(c, who, minutes, done) {
+    const N = KID[who];
+    c.bedtime.walkTo(who, BED.dance.level, BED.dance.spot, 'dance');
+    c.hud.toast(`${N}: "Dance party!" 🎶`);
+    c.missions.add({ key: 'dance', urgent: true, due: minutes, title: `${N} is having a dance party!`, steps: [
+      { kind: 'use', level: BED.dance.level, at: [BED.dance.spot[0], BED.dance.spot[2]],
+        label: `Stop the dance party: "Come on, ${N}, bedtime!"`, onDone: cx => { cx.bedtime.follow(who); done(); } }] });
+  },
+  ipad(c, who, minutes, done) {
+    const N = KID[who], s = BED.ipad[who];
+    c.bedtime.place(who, s.level, s.seat, 'ipad');
+    c.hud.toast(`Where's ${N} gone? On the iPad again!`);
+    c.missions.add({ key: 'ipadAgain', urgent: true, due: minutes, title: `${N} is back on the iPad!`, steps: [
+      { kind: 'use', level: s.level, at: s.at, label: `Take the iPad off ${N}`, onDone: cx => { cx.bedtime.follow(who); cx.hud.toast(`${N}: "Just one more minute..."`); done(); } }] });
+  },
+  hide(c, who, minutes, done) {
+    const N = KID[who], spot = S.mission.trouble.hide.spot, real = SEARCH.hide[spot];
+    const decoys = SEARCH.hide.filter((h, i) => i !== spot).slice(0, 2);
+    c.bedtime.place(who, 1, [real.at[0], 0, real.at[1], 0], 'hide');
+    c.hud.toast(`${N}: "You can't find me!"`);
+    c.missions.add({ key: 'hide', urgent: true, due: minutes, title: `${N} is hiding!`, steps: [
+      ...decoys.map(d => ({ kind: 'use', level: 1, at: d.at, label: `Look ${d.name}`, onDone: cx => cx.hud.toast('Not here...') })),
+      { kind: 'use', level: 1, at: real.at, label: `Look ${real.name}`, onDone: cx => { cx.bedtime.follow(who); cx.hud.toast(`Found you, ${N}!`); done(); } }] });
+  },
+};
 
 export const MISSIONS = {
   schoolRun: {
@@ -295,6 +391,71 @@ export const MISSIONS = {
     result: (mission, arrived) => workResult(mission, arrived, ['meet10', 'meet14', 'urgent'], hm(17.5), 'Home at'),
   },
 
+  bedtime: {
+    title: 'Bedtime', who: ['mum', 'dad'],
+    clock: { start: hm(19.75), end: hm(21), secondsPerMinute: 4 },          // 19:45; lights out by 20:30 for three stars
+    spot: who => ({ name: NAMES[who], level: 0, start: [1.8, 2.3], facing: -Math.PI / 2 }),
+    intro: 'Bedtime! Lights out in both rooms by 20:30 for three stars',
+    setup(c) {
+      c.bedtime.start();
+      const m = S.mission;
+      m.trouble = pickTroubles(); m.lightsOut = {};
+      for (const who of ['girl', 'boy']) {   // the pyjamas are in the wardrobes, unless one pair has gone missing
+        const it = c.items[PJ[who]];
+        it.visible = true;
+        if (m.trouble.pyjamas && m.trouble.pyjamas.who === who) {
+          const where = SEARCH.pyjamas[m.trouble.pyjamas.spot];
+          c.world.upstairs.attach(it); it.position.set(...where.place); it.rotation.set(0, 0.4, 0); it.userData.level = 1;
+        }
+      }
+    },
+    jobs: () => [
+      ['girl', 'boy'].map(who => ({ key: `ipad-${who}`, title: `${KID[who]}: iPad off`, steps: [
+        { kind: 'use', at: BED.sofa[who].at, label: `Tell ${KID[who]} to switch off ${PRONOUN[who]} iPad`,
+          onDone: c => { c.bedtime.follow(who); c.hud.toast(`${KID[who]}: "Okaaay..."`); } }] })),
+      { key: 'first', title: 'Upstairs to the bathroom', steps: [
+        { kind: 'choose', choose: 'bedFirst', level: 1, at: BED.bathDoor, can: c => c.bedtime.withYou('girl') && c.bedtime.withYou('boy'),
+          label: 'Who goes in the shower first?', message: o => `${o.label} first!`, onChoose: id => { S.mission.first = id; } }] },
+      (c, m) => wash(m.first, m),
+      (c, m) => wash(other(m.first), m),
+      (c, m) => ({ key: 'story', title: 'Read a bedtime story', steps: [
+        { kind: 'choose', choose: 'book', level: 1, at: BED.story.at, can: bothWithYou, label: 'Pick a bedtime story', message: o => `"${o.label}" it is!`,
+          onChoose: (id, cx) => {
+            const t = m.trouble.book;
+            if (!t || t.refused) return true;
+            t.refused = true; cx.hud.toast(`${KID[t.who]}: "Not that one! We had that yesterday!"`);
+            return false;
+          } },
+        { kind: 'sit', level: 1, at: BED.story.at, seat: BED.story.seat, kidsSit: BED.story.kids, can: bothWithYou, dur: 10,
+          what: 'Reading the story', label: "Sit on P's bed and read the story" }] }),
+      (c, m) => ['girl', 'boy'].map(who => bedJob(who, m)),
+      { key: 'down', title: 'Go back downstairs', steps: [
+        { kind: 'use', level: 1, at: STAIRS.TOP.at, label: 'Tiptoe back downstairs', onDone: c => { c.levels.go(0); c.bedtime.downstairs(); } }] },
+    ],
+    update(c, m, minutes) {
+      if (!m.first || m.done) return;
+      if (m.washFrom === undefined) m.washFrom = minutes;
+      // trouble that takes a child off on their own: one at a time, while they're with you, before the story
+      for (const name of ['dance', 'ipad', 'hide']) {
+        const t = m.trouble[name];
+        if (!t || t.done) continue;
+        if (t.at === undefined) t.at = m.washFrom + 2 + Math.random() * 10;
+        if (minutes < t.at || Object.values(m.trouble).some(x => x.active)) continue;
+        if (m.doneAt.story !== undefined || (S.sitting && S.sitting.step.kidsSit)) { t.done = t.skipped = true; continue; }   // too late now
+        if (!c.bedtime.withYou(t.who)) continue;   // busy (in the shower): a bit later
+        t.done = t.active = true;
+        INTERRUPT[name](c, t.who, minutes, () => { t.active = false; });
+      }
+    },
+    result(m) {
+      const out = Math.max(m.lightsOut.girl || 0, m.lightsOut.boy || 0);
+      const stars = out <= hm(20.5) ? 3 : out <= hm(20.75) ? 2 : 1;
+      const happened = Object.entries(m.trouble).filter(([, t]) => !t.skipped).map(([name, t]) => TROUBLE_TEXT[name](KID[t.who]));
+      return { stars, minutes: out, title: stars === 3 ? 'Sweet dreams!' : stars === 2 ? 'Night night!' : 'Finally asleep!',
+        stats: `Lights out at ${clockText(out)}.${happened.length ? ` Tonight: ${happened.join(', ')}.` : ''}` };
+    },
+  },
+
   print3d: {
     title: '3D printing', who: ['dad'],
     spot: () => ({ name: 'Dad', level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
@@ -366,7 +527,7 @@ export function createMissions(ctx) {
     next = 0; shownMinute = -1; pending = new Set(); extra = 0;
     addNext();
     showClock(true);
-    hud.toast(m.clock ? `${m.title}: the bell rings at ${clockText(m.clock.end)}!` : `${m.title}: ${m.intro}`);
+    hud.toast(m.clock && !m.intro ? `${m.title}: the bell rings at ${clockText(m.clock.end)}!` : `${m.title}: ${m.intro}`);
   }
 
   /** Put one mission job on the list. Required ones have to be done before the mission moves on; optional
@@ -412,11 +573,12 @@ export function createMissions(ctx) {
     const mission = S.mission, m = MISSIONS[mission.id];
     if (!m.clock) return finishForFun(mission, m);
     const arrived = now(), r = m.result ? m.result(mission, arrived) : null, stars = r ? r.stars : m.stars(arrived);
+    const at = r && r.minutes !== undefined ? r.minutes : arrived;   // bedtime: when the lights went out
     el.stars.hidden = false; el.again.textContent = 'Try again';
     mission.done = true;
     const best = ((BEST[mission.id] ||= {})[mission.who]);
-    const better = !best || stars > best.stars || (stars === best.stars && arrived < best.minutes);
-    if (better) { BEST[mission.id][mission.who] = { stars, minutes: arrived }; saveBest(); }
+    const better = !best || stars > best.stars || (stars === best.stars && at < best.minutes);
+    if (better) { BEST[mission.id][mission.who] = { stars, minutes: at }; saveBest(); }
     const late = arrived >= m.clock.end;
     el.eyebrow.textContent = `${m.title} · ${NAMES[mission.who]}`;
     el.title.textContent = r ? r.title : late ? 'Late for school!' : stars === 3 ? 'Early bird!' : 'Just in time!';
@@ -451,6 +613,7 @@ export function createMissions(ctx) {
     if (S.laptop) ctx.laptop.close();
     if (ctx.printing) ctx.printing.reset();
     ctx.world.car.visible = true; ctx.world.mumCar.visible = false; ctx.world.mumGate.close();   // Mum's car back home
+    if (ctx.bedtime) ctx.bedtime.end();   // daylight again, the kids back to normal
     el.box.hidden = true;
     if (S.sitting) ctx.sitting.standUp();
     player.setCharacter(days.character);

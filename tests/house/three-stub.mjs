@@ -8,7 +8,7 @@ export class Vector3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y
   distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
   toArray() { return [this.x, this.y, this.z]; } fromArray(a) { return this.set(a[0], a[1], a[2]); } }
 class Euler { constructor() { this.x = 0; this.y = 0; this.z = 0; } set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }
-export class Color { constructor(c) { this.v = c; } set(c) { this.v = c; return this; } setRGB() { return this; } lerp() { return this; } copy(c) { this.v = c.v; return this; } }
+export class Color { constructor(c) { this.v = c; } set(c) { this.v = c; return this; } setRGB() { return this; } lerp() { return this; } copy(c) { this.v = c.v; return this; } clone() { return new Color(this.v); } }
 export class Object3D { constructor() { Object.defineProperties(this, { position: { value: new Vector3(), enumerable: true }, rotation: { value: new Euler(), enumerable: true }, scale: { value: new Vector3(1, 1, 1), enumerable: true } });   // read-only, as in three.js
     this.children = []; this.parent = null; this.visible = true; this.userData = {}; this.name = ''; }
   add(...os) { for (const o of os) { if (o.parent) o.parent.remove(o); o.parent = this; this.children.push(o); } return this; }
@@ -30,9 +30,9 @@ export class RingGeometry extends Geo {} export class OctahedronGeometry extends
 class Mat { constructor(o = {}) { Object.assign(this, o); this.color = new Color(o.color); this.emissive = new Color(o.emissive); } }
 export class MeshStandardMaterial extends Mat {} export class MeshBasicMaterial extends Mat {}
 export class CanvasTexture { constructor() { this.repeat = { set() {} }; this.offset = { set() {} }; } clone() { return new CanvasTexture(); } }
-class Light extends Object3D { constructor(c, i = 1) { super(); this.intensity = i; this.target = new Object3D(); this.shadow = any; } }
-export class HemisphereLight extends Light { constructor(a, b, i) { super(a, i); } }
-export class DirectionalLight extends Light {} export class PointLight extends Light {} export class SpotLight extends Light {}
+class Light extends Object3D { constructor(c, i = 1) { super(); this.color = new Color(c); this.intensity = i; this.target = new Object3D(); this.shadow = any; } }
+export class HemisphereLight extends Light { constructor(a, b, i) { super(a, i); this.groundColor = new Color(b); } }
+export class DirectionalLight extends Light {} export class PointLight extends Light { constructor(...a) { super(...a); this.isPointLight = true; } } export class SpotLight extends Light {}
 export class PerspectiveCamera extends Object3D { setViewOffset(fw, fh, x, y, w, h) { this.view = { fullWidth: fw, fullHeight: fh, offsetX: x, offsetY: y, width: w, height: h }; } updateProjectionMatrix() {} }
 export class Fog { constructor(c) { this.color = new Color(c); } }
 export class Matrix4 { makeScale() { return this; } setPosition() { return this; } }

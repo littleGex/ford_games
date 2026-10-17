@@ -10,6 +10,7 @@
 //   choose pick from tiles on the laptop close-up (ui/laptop.js), choose: 'design' | 'filament'
 //   wipe   wipe a window by moving the stick in circles (systems/wiping.js); dirt: which window
 //   mow / hoover / rake / shovel / trim / charge / wait   progress handled by their own systems; no button, no marker
+//   can(ctx)  optional: the step only shows while this is true
 // Steps happen on the ground floor unless they say level: 1 (pick steps use the item's floor).
 import * as THREE from 'three';
 import { REACH, COLORS, LEVEL_HEIGHT } from '../config.js';
@@ -71,6 +72,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
 
   function canDo(s) {
     if (PASSIVE.has(s.kind)) return false;
+    if (s.can && !s.can(ctx)) return false;   // e.g. only while the child it's for is with you (bedtime)
     if (S.mission && S.mission.drill && !s.drill) return false;   // a fire drill: nothing else until the all-clear
     if (s.notBefore && !(S.mission && S.mission.clock && S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute >= s.notBefore)) return false;   // a mission step that isn't open yet (lunch from 12:00)
     if (s.kind === 'sit') return !S.sitting;

@@ -48,13 +48,21 @@ with the day.
   14:00 in the meeting room, emails, spreadsheets and a report at her desk, lunch from the kitchen fridge,
   water; coffee, a snack and the WC whenever she likes. An urgent call, and a fire drill (take the stairs,
   the lifts don't run, and go out to the assembly point in the garden). Then shut down, back down, clock
-  out, badge out and drive home.
+  out, badge out and drive home. Her clock runs a little slower than the other days (her site is twice
+  the walk).
 - **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
   for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
   pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the
   sofa, send the print from the laptop and watch the model grow layer by layer, then take it out and put
   it where it belongs. The card lists everything you've made so far.
-- Bedtime (Mum or Dad) is next.
+- **Bedtime** (Mum or Dad), from 19:45, in the evening (`js/systems/bedtime.js`: dark outside with a moon,
+  lights on in the house). P and Dude are on the sofa with their iPads; tell each to switch off and they
+  follow you about. Upstairs, choose who goes in the shower first; for each child a shower, pyjamas from
+  their wardrobe and teeth at the basin. A story on P's bed (pick the book), then tuck each into bed (P in
+  her room, Dude in the attic) and switch their light off. Two to four things go wrong each evening: lost
+  pyjamas, "Not that story!", goodnight to the dragon, a glass of water, a dance party on the landing, back
+  on the iPad, or hide and seek. Stars for when both lights are out: by 20:30 three, by 20:45 two. Tiptoe
+  back downstairs to finish: the hall light goes off and the little stair light comes on.
 
 ## Floors
 

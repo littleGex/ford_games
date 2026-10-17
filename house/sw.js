@@ -48,6 +48,7 @@ const urlsToCache = [
   './js/systems/sitting.js',
   './js/systems/waiting.js',
   './js/systems/halloween.js',
+  './js/systems/bedtime.js',
   './js/ui/home.js',
   './js/ui/hud.js',
   './js/ui/sorting.js',

@@ -249,6 +249,7 @@ function doStep(job) {
   if (s.kind === 'choose') {   // the laptop close-up: pick tile number `laptopPick` (1 = first)
     if (!S.laptop) return 'the laptop never opened';
     G.laptop.choose(Math.min(laptopPick, G.laptop.options().length));
+    for (let k = 2; k <= 4 && S.laptop; k++) G.laptop.choose(Math.min(k, G.laptop.options().length));   // "Not that one!": another
     frame();
     return job.steps[job.i] !== s || 'nothing was chosen on the laptop';
   }
@@ -611,6 +612,7 @@ function playWorkDay(label, seen) {
     const notYet = j => (j.steps[j.i].notBefore || 0) > G.missions.minutes();
     const open = G.board.jobs.filter(j => j.i < j.steps.length && !(j.optional && S.mission.breaks && S.mission.breaks[j.key] >= 1))
       .filter(j => !S.mission.drill || j.steps[j.i].drill)
+      .filter(j => !j.steps[j.i].can || j.steps[j.i].can(G))   // e.g. a child's teeth only once they're in pyjamas
       .sort((a, b) => (notYet(a) - notYet(b)) || ((a.due ?? 1e9) - (b.due ?? 1e9)));
     open.forEach(j => seen.add(j.key || j.title));
     // don't start something long when a meeting opens before it would be done: do something quick, or wait
@@ -717,6 +719,53 @@ for (const who of ['dad', 'mum']) {
   G.board.act(G.board.nearestAction(G.player.group.position));
   if (S.level !== 1) errors.push("Mum's office: the lift didn't take Mum up");
   G.missions.end();
+}
+
+// --- bedtime, as Mum and as Dad, with every kind of trouble between the two evenings: off the iPads, up to
+// the bathroom, a shower, pyjamas and teeth each, a story, into bed and lights out, then back downstairs
+{
+  const { MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  const { BED, SEARCH } = await import(new URL('../../house/js/systems/bedtime.js', import.meta.url));
+  const B = G.bedtime, PJ = { girl: 'pyjamasGirl', boy: 'pyjamasBoy' };
+  for (const [who, first, trouble] of [
+    ['mum', 1, { pyjamas: { who: 'girl', spot: 0 }, book: { who: 'boy' }, dance: { who: 'boy', at: 0 }, water: { who: 'girl' } }],
+    ['dad', 2, { dragon: { who: 'girl' }, ipad: { who: 'boy', at: 0 }, hide: { who: 'girl', spot: 2, at: 0 }, pyjamas: { who: 'boy', spot: 1 } }]]) {
+    const label = `bedtime (${who})`, spot = MISSIONS.bedtime.spot(who);
+    if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push(`${label}: starts inside something`);
+    const planBefore = G.board.jobs.map(j => j.id).join(), seen = new Set();
+    G.missions.start('bedtime', who);
+    // tonight's trouble, set for the test: the lost pyjamas go where they were "lost", the others in the wardrobes
+    S.mission.trouble = trouble;
+    for (const k of ['girl', 'boy']) { const it = G.items[PJ[k]], h = it.userData.home; h.parent.attach(it); it.position.fromArray(h.pos); it.userData.level = h.level; it.visible = true; }
+    const lost = G.items[PJ[trouble.pyjamas.who]];
+    G.world.upstairs.attach(lost); lost.position.set(...SEARCH.pyjamas[trouble.pyjamas.spot].place); lost.userData.level = 1;
+    if (!B.on || G.stage.hemi.intensity > 0.3) errors.push(`${label}: not evening`);
+    if (!B.is('girl', 'sofa') || !B.is('boy', 'sofa')) errors.push(`${label}: the kids aren't on the sofa with their iPads`);
+    laptopPick = first;   // who showers first: 1 P, 2 Dude
+    walked = 0;
+    playWorkDay(label, seen);
+    if (!S.mission.done) { errors.push(`${label}: never finished (on "${(G.board.jobs.find(j => j.i < j.steps.length) || { title: '?' }).title}")`); G.missions.end(); continue; }
+    for (const key of ['ipad-girl', 'ipad-boy', 'first', 'shower-girl', 'shower-boy', 'pyjamas-girl', 'pyjamas-boy', 'story', 'bed-girl', 'bed-boy', 'down'])
+      if (!seen.has(key)) errors.push(`${label}: never had "${key}" on the list`);
+    for (const name of Object.keys(trouble)) {
+      if (S.mission.trouble[name].skipped) errors.push(`${label}: the ${name} trouble never happened`);
+      if (['dance', 'ipad', 'hide'].includes(name) && !seen.has(name === 'ipad' ? 'ipadAgain' : name)) errors.push(`${label}: no "${name}" job`);
+    }
+    if (trouble.book && !trouble.book.refused) errors.push(`${label}: the first story pick wasn't refused`);
+    const [a, b] = first === 1 ? ['girl', 'boy'] : ['boy', 'girl'];
+    if (!(S.mission.doneAt[`shower-${a}`] < S.mission.doneAt[`shower-${b}`])) errors.push(`${label}: the child chosen to go first didn't`);
+    for (const k of ['girl', 'boy']) {
+      if (!B.is(k, 'bed') || !B.kid(k).dressed) errors.push(`${label}: ${k} isn't in bed in pyjamas`);
+      if (B.kid(k).level !== BED.bed[k].level) errors.push(`${label}: ${k} is in bed on the wrong floor`);
+    }
+    if (S.level !== 0) errors.push(`${label}: not back downstairs at the end`);
+    const r = G.missions.best('bedtime', who), out = Math.max(S.mission.lightsOut.girl, S.mission.lightsOut.boy);
+    console.log(`${label}: lights out at ${Math.floor(out / 60)}:${String(Math.floor(out % 60)).padStart(2, '0')} after walking ${Math.round(walked)} m, ${r.stars} stars`);
+    if (r.stars !== 3 || out > 20.5 * 60 - 12) errors.push(`${label}: played well with four lots of trouble, lights out only at ${Math.round(out)} min (want by 20:18, for three stars with room to spare)`);
+    G.missions.end();
+    if (B.on || G.stage.hemi.intensity < 0.7 || B.kid('girl').c.root.visible) errors.push(`${label}: still evening after going back to the day`);
+    if (G.board.jobs.map(j => j.id).join() !== planBefore) errors.push(`${label}: the day didn't come back as it was`);
+  }
 }
 
 // a fire drill straight after the urgent call: the call's deadline moves on by however long the drill took
