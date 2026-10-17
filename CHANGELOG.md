@@ -10,6 +10,13 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Fixed
+- Ford House: Mum's office day could only just be done by 17:30, even playing perfectly: her site is twice
+  the walk of Dad's office. Her clock now runs a bit slower (1.5 minutes a second instead of 2), which gives
+  the same time to spare as Dad's day.
+- Ford House: a fire drill no longer makes you miss the urgent call: the call's deadline moves on by however
+  long the drill took (both offices).
+
 ## [4.8.1] - 2026-10-13
 
 ### Changed
