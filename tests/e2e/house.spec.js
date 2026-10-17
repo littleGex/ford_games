@@ -282,6 +282,55 @@ test('Christmas: the Advent calendar opens one more door each real day, and keep
   expect(await page.evaluate(() => window.house.advent.ready('girl'))).toEqual([1, 2, 4]);
 });
 
+test('names, jobs on or off, and a link that copies them to another device', async ({ page, browser }) => {
+  await page.goto('/house/');
+  await expect(page.locator('#taskCount')).toHaveText(/^0\/\d+$/);
+  await page.evaluate(() => { window.house.stage.renderer.render = () => {}; });
+  // P is called Pia here: on the buttons straight away, in today's jobs when the card closes
+  await page.locator('#looksBtn').click();
+  await page.locator('.avatar-who [data-p="girl"]').click();
+  await expect(page.locator('#avatarName')).toHaveAttribute('placeholder', 'P');
+  await page.locator('#avatarName').fill('Pia');
+  await expect(page.locator('.home-who [data-c="girl"]')).toHaveText('Pia');
+  await expect(page.locator('.avatar-who [data-p="girl"]')).toHaveText('Pia');
+  await page.locator('#avatarDone').click();
+  await play(page);
+  await planToday(page, ['fixBike']);
+  await expect(page.locator('#taskList')).toContainText("Fix Pia's bike");
+  await expect(page.locator('.hud.bottom .who [data-c="girl"]')).toHaveText('Pia');
+
+  // the dragon switched off
+  await page.locator('#menuBtn').click();
+  await page.locator('#settingsBtn').click();
+  await expect(page.locator('#settings')).toBeVisible();
+  const dragon = page.locator('.settings-switch[data-group="dragon"]');
+  await expect(dragon).toContainText("Pia's bearded dragon");
+  await expect(dragon).toHaveAttribute('aria-checked', 'true');
+  await dragon.click();
+  await expect(dragon).toHaveAttribute('aria-checked', 'false');
+
+  // the share link
+  await page.locator('#shareBtn').click();
+  await expect(page.locator('#shareLink')).toBeVisible();
+  const link = await page.locator('#shareLink').inputValue();
+  expect(link).toMatch(/\/house\/#family=[A-Za-z0-9_-]+$/);
+  await page.locator('#settingsDone').click();
+
+  // another device: it asks first, then the names and the switched-off dragon are there
+  const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
+  const tablet = await other.newPage();
+  await tablet.goto(link.replace(/^https?:\/\/[^/]+/, ''));
+  await expect(tablet.locator('#shareImport')).toBeVisible();
+  await expect(tablet.locator('#shareImportList')).toContainText('P → Pia');
+  await expect(tablet.locator('#shareImportList')).toContainText("Switched off: P's bearded dragon");   // (still called P on this device)
+  expect(await tablet.evaluate(() => location.hash)).toBe('');   // the code doesn't stay in the address
+  await tablet.locator('#shareYes').click();
+  await expect(tablet.locator('#shareImport')).toBeHidden();
+  await expect(tablet.locator('.home-who [data-c="girl"]')).toHaveText('Pia');
+  expect(await tablet.evaluate(() => window.house.settings.isOn('dragon'))).toBe(false);
+  await other.close();
+});
+
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {
   await page.goto('/house/');
   await expect(page.locator('#home')).toBeVisible();   // the game opens on it

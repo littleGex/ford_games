@@ -192,5 +192,55 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   check(next.opened('girl').length === 0 && next.ready('girl').join() === '1', 'a new Advent starts with every door shut');
 }
 
+// names, jobs switched off, and the share link (settings.js): a name in a link can't carry markup, only
+// known players, hair styles, colours, dates and job groups come through, and the game token never goes in
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { nameOf, possessive, cleanName } = await import('../../house/js/names.js');
+  const { createSettings, shareCode, readShareCode, applyShare, linkCode } = await import('../../house/js/settings.js');
+  const players = createPlayers(), settings = createSettings();
+  check(nameOf('girl') === 'P' && possessive('boy') === "Dude's", 'the usual names');
+  players.setName('girl', '  Pia  '); players.setName('boy', 'Jonas');
+  check(nameOf('girl') === 'Pia' && possessive('boy') === "Jonas'", `new names: ${nameOf('girl')}, ${possessive('boy')}`);
+  check(cleanName('<b onmouseover=x>Ann</b>') === 'b onmouseoverxAn' && !/[<>"]/.test(cleanName('"><script>')), 'names are cleaned of markup');
+  players.setName('boy', '');
+  check(nameOf('boy') === 'Dude', 'an empty name goes back to the usual one');
+
+  // jobs switched off: never planned; special days switched off: their jobs don't come
+  settings.set('dragon', false); settings.set('christmas', false);
+  const off = settings.offJobs();
+  check(off.has('feedDragon') && off.has('cleanDragon') && !off.has('homework'), `jobs off: ${[...off]}`);
+  const pool = POOL_RULES.filter(r => !off.has(r.id));
+  const tags = settings.filterTags(['advent', 'christmas', 'christmasTime', 'adventDoor', 'halloween']);
+  check(tags.join() === 'halloween', `special days left: ${tags}`);
+  const ids = planDay(pool, { day: 1, lastDone: {}, character: 'girl', season: 'winter', holiday: tags }, seededRandom(1));
+  check(!ids.some(id => /Dragon|xmas|advent/.test(id)), `P's day with the dragon and Christmas off: ${ids}`);
+  check(createSettings().offGroups().sort().join() === 'christmas,dragon', 'switched-off jobs are kept on the device');
+
+  // the share link: everything there, and back again on another device
+  players.setLook('boy', { hair: 'spiky', hairColor: '#4a7fd8', glasses: true }); players.setBirthday('girl', '2014-05-06');
+  const code = shareCode(players, settings);
+  check(/^[A-Za-z0-9_-]+$/.test(code) && !code.includes('token'), 'the code is URL-safe');
+  check(linkCode(`#family=${code}`) === code && linkCode('#something') === null, 'finding the code in an address');
+  const got = readShareCode(code);
+  check(got && got.players.girl.name === 'Pia' && got.players.girl.birthday === '2014-05-06' && got.players.boy.look.hair === 'spiky' && got.players.boy.name === null, `reading it back: ${JSON.stringify(got && got.players.girl)}`);
+  check(got && got.off.sort().join() === 'christmas,dragon', 'jobs off in the link');
+  store.clear();
+  const p2 = createPlayers(), s2 = createSettings();
+  applyShare(got, p2, s2);
+  check(nameOf('girl') === 'Pia' && p2.look('boy').glasses === true && p2.birthday('girl') === '2014-05-06' && !s2.isOn('dragon'), 'settings copied to a new device');
+
+  // a hostile link: markup in names, unknown players, bad colours and hair, a made-up date, unknown jobs, junk
+  const evil = btoa(JSON.stringify({ v: 1, p: { girl: { n: '<img src=x onerror=alert(1)>', l: { skin: 'red;background:url(x)', hair: '../../x', glasses: 'yes', top: 'own' }, b: '2014-02-31' },
+    hacker: { n: 'x' }, dad: { b: '2999-01-01' } }, off: ['dragon', '__proto__', 'everything'], token: 'abc' })).replace(/=+$/, '');
+  const bad = readShareCode(evil);
+  check(bad && !/[<>]/.test(bad.players.girl.name) && Object.keys(bad.players.girl.look).join() === 'top' && bad.players.girl.birthday === null, `hostile link cleaned: ${JSON.stringify(bad && bad.players.girl)}`);
+  check(bad && !bad.players.hacker && bad.players.dad.birthday === null && bad.off.join() === 'dragon' && !('token' in bad), 'unknown players, future dates, unknown jobs and extra fields are dropped');
+  check(readShareCode('not-a-real-code') === null && readShareCode('<script>') === null && readShareCode('x'.repeat(7000)) === null, 'junk is ignored');
+  players.setName('girl', '');
+}
+
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');
 process.exitCode = fail.length ? 1 : 0;

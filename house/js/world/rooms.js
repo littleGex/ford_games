@@ -1,14 +1,16 @@
+import { genitive, possessive } from '../names.js';
+
 // Named areas for the room chip in the corner. Areas (m²) are the figures printed on the floor plan.
 // Order matters: the first rectangle that contains the player wins.
 export const ROOMS = [
   // Dachgeschoss
-  { level: 2, name: 'Dudes Zimmer', area: '15,00 m²', r: [0, 0, 5.64, 3.94] },
+  { level: 2, get name() { return `${genitive('boy')} Zimmer`; }, area: '15,00 m²', r: [0, 0, 5.64, 3.94] },
   { level: 2, name: 'Büro', area: '9,83 m²', r: [0, 3.94, 3.02, 8.88] },
   { level: 2, name: 'Flur', area: 'ca. 3,17 m²', r: [3.02, 3.94, 5.64, 8.88] },
   // Obergeschoss
   { level: 1, name: 'Elternzimmer', area: '16,90 m²', r: [0, 0, 3.2, 5.6] },
   { level: 1, name: 'Ankleide', area: '10,24 m²', r: [3.2, 0, 5.64, 3.95] },
-  { level: 1, name: "P's room", area: '10,64 m²', r: [0, 5.65, 3.26, 8.88] },
+  { level: 1, get name() { return `${possessive('girl')} room`; }, area: '10,64 m²', r: [0, 5.65, 3.26, 8.88] },
   { level: 1, name: 'Bad', area: '4,63 m²', r: [3.32, 6.9, 5.64, 8.88] },
   { level: 1, name: 'Flur', area: '3,17 m²', r: [3.2, 3.95, 5.64, 6.9] },
   // Erdgeschoss and outside
@@ -33,7 +35,7 @@ ROOMS.push(
   { name: 'Chefbüro', area: "the boss's office", r: [O, 6.5, O + 2.25, 9.75] },
   { name: 'Besprechungsraum', area: 'meeting room', r: [O, 9.85, O + 2.25, 13.7] },
   { name: 'Flur', area: 'office corridor', r: [O + 2.25, 6.0, O + 2.95, 13.7] },
-  { name: 'Dads Büro', area: "Dad's office", r: [O + 3.05, 6.05, O + 6.2, 9.6] },
+  { get name() { return `${genitive('dad')} Büro`; }, get area() { return `${possessive('dad')} office`; }, r: [O + 3.05, 6.05, O + 6.2, 9.6] },
   { name: 'Teeküche', area: 'office kitchen', r: [O + 3.05, 9.7, O + 6.2, 12.1] },
   { name: 'WC', area: 'office bathroom', r: [O + 3.05, 12.2, O + 6.2, 13.7] },
   { name: 'Büro', area: 'outside the office', r: [O - 14, -8, O + 15.2, 22] },
@@ -41,19 +43,19 @@ ROOMS.push(
 // Mum's office site (world/mumoffice.js, from x 80): the ground floor and outside, and her office floor upstairs
 const MO = 80;
 ROOMS.push(
-  { level: 1, name: 'Besprechungsraum', area: "Mum's office", r: [MO + 18, 18.9, MO + 23.7, 21.6] },
-  { level: 1, name: 'WC', area: "Mum's office", r: [MO + 23.8, 19.9, MO + 26.5, 21.6] },
+  { level: 1, name: 'Besprechungsraum', get area() { return `${possessive('mum')} office`; }, r: [MO + 18, 18.9, MO + 23.7, 21.6] },
+  { level: 1, name: 'WC', get area() { return `${possessive('mum')} office`; }, r: [MO + 23.8, 19.9, MO + 26.5, 21.6] },
   { level: 1, name: 'Aufzüge', area: 'lifts and stairs', r: [MO + 26.6, 14.85, MO + 30, 21.6] },
-  { level: 1, name: 'Teeküche', area: "Mum's office", r: [MO + 22.0, 12.4, MO + 23.7, 16.2] },
+  { level: 1, name: 'Teeküche', get area() { return `${possessive('mum')} office`; }, r: [MO + 22.0, 12.4, MO + 23.7, 16.2] },
   { level: 1, name: 'Büro', area: 'second office', r: [MO + 25.7, 4.6, MO + 30, 14.75] },
-  { level: 1, name: 'Großraumbüro', area: "Mum's desk is here", r: [MO + 18, 4.6, MO + 25.6, 18.8] },
+  { level: 1, name: 'Großraumbüro', get area() { return `${possessive('mum')} desk is here`; }, r: [MO + 18, 4.6, MO + 25.6, 18.8] },
   { name: 'Café', area: 'on the site', r: [MO + 1.5, 8.7, MO + 7.8, 13.0] },
-  { name: 'Eingangshalle', area: "Mum's office building", r: [MO + 18, 4.6, MO + 30, 21.6] },
+  { name: 'Eingangshalle', get area() { return `${possessive('mum')} office building`; }, r: [MO + 18, 4.6, MO + 30, 21.6] },
   { name: 'Drehkreuz', area: 'security turnstiles', r: [MO + 11.8, 3.0, MO + 19.8, 4.9] },
   { name: 'Garten', area: 'garden on the site', r: [MO + 8, 9.0, MO + 13, 14.5] },
   { name: 'Parkplatz', area: 'car park', r: [MO + 7.5, -7.5, MO + 26.6, -1.2] },
   { name: 'Straße', area: 'the road', r: [MO - 12, 0.4, MO + 42, 3.1] },
-  { name: 'Bürogelände', area: "Mum's office site", r: [MO - 12, -12, MO + 42, 26] },
+  { name: 'Bürogelände', get area() { return `${possessive('mum')} office site`; }, r: [MO - 12, -12, MO + 42, 26] },
 );
 const OUTSIDE = { name: 'Garten', area: 'outside', level: 0 };
 

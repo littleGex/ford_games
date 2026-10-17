@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
+import { NAMES, possessive } from '../names.js';
 import { makeCharacter, animateWalk } from '../characters/character.js';
 import { specFor } from '../characters/looks.js';
 import { dressUp, undress } from '../characters/costumes.js';
@@ -29,20 +30,20 @@ export const BED = {
          boy: { level: 2, at: [1.8, 2.75], lie: [2.55, 0.52, 3.35, Math.PI / 2], name: 'his bed' } },
   ipad: { girl: { level: 1, at: [1.25, 6.9], seat: [0.55, 0.46, 7.0, Math.PI / 2] },     // back on the iPad, on their bed
           boy: { level: 2, at: [1.8, 2.75], seat: [1.8, 0.48, 3.3, 0] } },
-  switch: { girl: { level: 1, at: [2.9, 6.6], room: 'girl', name: "P's room" },
-            boy: { level: 2, at: [3.9, 3.4], room: 'boy', name: "Dude's room" } },
+  switch: { girl: { level: 1, at: [2.9, 6.6], room: 'girl', get name() { return `${possessive('girl')} room`; } },
+            boy: { level: 2, at: [3.9, 3.4], room: 'boy', get name() { return `${possessive('boy')} room`; } } },
   wardrobe: { girl: { level: 1, at: [2.3, 6.95], name: 'her wardrobe' }, boy: { level: 2, at: [0.35, 2.9], name: 'his wardrobe' } },
   dance: { level: 1, spot: [3.95, 0, 5.45, 0] },                          // the landing
   terrarium: [2.3, 6.35],
 };
 // Where pyjamas that can't be found might be, and where a child might hide (all on the first floor)
 export const SEARCH = {
-  pyjamas: [{ at: [4.25, 3.55], place: [4.5, 0.62, 3.6], name: 'the laundry hamper' }, { at: [1.25, 6.4], place: [0.6, 0.47, 6.3], name: "the end of P's bed" },
+  pyjamas: [{ at: [4.25, 3.55], place: [4.5, 0.62, 3.6], name: 'the laundry hamper' }, { at: [1.25, 6.4], place: [0.6, 0.47, 6.3], get name() { return `the end of ${possessive('girl')} bed`; } },
             { at: [2.35, 1.9], place: [2.0, 0.55, 1.9], name: 'the big bed' }],
-  hide: [{ at: [2.3, 6.95], name: "in P's wardrobe" }, { at: [4.7, 7.85], name: 'behind the shower curtain' },
-         { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], name: "under P's bed" }],
+  hide: [{ at: [2.3, 6.95], get name() { return `in ${possessive('girl')} wardrobe`; } }, { at: [4.7, 7.85], name: 'behind the shower curtain' },
+         { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], get name() { return `under ${possessive('girl')} bed`; } }],
 };
-export const NAMES = { girl: 'P', boy: 'Dude' };
+export { NAMES };   // (the players' names, names.js)
 export const PRONOUN = { girl: 'her', boy: 'his' };
 
 export const BOOKS = [

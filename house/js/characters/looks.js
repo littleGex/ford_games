@@ -98,10 +98,10 @@ const OWN_TOP = {
 
 // the parts of each player's figure that don't change: label, socks, blush, the leg size
 const BASE = {
-  dad: { label: 'Dad', legR: 0.075 },
-  mum: { label: 'Mum', blush: true, legR: 0.08 },
-  girl: { label: 'P', blush: true, legR: 0.088 },
-  boy: { label: 'Dude', blush: true, socks: '#f08a24' },
+  dad: { legR: 0.075 },
+  mum: { blush: true, legR: 0.08 },
+  girl: { blush: true, legR: 0.088 },
+  boy: { blush: true, socks: '#f08a24' },
 };
 // how tall each player is at each life stage (the figures scale as a whole)
 export const HEIGHT = {

@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { add, group, mat } from '../core/build.js';
 import { makePresent } from '../systems/birthday.js';
 import { ADVENT_GIFTS, DOOR_ORDER } from '../advent.js';
+import { possessive } from '../names.js';
 
 // Where things happen, plan coordinates [x, z] (all on the ground floor unless they say level).
 export const XMAS = {
@@ -83,7 +84,7 @@ export function paintCalendar(texture, who, openSet, upTo) {
   g.fillStyle = girl ? '#a8303a' : '#24508e'; g.fillRect(0, 0, 256, 300);
   for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.arc((i * 61) % 256, (i * 37) % 300, 1.4, 0, 7); g.fill(); }   // snowflakes
   g.fillStyle = '#ffd34d'; g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(girl ? "P's Advent" : "Dude's Advent", 128, 24, 240);
+  g.fillText(`${possessive(who)} Advent`, 128, 24, 240);
   DOOR_ORDER.forEach((n, i) => {
     const x = 10 + (i % 4) * 60, y = 48 + Math.floor(i / 4) * 41, w = 56, h = 37;
     if (openSet.has(n)) {

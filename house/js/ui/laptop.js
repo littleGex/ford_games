@@ -4,6 +4,7 @@
 // Halloween pumpkin and a costume, at bedtime who showers first and which story to read, and the cutter for
 // the Christmas biscuits.
 import { S } from '../state.js';
+import { nameOf } from '../names.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { FACES, faceImage } from '../world/halloween.js';
 import { COSTUMES } from '../characters/costumes.js';
@@ -17,7 +18,7 @@ const SCREENS = {
   face: { card: true, title: 'Which face shall we carve?', options: () => FACES.map(f => ({ id: f.id, label: f.label, img: faceImage(f), icon: '🎃' })) },
   costume: { card: true, title: 'What are you going as?', options: () => COSTUMES.map(c => ({ id: c.id, label: c.label, icon: c.icon })) },
   // bedtime: who goes in the shower first, and which story to read
-  bedFirst: { card: true, title: 'Who goes in the shower first?', options: () => [{ id: 'girl', label: 'P', icon: '👧' }, { id: 'boy', label: 'Dude', icon: '👦' }] },
+  bedFirst: { card: true, title: 'Who goes in the shower first?', options: () => [{ id: 'girl', label: nameOf('girl'), icon: '👧' }, { id: 'boy', label: nameOf('boy'), icon: '👦' }] },
   book: { card: true, title: 'Pick a bedtime story', options: () => BOOKS.map(b => ({ id: b.id, label: b.label, icon: b.icon })) },
   cutter: { card: true, title: 'Which biscuit cutter?', options: () => CUTTERS.map(c => ({ id: c.id, label: c.label, icon: c.icon })) },
 };
