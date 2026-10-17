@@ -475,9 +475,11 @@ test('looks and birthdays: change how P looks, give her a birthday, and it is ke
 test('the family server: connect with the game token, and the birthdays come in (a party if one is today)', async ({ page }) => {
   const today = new Date(), md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   let auth = null;
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization', 'Access-Control-Allow-Methods': 'GET' };
   await page.route('**/v1/game/family', route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });   // the browser's CORS check
     auth = route.request().headers().authorization;
-    route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors,
       body: JSON.stringify({ players: [{ key: 'girl', birthday: `2014-${md}` }, { key: 'dad', birthday: '1980-01-02' }] }) });
   });
   await openHouse(page);
