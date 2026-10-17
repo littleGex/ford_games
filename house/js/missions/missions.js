@@ -98,7 +98,7 @@ function fireDrill(c, mission, minutes, where = { at: OFFICE.assembly, label: 'G
     mission.drillAt = at;
   }
   if (mission.drilled || minutes < mission.drillAt || c.board.jobs.some(j => j.key === 'finish')) return;
-  mission.drilled = true; mission.drill = true; alarm();
+  mission.drilled = true; mission.drill = true; mission.drillFrom = minutes; alarm();
   if (c.S.sitting) c.sitting.standUp();
   c.hud.toast(where.toast);
   c.missions.add({ key: 'drill', urgent: true, title: 'Fire drill!', steps: [
@@ -242,7 +242,8 @@ export const MISSIONS = {
   // then back down, clock out, badge out, and drive home.
   officeMum: {
     title: 'Work at the office', who: ['mum'],
-    clock: { start: hm(7), end: hm(17.5), secondsPerMinute: 0.5 },          // 7:00, home by 17:30
+    // 7:00, home by 17:30. A slower clock than the other days: Mum's site is twice the walk of Dad's office
+    clock: { start: hm(7), end: hm(17.5), secondsPerMinute: 0.75 },
     spot: who => ({ name: NAMES[who], level: 1, start: [2.75, 2.35], facing: -Math.PI / 2 }),
     intro: 'Drive to the office: your team meeting is at 10:00',
     setup(c) { c.world.bigBed.mess(); c.world.mumGate.close(); c.world.mumCar.visible = false; },
@@ -370,6 +371,17 @@ export function createMissions(ctx) {
 
   /** Put one mission job on the list. Required ones have to be done before the mission moves on; optional
    *  ones (a coffee) are there if you want them. */
+  /** The fire drill held everything up: an urgent call that was waiting gets that much longer. */
+  function moveDeadlines(by) {
+    for (const job of board.jobs) {
+      if (job.key !== 'urgent' || board.finished(job) || job.due === undefined) continue;
+      job.due += by; S.mission.due.urgent = job.due;
+      job.title = `Urgent call by ${clockText(job.due)}!`;
+      hud.toast(`The urgent call can wait till ${clockText(job.due)}`);
+      board.refresh();
+    }
+  }
+
   function put(j, id, { optional = false } = {}) {
     const job = board.add({ ...j, id, mission: true, optional: optional || !!j.optional });
     if (j.due !== undefined) S.mission.due[j.key] = j.due;
@@ -389,7 +401,7 @@ export function createMissions(ctx) {
     const m = MISSIONS[S.mission.id];
     if (job.key) S.mission.doneAt[job.key] = S.mission.clock ? now() : S.mission.t;
     if (job.optional) { if (m.onOptional) m.onOptional(ctx, S.mission, job); return; }
-    if (job.key === 'drill') S.mission.drill = false;   // the all-clear
+    if (job.key === 'drill') { S.mission.drill = false; moveDeadlines(now() - S.mission.drillFrom); }   // the all-clear
     pending.delete(job);
     if (pending.size) return;
     if (next < jobs.length) { addNext(); return; }
