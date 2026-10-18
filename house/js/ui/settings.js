@@ -115,7 +115,7 @@ export function createSettingsCard(ctx) {
   el.yes.addEventListener('click', () => answer(true));
   el.no.addEventListener('click', () => answer(false));
   globalThis.addEventListener('keydown', e => {
-    if (!S.settings || e.key !== 'Escape') return;
+    if (!S.settings || e.key !== 'Escape' || (el.box.hidden && el.ask.hidden)) return;   // (not the first-visit setup's)
     e.preventDefault(); e.stopImmediatePropagation();
     if (!el.ask.hidden) answer(false); else close();
   }, true);

@@ -10,6 +10,12 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **the first visit**: the first time the game opens on a phone or tablet, a short setup asks about
+  the family (names, she/he/they, one or two grown-ups), the children's birthdays, who sleeps where and which
+  jobs fit, or connects to the family server with the game token. "Play as Dad, Mum, P and Dude" skips it, and
+  everything can still be changed from the home screen (#78).
+
 ## [4.12.0] - 2026-10-17
 
 ### Added
