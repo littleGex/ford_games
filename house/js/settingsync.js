@@ -1,6 +1,6 @@
 // The family's settings kept the same on every device with the game token: names, she/he/they, who's in the
-// family, looks, which jobs are on and who sleeps where, through the family server (fordDbs: GET and PUT /v1/game/settings). Birthdays come from the
-// server separately (familyserver.js); the share link stays as the way to do it without a server.
+// family, looks, which jobs are on, who sleeps where, who works at which desk and who does which chores, through
+// the family server (fordDbs: GET and PUT /v1/game/settings). Birthdays come from the server separately (familyserver.js); the share link stays as the way to do it without a server.
 //
 // The server keeps one copy with a version number. A device saves with the version it last saw; if another device
 // saved in between, the server answers 409 with its copy. Then this device takes the server's copy and puts back
@@ -17,18 +17,26 @@ import { GROWN_UPS } from './names.js';
 
 export const SETTINGS_URL = FAMILY_URL.replace(/\/family$/, '/settings');
 const STATE_KEY = 'fordHouse.settingsSync.v1';
-const FIELDS = [...PLAYER_KEYS.flatMap(k => [`${k}.name`, `${k}.pronoun`, `${k}.look`, ...(GROWN_UPS.includes(k) ? [`${k}.away`] : [])]), 'off', 'swapRooms'];
-// without the fields a family server may not know yet (fordDbs before 2.9.0: swapRooms; before 2.10.0: pronoun
-// and away)
-const withoutNewer = doc => ({ ...doc, players: Object.fromEntries(Object.entries(doc.players).map(([k, p]) => {
-  const q = { ...p }; delete q.pronoun; delete q.away; return [k, q];
-})), swapRooms: undefined });
+const FIELDS = [...PLAYER_KEYS.flatMap(k => [`${k}.name`, `${k}.pronoun`, `${k}.look`, ...(GROWN_UPS.includes(k) ? [`${k}.away`] : [])]), 'off', 'swapRooms', 'swapDesks', 'assign'];
+// An older family server refuses fields it doesn't know yet (422): the game tries again without the newest, one
+// fordDbs version at a time (before 2.11.0: swapDesks and assign; before 2.10.0: pronoun and away; before
+// 2.9.0: swapRooms), and keeps those settings on this device.
+const OLDER = [
+  doc => ({ ...doc, swapDesks: undefined, assign: undefined }),
+  doc => ({ ...doc, players: Object.fromEntries(Object.entries(doc.players).map(([k, p]) => { const q = { ...p }; delete q.pronoun; delete q.away; return [k, q]; })) }),
+  doc => ({ ...doc, swapRooms: undefined }),
+];
+const withoutNewer = (doc, steps) => OLDER.slice(0, steps).reduce((d, strip) => strip(d), doc);
 
 // --- the settings as a document, field by field (a field the document doesn't have is undefined)
 function field(doc, f) {
   if (!doc) return undefined;
   if (f === 'off') return Array.isArray(doc.off) ? [...doc.off].sort() : undefined;
-  if (f === 'swapRooms') return typeof doc.swapRooms === 'boolean' ? doc.swapRooms : undefined;
+  if (f === 'swapRooms' || f === 'swapDesks') return typeof doc[f] === 'boolean' ? doc[f] : undefined;
+  if (f === 'assign') {
+    if (!doc.assign || typeof doc.assign !== 'object') return undefined;
+    return Object.fromEntries(Object.entries(doc.assign).map(([id, keys]) => [id, [...keys].sort()]));   // order doesn't matter
+  }
   const [k, part] = f.split('.'), p = doc.players && doc.players[k];
   if (!p) return undefined;
   if (part === 'name') return p.name || null;
@@ -38,7 +46,7 @@ function field(doc, f) {
 }
 function setField(doc, f, v) {
   if (v === undefined) return;
-  if (f === 'off' || f === 'swapRooms') { doc[f] = v; return; }
+  if (f === 'off' || f === 'swapRooms' || f === 'swapDesks' || f === 'assign') { doc[f] = v; return; }
   const [k, part] = f.split('.');
   doc.players[k] = doc.players[k] || {};
   doc.players[k][part] = v;
@@ -75,7 +83,7 @@ export function createSettingsSync({ players, settings, familyServer }, {
 
   /** This device's settings, as the server keeps them. */
   function localDoc() {
-    const doc = { players: {}, off: settings.offGroups(), swapRooms: settings.roomsSwapped() };
+    const doc = { players: {}, off: settings.offGroups(), swapRooms: settings.roomsSwapped(), swapDesks: settings.desksSwapped(), assign: settings.assignments() };
     for (const k of PLAYER_KEYS) {
       doc.players[k] = { name: players.customName(k), pronoun: players.customPronoun(k), look: { ...players.look(k) } };
       if (GROWN_UPS.includes(k)) doc.players[k].away = !players.inFamily(k);
@@ -95,6 +103,8 @@ export function createSettingsSync({ players, settings, familyServer }, {
         const v = field(doc, f);
         if (f === 'off') settings.setOffGroups(v);
         else if (f === 'swapRooms') settings.setRoomsSwapped(v);
+        else if (f === 'swapDesks') settings.setDesksSwapped(v);
+        else if (f === 'assign') settings.setAssignments(v);
         else {
           const [k, part] = f.split('.');
           if (part === 'name') players.setName(k, v || '');
@@ -129,15 +139,15 @@ export function createSettingsSync({ players, settings, familyServer }, {
       let got = await call('GET');
       if (got.status === 401 || got.status === 403) return setStatus({ ok: false, at: stamp(), message: 'The family server didn\'t accept the token' });
       if (!got.ok) return setStatus({ ok: false, at: stamp(), message: `The family server answered ${got.status}` });
-      let version = got.json.version, remote = got.json.settings, pushed = false, older = false;
-      for (let tries = 0; tries < 4; tries++) {
+      let version = got.json.version, remote = got.json.settings, pushed = false, older = 0;
+      for (let tries = 0; tries < 8; tries++) {
         let want = mergeSettings(state && state.synced, localDoc(), remote);
-        if (older) { want = JSON.parse(JSON.stringify(withoutNewer(want))); }
+        if (older) want = JSON.parse(JSON.stringify(withoutNewer(want, older)));
         if (remote && FIELDS.every(f => field(want, f) === undefined || same(field(want, f), field(remote, f)))) break;
         const put = await call('PUT', { base_version: version, settings: want });
         if (put.status === 409 && put.json) { version = put.json.version; remote = put.json.settings; continue; }
         // an older family server that doesn't know the newer fields yet: save the rest without them
-        if (put.status === 422 && !older) { older = true; continue; }
+        if (put.status === 422 && older < OLDER.length) { older++; continue; }
         if (put.status === 429) return setStatus({ ok: false, at: stamp(), message: 'Lots of changes: the rest go to the family server in a minute' });
         if (!put.ok) return setStatus({ ok: false, at: stamp(), message: `The family server didn't save the settings (${put.status})` });
         version = put.json.version; remote = put.json.settings; pushed = true;

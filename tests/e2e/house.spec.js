@@ -1,5 +1,19 @@
 const { test, expect } = require('@playwright/test');
 
+// The first time the game opens on a device it shows the family setup over the home screen. Most tests aren't
+// about that, so the setup counts as done before the page loads; the setup's own tests switch this off.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try { if (!sessionStorage.getItem('fordTest.firstVisit')) localStorage.setItem('fordHouse.setup.v1', 'done'); } catch (e) { /* no storage */ }
+  });
+});
+/** For a test of the first visit: this page starts as a device that's never had the game open. */
+const firstVisit = page => page.addInitScript(() => {
+  try {
+    if (!sessionStorage.getItem('fordTest.firstVisit')) { sessionStorage.setItem('fordTest.firstVisit', '1'); localStorage.removeItem('fordHouse.setup.v1'); }
+  } catch (e) { /* no storage */ }
+});
+
 // Headless Chromium draws WebGL in software, at a couple of frames a second. Each frame blocks the
 // page, so key presses, clicks and even reading state time out. The tests stop the game drawing
 // after `frames` frames: none for most of them, one for the test that checks the scene draws
@@ -404,6 +418,153 @@ test('the shape of the family: Dude as they, and a family with one grown-up (Dad
   await page.locator('#avatarDone').click();
   await expect(page.locator('.home-who [data-c="dad"]')).toBeVisible();
   await expect(page.locator('[data-mission="print3d"][data-kid="mum"]')).toBeHidden();
+});
+
+test('the first visit: set the family up (names, they, one grown-up, a birthday, bedrooms, jobs), then never again', async ({ page }) => {
+  test.setTimeout(60000);
+  await firstVisit(page);
+  await page.goto('/house/');
+  await expect(page.locator('#setup')).toBeVisible();
+  await expect(page.locator('#setupTitle')).toHaveText('Welcome to Ford House');
+  await page.locator('#setupStart').click();
+
+  // the grown-ups: Mum is called Sam, and is the only grown-up (Dad switched off; then Sam can't be)
+  await expect(page.locator('#setupStep')).toHaveText('Step 1 of 4');
+  await page.locator('[data-person="mum"] input[data-field="name"]').fill('Sam');
+  await page.locator('[data-family="dad"]').click();
+  await expect(page.locator('[data-family="dad"]')).toHaveAttribute('aria-checked', 'false');
+  await expect(page.locator('[data-family="mum"]')).toBeDisabled();
+  await page.locator('#setupNext').click();
+
+  // the children: Dude is they, P has a birthday
+  await page.locator('[data-person="boy"] [data-pronoun="they"]').click();
+  await expect(page.locator('[data-person="boy"] [data-pronoun="they"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-person="girl"] input[data-field="birthday"]').fill('2015-04-03');
+  await page.locator('[data-person="girl"] input[data-field="birthday"]').dispatchEvent('change');
+  await page.locator('#setupNext').click();
+
+  // bedrooms: swapped
+  await expect(page.locator('#setupTitle')).toHaveText('Bedrooms and desks');
+  await page.locator('#setupSwap').click();
+  await expect(page.locator('#setupBody')).toContainText('Dude sleeps in the room on the first floor, P in the attic room');
+  await page.locator('#setupNext').click();
+
+  // jobs: no bearded dragon
+  await page.locator('#setupBody .settings-switch[data-group="dragon"]').click();
+  await page.locator('#setupNext').click();
+  await expect(page.locator('#setupTitle')).toHaveText('All set!');
+  await expect(page.locator('#setupBody')).toContainText('The family: Sam, P and Dude');
+  await expect(page.locator('#setupBody')).toContainText("Switched off: P's bearded dragon");
+  await page.locator('#setupNext').click();
+  await expect(page.locator('#setup')).toBeHidden();
+
+  // the home screen behind it shows the family as set up
+  await expect(page.locator('#home')).toBeVisible();
+  await expect(page.locator('.home-who [data-c="mum"]')).toHaveText('Sam');
+  await expect(page.locator('.home-who [data-c="dad"]')).toBeHidden();
+  await expect(page.locator('#homeSub')).toContainText('playing as Sam');
+  const got = await page.evaluate(() => {
+    const h = window.house;
+    return [h.players.customPronoun('boy'), h.players.birthday('girl'), h.settings.roomsSwapped(), h.settings.isOn('dragon'), h.days.character];
+  });
+  expect(got).toEqual(['they', '2015-04-03', true, false, 'mum']);
+
+  // not again after a reload
+  await page.reload();
+  await expect(page.locator('#home')).toBeVisible();
+  await expect(page.locator('#setup')).toBeHidden();
+});
+
+test('the first visit: "Play as Dad, Mum, P and Dude" keeps the usual family; Escape skips too', async ({ page }) => {
+  await firstVisit(page);
+  await page.goto('/house/');
+  await expect(page.locator('#setup')).toBeVisible();
+  await page.locator('#setupFords').click();
+  await expect(page.locator('#setup')).toBeHidden();
+  await expect(page.locator('.home-who [data-c="dad"]')).toHaveText('Dad');
+  expect(await page.evaluate(() => localStorage.getItem('fordHouse.setup.v1'))).toBe('done');
+  // a fresh device again, skipped with Escape halfway through: what's set stays
+  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await page.reload();
+  await expect(page.locator('#setup')).toBeVisible();
+  await page.locator('#setupStart').click();
+  await page.locator('[data-person="dad"] input[data-field="name"]').fill('Papa');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#setup')).toBeHidden();
+  await expect(page.locator('.home-who [data-c="dad"]')).toHaveText('Papa');
+});
+
+test('the first visit with a game token: the family comes from the family server', async ({ page }) => {
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'GET, PUT' };
+  await page.route('**/v1/game/family', route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ players: [{ key: 'girl', birthday: '2014-05-06' }] }) });
+  });
+  await page.route('**/v1/game/settings', route => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    route.fulfill({ status: 200, contentType: 'application/json', headers: cors,
+      body: JSON.stringify({ version: 3, updated_at: '2026-10-18T09:00:00Z', settings: { players: { girl: { name: 'Pia', pronoun: 'she' }, mum: { away: true } }, off: ['clarinet'], swapRooms: false } }) });
+  });
+  await firstVisit(page);
+  await page.goto('/house/');
+  await page.locator('#setupToken').fill('test-token');
+  await page.locator('#setupConnect').click();
+  await expect(page.locator('#setupTitle')).toHaveText('All set!');
+  await expect(page.locator('#setupBody')).toContainText('The family: Dad, Pia and Dude');
+  await expect(page.locator('#setupBody')).toContainText("Switched off: Dude's clarinet");
+  await page.locator('#setupNext').click();
+  await expect(page.locator('.home-who [data-c="girl"]')).toHaveText('Pia');
+  await expect(page.locator('.home-who [data-c="mum"]')).toBeHidden();
+});
+
+test('a share link on a first visit: it asks about the link, not the setup', async ({ page, browser }) => {
+  const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
+  const phone = await other.newPage();
+  await phone.goto('/house/');
+  await phone.locator('#setupFords').click();
+  const link = await phone.evaluate(() => window.house.settingsCard.linkUrl());
+  await other.close();
+  await firstVisit(page);
+  await page.goto(link.replace(/^https?:\/\/[^/]+/, ''));
+  await expect(page.locator('#shareImport')).toBeVisible();
+  await expect(page.locator('#setup')).toBeHidden();
+});
+
+test('who does what, and the desks at home: Dude looks after the dragon, Mum and Dad swap desks', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#settingsBtn').click();
+  // the desks
+  await expect(page.locator('#settingsDesks')).toHaveText('Dad works at the desk in the dressing room, Mum in the attic office.');
+  await page.locator('#swapDesks').click();
+  await expect(page.locator('#settingsDesks')).toHaveText('Mum works at the desk in the dressing room, Dad in the attic office.');
+  // the dragon: Dude instead of P (P can't be untapped while she's the only one)
+  const dragon = page.locator('[data-chore="dragon"]');
+  await expect(dragon.locator('[data-who="girl"]')).toHaveAttribute('aria-pressed', 'true');
+  await dragon.locator('[data-who="girl"]').click();
+  await expect(dragon.locator('[data-who="girl"]')).toHaveAttribute('aria-pressed', 'true');
+  await dragon.locator('[data-who="boy"]').click();
+  await dragon.locator('[data-who="girl"]').click();
+  await expect(dragon.locator('[data-who="boy"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(dragon.locator('[data-who="girl"]')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#settingsDone').click();
+  await play(page);
+
+  await page.locator('.hud.bottom .who [data-c="boy"]').click();
+  await planToday(page, ['feedDragon']);
+  await expect(page.locator('#taskList')).toContainText("Feed P's bearded dragon");
+  const got = await page.evaluate(() => {
+    const h = window.house;
+    h.days.setCharacter('mum');
+    h.days.plan(['work']);
+    const st = h.board.find('work').steps[0];
+    return [h.settings.doers('dragon'), h.board.levelOf(st), st.glow];
+  });
+  expect(got).toEqual([['boy'], 1, 'dadScreen']);
+  // kept after a reload
+  await page.reload();
+  await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/, { timeout: 20000 });
+  expect(await page.evaluate(() => [window.house.settings.desksSwapped(), window.house.settings.doers('dragon')])).toEqual([true, ['boy']]);
 });
 
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {

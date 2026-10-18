@@ -12,6 +12,14 @@ The game opens on a home screen (`js/ui/home.js`): carry on with today's day, pi
 missions, start over from day 1, or go back to Game Zone. The
 ☰ button in the top corner (or Escape) brings it back. The game is paused while it's open.
 
+**The first visit** (`js/ui/setup.js`): the first time the game opens on a device, a short setup comes up over
+the home screen: the grown-ups (names, she/he/they, a family with one grown-up), the children (names, she/he/they,
+birthdays), who sleeps where, and which jobs fit. Each choice is used straight away, so leaving early (Escape)
+keeps what's done; "Play as Dad, Mum, P and Dude" keeps the usual family. A game token instead brings the
+family's settings from the family server. It isn't shown again on that device, nor on a device that has played
+before, nor when the game was opened from a share link (that asks about its own settings). Tests mark it done
+before the page loads, except the setup's own (`tests/e2e/house.spec.js`).
+
 **Looks and birthdays** (`js/ui/avatar.js`, from the home screen): change how each of the four players looks,
 with a turning preview: skin, hair style (long, shoulder, ponytail, bun, swept, short, spiky, a beanie or
 bald) and colour, glasses, a beard, top (their own or a colour), trousers and
@@ -41,6 +49,14 @@ floor and Dude in the attic, unless they swap. Their bed, wardrobe and desk go w
 beds, the folded washing, the school run, bedtime, the Halloween costumes, the Christmas wish list and present,
 and the 3D-printed models all use the new room, and the room chips say whose room is whose. The terrarium, the
 toys, the Lego, the keyboard and the clarinet stay where they are.
+
+**Desks at home** (`js/pack/workdesks.js`, the same card): Dad works at the desk in the dressing room and Mum in
+the attic office, unless they swap. Their work jobs, working from home and the urgent call go to the other desk,
+whose screen shows the nearest page it has (the attic office only has spreadsheets).
+
+**Who does what** (the same card): the household chores (cooking, fixing P's bike, the solar panels, the sofa
+bed, P's bearded dragon) can go to anyone in the family, one or more each (`CHORES` in `js/settings.js`; the
+rules read them through `rulesFor`, `js/jobs/rules.js`). The jobs say "your bike" or "P's bike" to match.
 
 **Jobs, and sharing** (`js/settings.js`, `js/ui/settings.js`, from the home screen): switch groups of jobs off
 that don't fit a family (the bearded dragon, keyboard practice, the clarinet, the bike, the solar panels, the
@@ -269,6 +285,7 @@ house/
     familyserver.js     birthdays from the family server (fordDbs), and the game token
     settingsync.js      names, looks, jobs and bedrooms kept the same on every device through the family server
     pack/kidrooms.js    the Ford house's kids' rooms: whose bed, wardrobe and desk are where
+    pack/workdesks.js   the desks at home where Mum and Dad work, and who works at which
     ui/hud.js           room chip, job list, banner, toasts
 ```
 

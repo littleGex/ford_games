@@ -38,6 +38,7 @@ house/js/
   systems/                                      engine behaviour; spots come from the pack
   pack/                                         the Ford house
     kidrooms.js   whose bed, wardrobe and desk are where      (done: first slice)
+    workdesks.js  where Mum and Dad work at home              (done: first slice)
     spots.js      named places: the kitchen sink, the hall cupboard, the bins...
     jobs.js       the job list, written against named spots
     rules.js      how often each job comes up, who does it
@@ -66,6 +67,8 @@ plus a setting, not six files.
    attic room, with who sleeps in which. Used by homework, making the beds, the folded washing, the school run,
    bedtime, the Halloween costumes, the Christmas wish list and present, the 3D printing, and the room names. P
    and Dude can swap rooms in the settings card, and the swap travels in the share link.
+   `pack/workdesks.js` does the same for Mum's and Dad's desks at home (they can swap), used by their work
+   jobs and working from home.
 2. **Named spots:** a `spot(name)` lookup for places used by more than one job or system (the dining table, the
    kitchen counter, the front door, the bins, the washing machine, the hall cupboard). Start with spots that
    appear in both `jobs.js` and `missions.js`.

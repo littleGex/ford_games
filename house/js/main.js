@@ -42,6 +42,7 @@ import { createBedtime } from './systems/bedtime.js';
 import { createBirthday } from './systems/birthday.js';
 import { createFamilyServer } from './familyserver.js';
 import { createSettingsSync } from './settingsync.js';
+import { createSetup, isFirstVisit } from './ui/setup.js';
 import { createChristmas } from './systems/christmas.js';
 import { createAdvent } from './advent.js';
 import { createAdventCard } from './ui/advent.js';
@@ -49,6 +50,9 @@ import { createSettings } from './settings.js';
 import { createSettingsCard } from './ui/settings.js';
 import { showNames, grownUps } from './names.js';
 import { XMAS } from './world/christmas.js';
+
+// the first time the game opens on this device (asked before anything is saved): the setup card (ui/setup.js)
+const firstVisit = isFirstVisit();
 
 const stage = createStage(document.getElementById('scene'));
 const world = buildWorld(stage.scene);
@@ -142,7 +146,9 @@ ctx.familyServer.sync().then(() => ctx.days.replanIfUntouched()).catch(() => {})
 ctx.missions = createMissions(ctx);
 systems.push(ctx.missions);
 ctx.home.open();   // the game opens on the home screen
-ctx.settingsCard.checkLink();   // opened from a share link: ask before using its settings
+const linkOpened = ctx.settingsCard.checkLink();   // opened from a share link: ask before using its settings
+ctx.setup = createSetup(ctx);
+ctx.setup.maybeOpen(firstVisit, { linkOpened });   // the first visit: set the family up (not over a share link)
 
 let drawn = false, room = null;
 function frame() {

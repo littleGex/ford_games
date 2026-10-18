@@ -1166,6 +1166,60 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
   console.log('the shape of the family: pronouns in the labels; with one grown-up, Mum does the household jobs and the 3D printing');
 }
 
+// --- who does what, and the desks at home (#78): Mum and Dad swap desks (their work jobs and working from home
+// go to the other desk, with the pages that desk's screen has), and the household chores go to someone else (P
+// fixes her own bike, Dude looks after P's dragon). Then back to the usual.
+{
+  const { deskOf } = await import(new URL('../../house/js/pack/workdesks.js', import.meta.url));
+  G.settings.setDesksSwapped(true);
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.plan(['dadWork']);
+  const dw = G.board.find('dadWork').steps;
+  if (dw.some(st => G.board.levelOf(st) !== 2 || st.glow !== 'mumScreen' || st.page !== 'sheet')) errors.push(`desks swapped: Dad's work isn't in the attic office (${dw.map(st => `${G.board.levelOf(st)} ${st.glow} ${st.page}`)})`);
+  playDay('desks swapped: Dad works in the attic office');
+  G.days.next();
+  G.days.setCharacter('mum'); G.player.setCharacter('mum');
+  G.days.plan(['work']);
+  const mw = G.board.find('work').steps[0];
+  if (G.board.levelOf(mw) !== 1 || mw.glow !== 'dadScreen' || mw.page !== 'doc') errors.push(`desks swapped: Mum's work isn't at the dressing-room desk (${G.board.levelOf(mw)} ${mw.glow} ${mw.page})`);
+  playDay('desks swapped: Mum works in the dressing room');
+  G.days.next();
+  // working from home as Mum, at the dressing-room desk
+  G.missions.start('wfh', 'mum');
+  S.mission.callAt = 99999;   // (no urgent call: the day as planned)
+  const seen = new Set();
+  playWorkDay('desks swapped: work from home (Mum)', seen);
+  if (!S.mission.done) errors.push('desks swapped: Mum never finished working from home');
+  G.missions.end();
+  if (deskOf('mum').level !== 1) errors.push('desks swapped: Mum\'s desk');
+  G.settings.setDesksSwapped(false);
+
+  // P fixes her own bike; Dude looks after P's dragon (and sits on P's bed to cuddle it)
+  G.settings.setDoers('bike', ['girl']); G.settings.setDoers('dragon', ['boy']);
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.plan(['fixBike']);
+  if (G.board.find('fixBike').title !== 'Fix your bike') errors.push(`who does what: P's bike job says "${G.board.find('fixBike').title}"`);
+  playDay('who does what: P fixes her bike');
+  G.days.next();
+  G.days.setCharacter('boy'); G.player.setCharacter('boy');
+  G.days.plan(['feedDragon', 'playDragon', 'cleanDragon']);
+  const pd = G.board.find('playDragon');
+  if (G.board.find('feedDragon').title !== "Feed P's bearded dragon" || !pd.steps.some(st => st.label === "Sit on P's bed and let it sit on your hand")) errors.push(`who does what: Dude's dragon jobs say "${G.board.find('feedDragon').title}" / ${pd.steps.map(st => st.label)}`);
+  playDay('who does what: Dude looks after the dragon');
+  G.days.next();
+  // over a week, the dragon is on Dude's list and not on P's
+  const lists = { boy: new Set(), girl: new Set() };
+  for (const who of ['boy', 'girl']) {
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    for (let d = 0; d < 4; d++) { G.board.jobs.forEach(j => lists[who].add(j.id)); G.days.next(); }
+  }
+  if (!lists.boy.has('feedDragon') || lists.girl.has('feedDragon')) errors.push(`who does what: the dragon on Dude's list ${lists.boy.has('feedDragon')}, on P's ${lists.girl.has('feedDragon')}`);
+  G.settings.setAssignments({});
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('who does what: swapped desks for work and working from home; P fixes her bike, Dude feeds the dragon');
+}
+
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);
 console.log('trips up or down the stairs:', stairTrips);
 if (!stairTrips) errors.push('never used the stairs');

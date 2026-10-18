@@ -255,7 +255,23 @@ button, a, [role="button"] { touch-action: manipulation; }
 .settings-switch[aria-checked="false"] .settings-label { opacity: .6; text-decoration: line-through; }
 .settings-switch:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; }
 .settings-share { font-size: 14px; padding: 8px 16px; }
+.settings-chore { display: grid; gap: 6px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); border-radius: 12px; padding: 8px 10px; }
+.settings-chore-head { display: flex; align-items: center; gap: 10px; font: 600 14px var(--f-body); color: var(--paper); }
+.settings-chore .avatar-opts { padding-left: 34px; }
 .settings-link { width: 100%; font: 12px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
 .settings-import li { font-size: 14px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
 .settings-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
 .settings-actions .btn { padding: 10px 26px; }
+/* the first-visit setup (ui/setup.js), over the home screen */
+.setup { z-index: 16; }
+.setup-step { margin: 0; text-align: center; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 700; min-height: 1em; }
+.setup-body { display: grid; gap: 8px; }
+.setup-body .btn.setup-big { justify-self: center; font-size: 18px; padding: 12px 30px; margin: 6px 0 2px; }
+.setup-body > .linkbtn { justify-self: center; }
+.setup-person { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255, 255, 255, .03); }
+.setup-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.setup-name .avatar-label { min-width: 64px; }
+.setup-name input { flex: 1; min-width: 130px; font: 700 16px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; color-scheme: dark; }
+.setup-name input:focus-visible { outline: 2px solid var(--marigold); outline-offset: 1px; }
+.setup .settings-switch:disabled { opacity: .5; cursor: not-allowed; }
+

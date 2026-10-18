@@ -10,6 +10,28 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.13.0] - 2026-10-18
+
+### Added
+- Ford House: **the first visit**: the first time the game opens on a phone or tablet, a short setup asks about
+  the family (names, she/he/they, one or two grown-ups), the children's birthdays, who sleeps where and which
+  jobs fit, or connects to the family server with the game token. "Play as Dad, Mum, P and Dude" skips it, and
+  everything can still be changed from the home screen (#78, #108).
+- Ford House: **who does what**: pick who does the household chores (cooking, P's bike, the solar panels, the
+  sofa bed, P's bearded dragon), one or more people each, in the rooms, jobs and sharing card. The jobs say
+  "your bike" or "P's bike" to match (#78, #109).
+- Ford House: **desks at home**: Mum and Dad can swap desks (the dressing room and the attic office), for their
+  work jobs and working from home. Both go in the share link and sync through the family server (with
+  littleGex/fordDbs#26) (#78, #109).
+
+### Changed
+- Ford House: a family server that doesn't know the newest settings yet now only misses those, not every
+  setting added since 4.11.0 (#109).
+
+### Fixed
+- Ford House: cuddling the bearded dragon said "Sit on your bed" even when P had moved to the attic (#109).
+- Ford House: Escape didn't close the first-visit setup while the settings card's handler was listening (#108).
+
 ## [4.12.0] - 2026-10-17
 
 ### Added
@@ -353,7 +375,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.12.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.13.0...HEAD
+[4.13.0]: https://github.com/littleGex/ford_games/compare/v4.12.0...v4.13.0
 [4.12.0]: https://github.com/littleGex/ford_games/compare/v4.11.0...v4.12.0
 [4.11.0]: https://github.com/littleGex/ford_games/compare/v4.10.0...v4.11.0
 [4.10.0]: https://github.com/littleGex/ford_games/compare/v4.9.0...v4.10.0
