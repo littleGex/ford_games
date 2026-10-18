@@ -12,6 +12,14 @@ The game opens on a home screen (`js/ui/home.js`): carry on with today's day, pi
 missions, start over from day 1, or go back to Game Zone. The
 ☰ button in the top corner (or Escape) brings it back. The game is paused while it's open.
 
+**The first visit** (`js/ui/setup.js`): the first time the game opens on a device, a short setup comes up over
+the home screen: the grown-ups (names, she/he/they, a family with one grown-up), the children (names, she/he/they,
+birthdays), who sleeps where, and which jobs fit. Each choice is used straight away, so leaving early (Escape)
+keeps what's done; "Play as Dad, Mum, P and Dude" keeps the usual family. A game token instead brings the
+family's settings from the family server. It isn't shown again on that device, nor on a device that has played
+before, nor when the game was opened from a share link (that asks about its own settings). Tests mark it done
+before the page loads, except the setup's own (`tests/e2e/house.spec.js`).
+
 **Looks and birthdays** (`js/ui/avatar.js`, from the home screen): change how each of the four players looks,
 with a turning preview: skin, hair style (long, shoulder, ponytail, bun, swept, short, spiky, a beanie or
 bald) and colour, glasses, a beard, top (their own or a colour), trousers and
