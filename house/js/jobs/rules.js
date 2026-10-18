@@ -6,6 +6,8 @@
 //   who: [...]   only for these characters ('dad', 'mum', 'girl' = P, 'boy' = Dude); always on their list when due
 //   teen: true   (with who) also for P or Dude once they're teenagers (their birthdays, players.js)
 //   cover: true  (with who) a household job: in a family with one grown-up, whoever's there does it instead
+// Who does the household chores (cooking, the bike, the solar panels, the sofa bed, the dragon) can be changed in
+// the rooms, jobs and sharing card (settings.js, CHORES): then `who` is whoever was picked.
 // Each day has 12-14 jobs (see days/planner.js). Must jobs (bins, mowing, the loft box) and each
 // character's own jobs go on first, then the daily routine. Jobs that come round every 3+ days are
 // appointments: they fill the day next, the most overdue first, and are never early (on a full day one can
@@ -88,9 +90,18 @@ export const POOL_RULES = [
   { id: 'loftDown', after: { job: 'loftUp', days: 7 }, must: true },
 ];
 
-/** A job's rule. A household job (`cover`) whose grown-up isn't in the family goes to the grown-up who is. */
+let assigned = () => null;
+
+/** settings.js tells us who was picked for a chore's jobs: (jobId) => ['mum', 'boy'], or null for the usual. */
+export function useAssignments(fn) { assigned = fn; }
+
+/** A job's rule. A chore someone was picked for: theirs (only those in the family). A household job (`cover`)
+ *  whose grown-up isn't in the family: the grown-up who is. */
 export function rulesFor(id) {
   const rule = POOL_RULES.find(r => r.id === id);
-  if (!rule || !rule.cover || !rule.who || rule.who.some(inFamily)) return rule;
+  if (!rule) return rule;
+  const picked = (assigned(id) || []).filter(inFamily);
+  if (picked.length) { const { teen, ...rest } = rule; return { ...rest, who: picked }; }
+  if (!rule.cover || !rule.who || rule.who.some(inFamily)) return rule;
   return { ...rule, who: grownUps() };
 }

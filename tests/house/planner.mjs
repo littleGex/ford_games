@@ -156,6 +156,7 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
     if (opts.method === 'GET') { if (server.between) { const fn = server.between; server.between = null; fn(); } return { ok: true, status: 200, json: async () => doc() }; }
     const body = JSON.parse(opts.body);
     if (!server.rooms && 'swapRooms' in body.settings) return { ok: false, status: 422, json: async () => ({ detail: 'extra field' }) };
+    if (server.knows && [...server.knows].some(f => f in body.settings)) return { ok: false, status: 422, json: async () => ({ detail: 'extra field' }) };
     if (body.base_version !== server.version) return { ok: false, status: 409, json: async () => ({ detail: 'changed', ...doc() }) };
     server.settings = clone(body.settings); server.version++;
     return { ok: true, status: 200, json: async () => doc() };
@@ -239,6 +240,19 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   await sync2.sync();
   check(players2.inFamily('dad') && !players2.inFamily('mum'), 'settings sync: the other grown-up left out instead (Dad back first)');
   players2.setInFamily('mum', true); players2.setPronoun('boy', null); players2.setPronoun('girl', null);
+  // who does what and the desks go up and come down
+  settings2.setDoers('dragon', ['boy']); settings2.setDesksSwapped(true);
+  await pause(30); await sync2.sync();
+  check(server.settings.assign.dragon.join() === 'boy' && server.settings.swapDesks === true, `settings sync: chores and desks up (${JSON.stringify(server.settings.assign)})`);
+  anotherDevice(s => { s.assign = { cook: ['girl'] }; s.swapDesks = false; });
+  await sync2.sync();
+  check(settings2.doers('cook').join() === 'girl' && settings2.doers('dragon') === null && !settings2.desksSwapped(), 'settings sync: chores and desks down');
+  // a server from before chores and desks (but with pronouns): the pronouns still go up
+  server.knows = new Set(['assign', 'swapDesks']);
+  players2.setPronoun('girl', 'they'); settings2.setDoers('bike', ['girl']);
+  await pause(30); await sync2.sync();
+  check(server.settings.players.girl.pronoun === 'they' && !('assign' in server.settings) && sync2.status.ok && settings2.doers('bike').join() === 'girl', `settings sync: a server one version older (${JSON.stringify(sync2.status)})`);
+  server.knows = null; players2.setPronoun('girl', null); settings2.setAssignments({});
 }
 
 // Christmas and Advent: the tags each date gets, the Advent candles, which jobs come on which days, and the
@@ -390,6 +404,52 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   check(inFamily('dad') && !inFamily('mum'), 'a link swapping which grown-up is left out');
   players.setInFamily('mum', true); players.setPronoun('boy', null); players.setPronoun('girl', null); players.setBirthday('dad', null);
   check(inFamily('dad') && inFamily('mum') && their('boy') === 'his', 'back to the usual family');
+}
+
+// who does what: the household chores can go to anyone in the family (one or more), the usual again when that's
+// picked; someone left out of the family doesn't do theirs. Mum and Dad can swap desks at home. Both go in the
+// share link
+{
+  const store = new Map();
+  globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const { createPlayers } = await import('../../house/js/players.js');
+  const { rulesFor } = await import('../../house/js/jobs/rules.js');
+  const { createSettings, shareCode, readShareCode, applyShare, CHORES, usualDoers } = await import('../../house/js/settings.js');
+  const { deskOf, pageAt, workerAt } = await import('../../house/js/pack/workdesks.js');
+  const players = createPlayers();
+  let settings = createSettings();
+  check(rulesFor('fixBike').who.join() === 'dad' && rulesFor('cook').teen === true && usualDoers('dragon').join() === 'girl', 'the usual doers');
+  settings.setDoers('bike', ['girl']); settings.setDoers('dragon', ['boy', 'girl', 'boy', 'cat']); settings.setDoers('cook', ['dad', 'boy']);
+  check(rulesFor('fixBike').who.join() === 'girl', `P fixes her own bike: ${rulesFor('fixBike').who}`);
+  check(['feedDragon', 'playDragon', 'cleanDragon'].every(id => rulesFor(id).who.join() === 'boy,girl'), 'the dragon for both children (no repeats, no strangers)');
+  check(rulesFor('cook').who.join() === 'dad,boy' && !rulesFor('cook').teen, 'cooking for Dad and Dude (not just teenagers)');
+  const boysDay = planDay(POOL_RULES.map(r => rulesFor(r.id)), { day: 9, lastDone: {}, character: 'boy', season: 'summer', holiday: [] }, seededRandom(2));
+  check(boysDay.includes('feedDragon') && boysDay.includes('cook'), `Dude's day with the dragon and cooking: ${boysDay}`);
+  settings.setDoers('bike', ['dad']); settings.setDoers('solar', []);
+  check(settings.doers('bike') === null && settings.doers('solar') === null && !('bike' in settings.assignments()), 'the usual again (or nobody) isn\'t kept as a pick');
+  players.setInFamily('dad', false);
+  check(rulesFor('cook').who.join() === 'boy', 'someone left out doesn\'t cook');
+  settings.setDoers('cook', ['dad']);
+  check(rulesFor('fixBike').who.join() === 'mum' && rulesFor('cook').who.join() === 'dad,mum', 'with nobody picked in the family, the usual rules (and cover)');
+  players.setInFamily('dad', true);
+  settings = createSettings();   // (as after a reload)
+  check(settings.doers('dragon').join() === 'boy,girl', 'picks are kept on the device');
+
+  // desks at home
+  check(workerAt('dressing') === 'dad' && deskOf('mum').level === 2 && pageAt(deskOf('mum'), 'code') === 'sheet', 'the usual desks');
+  settings.setDesksSwapped(true);
+  check(workerAt('attic') === 'dad' && deskOf('mum').level === 1 && pageAt(deskOf('mum'), 'sheet') === 'doc' && pageAt(deskOf('dad'), 'code') === 'sheet', 'swapped desks');
+
+  // the share link
+  const got = readShareCode(shareCode(players, settings));
+  check(got.swapDesks === true && got.assign.dragon.join() === 'boy,girl' && !got.assign.bike, `share link: ${JSON.stringify(got.assign)}`);
+  const evil = readShareCode(btoa(JSON.stringify({ v: 1, p: {}, off: [], sd: 'yes', as: { dragon: ['boy', '<b>'], hack: ['dad'], cook: 'dad', bike: [] } })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+  check(evil.swapDesks === false && JSON.stringify(evil.assign) === '{"dragon":["boy"]}', `a hostile link: ${JSON.stringify(evil.assign)}`);
+  store.clear();
+  const p2 = createPlayers(), s2 = createSettings();
+  applyShare(got, p2, s2);
+  check(s2.desksSwapped() && s2.doers('dragon').join() === 'boy,girl' && CHORES.length === 5, 'copied to another device');
+  s2.setDesksSwapped(false); s2.setAssignments({});
 }
 
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');

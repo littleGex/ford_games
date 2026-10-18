@@ -3,14 +3,16 @@
 // link that copies the family's names, looks, birthdays and these settings to another phone or tablet. Also
 // the card that asks first when such a link is opened here.
 import { S } from '../state.js';
-import { DEFAULT_NAMES, NAMES, nameOf, showNames } from '../names.js';
+import { DEFAULT_NAMES, NAMES, familyKeys, inFamily, nameOf, showNames } from '../names.js';
 import { kidIn } from '../pack/kidrooms.js';
-import { JOB_GROUPS, applyShare, linkCode, readShareCode, shareCode } from '../settings.js';
+import { WORK_DESKS, workerAt } from '../pack/workdesks.js';
+import { rulesFor } from '../jobs/rules.js';
+import { CHORES, JOB_GROUPS, applyShare, linkCode, readShareCode, shareCode, usualDoers } from '../settings.js';
 
 export function createSettingsCard(ctx) {
   const { players, settings, days, hud } = ctx;
   const $ = id => document.getElementById(id);
-  const el = { box: $('settings'), list: $('settingsJobs'), rooms: $('settingsRooms'), swap: $('swapRooms'), done: $('settingsDone'), open: $('settingsBtn'), share: $('shareBtn'), sync: $('syncStatus'), link: $('shareLink'), status: $('shareStatus'),
+  const el = { box: $('settings'), list: $('settingsJobs'), rooms: $('settingsRooms'), swap: $('swapRooms'), desks: $('settingsDesks'), swapDesks: $('swapDesks'), chores: $('settingsChores'), done: $('settingsDone'), open: $('settingsBtn'), share: $('shareBtn'), sync: $('syncStatus'), link: $('shareLink'), status: $('shareStatus'),
                ask: $('shareImport'), askList: $('shareImportList'), yes: $('shareYes'), no: $('shareNo') };
   let changed = false, pending = null;
 
@@ -19,6 +21,39 @@ export function createSettingsCard(ctx) {
     const first = kidIn('first'), attic = kidIn('attic');
     el.rooms.textContent = `${nameOf(first)} sleeps in the room on the first floor, ${nameOf(attic)} in the attic room.`;
     el.swap.textContent = `Swap: ${nameOf(attic)} downstairs, ${nameOf(first)} in the attic`;
+    // where Mum and Dad work at home (one desk each; with one grown-up, theirs can move)
+    if (el.desks) {
+      const dressing = workerAt('dressing'), atticDesk = workerAt('attic');
+      const here = [['dressing', dressing], ['attic', atticDesk]].filter(([, k]) => inFamily(k));
+      el.desks.textContent = here.length === 2
+        ? `${nameOf(dressing)} works at ${WORK_DESKS.dressing.name}, ${nameOf(atticDesk)} in ${WORK_DESKS.attic.name}.`
+        : `${nameOf(here[0][1])} works at ${WORK_DESKS[here[0][0]].name}.`;
+      el.swapDesks.textContent = here.length === 2 ? `Swap: ${nameOf(atticDesk)} in the dressing room, ${nameOf(dressing)} in the attic`
+        : `Move ${nameOf(here[0][1])} to ${WORK_DESKS[here[0][0] === 'dressing' ? 'attic' : 'dressing'].name}`;
+    }
+    // who does the household chores: everyone in the family can be picked, at least one each
+    if (el.chores) el.chores.replaceChildren(...CHORES.map(c => {
+      const li = document.createElement('li'), box = document.createElement('div'), head = document.createElement('div'), opts = document.createElement('div');
+      box.className = 'settings-chore'; box.dataset.chore = c.id;
+      head.className = 'settings-chore-head';
+      head.innerHTML = '<span class="settings-icon" aria-hidden="true"></span><span class="settings-label"></span>';
+      head.firstChild.textContent = c.icon; head.lastChild.textContent = c.label;
+      opts.className = 'avatar-opts'; opts.setAttribute('role', 'group'); opts.setAttribute('aria-label', `Who does it: ${c.label}`);
+      const now = (rulesFor(c.jobs[0]).who || usualDoers(c.id)).filter(inFamily);   // who does it now (picked, usual, or covering)
+      for (const k of familyKeys()) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'avatar-chip'; b.dataset.who = k; b.textContent = nameOf(k);
+        b.setAttribute('aria-pressed', String(now.includes(k)));
+        b.addEventListener('click', () => {
+          const next = now.includes(k) ? now.filter(x => x !== k) : [...now, k];
+          if (!next.length) return;   // somebody has to do it
+          settings.setDoers(c.id, next); changed = true; render();
+        });
+        opts.append(b);
+      }
+      box.append(head, opts); li.append(box);
+      return li;
+    }));
     // the family server keeps them the same on every device with the game token
     const sync = ctx.settingsSync;
     if (el.sync) {
@@ -97,6 +132,8 @@ export function createSettingsCard(ctx) {
     });
     const off = JOB_GROUPS.filter(g => pending.off.includes(g.id)).map(g => g.label);
     lines.push(off.length ? `Switched off: ${off.join(', ')}` : 'All jobs on');
+    if (pending.swapDesks !== settings.desksSwapped()) lines.push(pending.swapDesks ? `${NAMES.mum} and ${NAMES.dad} swap desks` : `${NAMES.mum} and ${NAMES.dad} back at their usual desks`);
+    for (const c of CHORES.filter(ch => pending.assign[ch.id])) lines.push(`${c.label}: ${pending.assign[c.id].map(k => NAMES[k]).join(' and ')}`);
     if (pending.swapRooms !== settings.roomsSwapped()) lines.push(pending.swapRooms ? `${NAMES.girl} and ${NAMES.boy} swap rooms` : `${NAMES.girl} and ${NAMES.boy} back in their usual rooms`);
     el.askList.replaceChildren(...lines.map(t => { const li = document.createElement('li'); li.textContent = t; return li; }));
     S.settings = true; el.ask.hidden = false;
@@ -112,6 +149,7 @@ export function createSettingsCard(ctx) {
   if (el.open) el.open.addEventListener('click', open);
   el.share.addEventListener('click', share);
   el.swap.addEventListener('click', () => { settings.setRoomsSwapped(!settings.roomsSwapped()); changed = true; render(); });
+  if (el.swapDesks) el.swapDesks.addEventListener('click', () => { settings.setDesksSwapped(!settings.desksSwapped()); changed = true; render(); });
   el.yes.addEventListener('click', () => answer(true));
   el.no.addEventListener('click', () => answer(false));
   globalThis.addEventListener('keydown', e => {

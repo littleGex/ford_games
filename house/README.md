@@ -50,6 +50,14 @@ beds, the folded washing, the school run, bedtime, the Halloween costumes, the C
 and the 3D-printed models all use the new room, and the room chips say whose room is whose. The terrarium, the
 toys, the Lego, the keyboard and the clarinet stay where they are.
 
+**Desks at home** (`js/pack/workdesks.js`, the same card): Dad works at the desk in the dressing room and Mum in
+the attic office, unless they swap. Their work jobs, working from home and the urgent call go to the other desk,
+whose screen shows the nearest page it has (the attic office only has spreadsheets).
+
+**Who does what** (the same card): the household chores (cooking, fixing P's bike, the solar panels, the sofa
+bed, P's bearded dragon) can go to anyone in the family, one or more each (`CHORES` in `js/settings.js`; the
+rules read them through `rulesFor`, `js/jobs/rules.js`). The jobs say "your bike" or "P's bike" to match.
+
 **Jobs, and sharing** (`js/settings.js`, `js/ui/settings.js`, from the home screen): switch groups of jobs off
 that don't fit a family (the bearded dragon, keyboard practice, the clarinet, the bike, the solar panels, the
 car, shaving, the loft) and the special days (Halloween, Christmas and the Advent calendars, birthday parties).
@@ -277,6 +285,7 @@ house/
     familyserver.js     birthdays from the family server (fordDbs), and the game token
     settingsync.js      names, looks, jobs and bedrooms kept the same on every device through the family server
     pack/kidrooms.js    the Ford house's kids' rooms: whose bed, wardrobe and desk are where
+    pack/workdesks.js   the desks at home where Mum and Dad work, and who works at which
     ui/hud.js           room chip, job list, banner, toasts
 ```
 

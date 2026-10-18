@@ -255,6 +255,9 @@ button, a, [role="button"] { touch-action: manipulation; }
 .settings-switch[aria-checked="false"] .settings-label { opacity: .6; text-decoration: line-through; }
 .settings-switch:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; }
 .settings-share { font-size: 14px; padding: 8px 16px; }
+.settings-chore { display: grid; gap: 6px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); border-radius: 12px; padding: 8px 10px; }
+.settings-chore-head { display: flex; align-items: center; gap: 10px; font: 600 14px var(--f-body); color: var(--paper); }
+.settings-chore .avatar-opts { padding-left: 34px; }
 .settings-link { width: 100%; font: 12px var(--f-body); color: var(--paper); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
 .settings-import li { font-size: 14px; padding: 6px 10px; border-radius: 10px; background: rgba(255, 255, 255, .06); }
 .settings-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }

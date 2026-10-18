@@ -12,6 +12,7 @@
 import { rulesFor } from './rules.js';
 import { nameOf, possessive, grownUpNames, grownUpsPossessive } from '../names.js';
 import { kidIn, roomFor, roomOf } from '../pack/kidrooms.js';
+import { deskOf, pageAt } from '../pack/workdesks.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { HALLOWEEN as HW } from '../world/halloween.js';
@@ -47,6 +48,8 @@ const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic ha
  */
 export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null, birthday = null } = {}) {
   const grownUp = character === 'dad' || character === 'mum';
+  // P's bike and P's bearded dragon: "your" when P does the job, "P's" for whoever else does it (settings.js)
+  const bikeOf = character === 'girl' ? 'your' : possessive('girl'), dragonOf = bikeOf;
   const boxSpot = BOX_SPOTS[Math.floor(day / 7) % BOX_SPOTS.length];
   const showBox = (c, level, x, z) => {
     const box = c.items.box, floor = [c.stage.scene, c.world.upstairs, c.world.attic][level];
@@ -161,9 +164,9 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'clippingsBag', label: 'Pick up the bag of clippings' },
       { kind: 'drop', item: 'clippingsBag', at: [4.3, 9.65], place: [4.85, 0.95, 9.65], label: 'Tip the clippings into the brown bin', onDone: c => { c.items.clippingsBag.visible = false; } }],
       setup: c => c.trimming.reset(true), tidy: c => c.trimming.reset(false) },
-    { id: 'fixBike', title: `Fix ${possessive('girl')} bike`, steps: [
-      { kind: 'pick', item: 'bike', label: `Wheel ${possessive('girl')} bike off the terrace` },
-      { kind: 'drop', item: 'bike', at: [0.75, -15.55], place: [0.75, 0, -16.0], rot: Math.PI / 2, label: 'Put it on the stand by your workbench' },
+    { id: 'fixBike', title: `Fix ${bikeOf} bike`, steps: [   // usually Dad (rules.js; who does it can be changed, settings.js)
+      { kind: 'pick', item: 'bike', label: `Wheel ${bikeOf} bike off the terrace` },
+      { kind: 'drop', item: 'bike', at: [0.75, -15.55], place: [0.75, 0, -16.0], rot: Math.PI / 2, label: 'Put it on the stand by the workbench' },
       { kind: 'sit', stand: true, at: [0.85, -15.5], seat: [0.85, 0, -15.6, Math.PI], dur: 18, what: 'Fixing the bike',
         label: 'Fix the puncture and oil the chain', onDone: c => c.hud.toast('New inner tube, chain oiled, brakes checked') },
       { kind: 'pick', item: 'bike', label: 'Take the bike off the stand' },
@@ -226,10 +229,12 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       tidy: c => { c.world.bigBed.make(); c.world.daybed.make(); c.world.dudeBed.make(); } },
     { id: 'teeth', title: 'Brush your teeth', steps: [
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 10, what: 'Brushing teeth', label: 'Brush your teeth at the basin' }] },
-    { id: 'dadWork', title: 'Work at your desk', steps: [   // Dad only, on weekdays (see rules.js): four tasks at his desk in the dressing room
+    { id: 'dadWork', title: 'Work at your desk', steps: [   // Dad only, on weekdays (see rules.js): four tasks at his desk (pack/workdesks.js)
       ...[['mail', 'Read your emails', 'Reading emails'], ['call', 'Join the team video call', 'On a video call'],
-          ['doc', 'Write the weekly report', 'Writing the report'], ['code', 'Write some code', 'Writing code']].map(([page, task, what]) =>
-        ({ kind: 'sit', level: 1, power: true, glow: 'dadScreen', page, fx: 'dadNotes', at: [3.75, 0.5], seat: [3.74, 0.45, 0.5, -Math.PI / 2], dur: 20, what, label: `Sit at your desk: ${task.toLowerCase()}` }))] },
+          ['doc', 'Write the weekly report', 'Writing the report'], ['code', 'Write some code', 'Writing code']].map(([page, task, what]) => {
+        const d = deskOf('dad');
+        return { kind: 'sit', level: d.level, power: true, glow: d.glow, page: pageAt(d, page), fx: d.radio, at: d.at, seat: d.seat, dur: 20, what, label: `Sit at your desk: ${task.toLowerCase()}` };
+      })] },
     { id: 'shave', title: 'Have a shave', steps: [   // Dad only (see rules.js)
       { kind: 'sit', stand: true, level: 1, at: [4.6, 7.22], seat: [4.78, 0, 7.22, Math.PI / 2], dur: 12, what: 'Shaving', label: 'Have a shave at the basin' }] },
     { id: 'homework', title: 'Do your homework', steps: [   // P and Dude only, each at their own spot
@@ -250,15 +255,15 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'crayons', label: 'Pick up the crayons' },
       { kind: 'drop', item: 'crayons', level: 1, at: [2.3, 7.6], place: [2.85, 0.73, 7.6], label: 'Put them on the desk' }] },
     // P's bearded dragon (P only, see rules.js): feed it, play with it, clean out its terrarium
-    { id: 'feedDragon', title: 'Feed your bearded dragon', steps: [
+    { id: 'feedDragon', title: `Feed ${dragonOf} bearded dragon`, steps: [
       { kind: 'pick', item: 'cricketBox', label: 'Get the box of crickets from the windowsill' },
       { kind: 'sit', stand: true, level: 1, at: TERRARIUM.at, seat: [TERRARIUM.at[0], 0, TERRARIUM.at[1], -Math.PI / 2 - 0.4], dur: 8, dragon: 'feed',
         what: 'Feeding the dragon', label: 'Put the crickets and greens in the terrarium', onDone: c => { c.world.crickets.visible = false; } },
       { kind: 'drop', item: 'cricketBox', home: true, label: 'Put the box back on the windowsill' }] },
-    { id: 'playDragon', title: 'Play with your bearded dragon', steps: [
+    { id: 'playDragon', title: `Play with ${dragonOf} bearded dragon`, steps: [
       { kind: 'pick', item: 'dragon', level: 1, at: TERRARIUM.at, label: 'Lift the dragon out of the terrarium' },
       { kind: 'sit', level: 1, at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2], dur: 15, dragon: 'cuddle',
-        what: 'Cuddling the dragon', label: 'Sit on your bed and let it sit on your hand' },
+        what: 'Cuddling the dragon', label: `Sit on ${kidIn('first') === character ? 'your' : possessive(kidIn('first'))} bed and let it sit on your hand` },
       { kind: 'drop', item: 'dragon', level: 1, at: TERRARIUM.at, place: [TERRARIUM.bask[0], TERRARIUM.floor, TERRARIUM.bask[1]], label: 'Put it back under its lamp' }] },
     { id: 'cleanDragon', title: "Clean out the dragon's terrarium", steps: [
       { kind: 'use', level: 1, at: TERRARIUM.at, label: 'Scoop out the mess', onDone: c => { c.world.dragonMess.visible = false; } },
@@ -297,7 +302,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'drop', item: 'box', level: boxSpot.level, at: boxSpot.at, place: [boxSpot.at[0], 0, boxSpot.at[1]], label: `Put the box down in ${boxSpot.name}` }],
       tidy: () => {} },
     { id: 'work', title: 'Do some work', steps: [   // Mum only
-      { kind: 'sit', level: 2, power: true, glow: 'mumScreen', page: 'sheet', fx: 'mumNotes', at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], dur: 40, what: 'Working', label: 'Sit at the office desk and work' }] },
+      (d => ({ kind: 'sit', level: d.level, power: true, glow: d.glow, page: pageAt(d, 'sheet'), fx: d.radio, at: d.at, seat: d.seat, dur: 40, what: 'Working', label: 'Sit at your desk and work' }))(deskOf('mum'))] },
     { id: 'sofabed', title: 'Make up the sofa bed', steps: [   // Mum only
       { kind: 'use', level: 2, at: [2.0, 6.3], label: 'Fold the sofa bed away', onDone: c => c.world.sofaBed.make() }],
       setup: c => c.world.sofaBed.mess(), tidy: c => c.world.sofaBed.make() },
