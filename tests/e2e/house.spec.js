@@ -444,7 +444,7 @@ test('the first visit: set the family up (names, they, one grown-up, a birthday,
   await page.locator('#setupNext').click();
 
   // bedrooms: swapped
-  await expect(page.locator('#setupTitle')).toHaveText('Bedrooms');
+  await expect(page.locator('#setupTitle')).toHaveText('Bedrooms and desks');
   await page.locator('#setupSwap').click();
   await expect(page.locator('#setupBody')).toContainText('Dude sleeps in the room on the first floor, P in the attic room');
   await page.locator('#setupNext').click();
@@ -528,6 +528,43 @@ test('a share link on a first visit: it asks about the link, not the setup', asy
   await page.goto(link.replace(/^https?:\/\/[^/]+/, ''));
   await expect(page.locator('#shareImport')).toBeVisible();
   await expect(page.locator('#setup')).toBeHidden();
+});
+
+test('who does what, and the desks at home: Dude looks after the dragon, Mum and Dad swap desks', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('#settingsBtn').click();
+  // the desks
+  await expect(page.locator('#settingsDesks')).toHaveText('Dad works at the desk in the dressing room, Mum in the attic office.');
+  await page.locator('#swapDesks').click();
+  await expect(page.locator('#settingsDesks')).toHaveText('Mum works at the desk in the dressing room, Dad in the attic office.');
+  // the dragon: Dude instead of P (P can't be untapped while she's the only one)
+  const dragon = page.locator('[data-chore="dragon"]');
+  await expect(dragon.locator('[data-who="girl"]')).toHaveAttribute('aria-pressed', 'true');
+  await dragon.locator('[data-who="girl"]').click();
+  await expect(dragon.locator('[data-who="girl"]')).toHaveAttribute('aria-pressed', 'true');
+  await dragon.locator('[data-who="boy"]').click();
+  await dragon.locator('[data-who="girl"]').click();
+  await expect(dragon.locator('[data-who="boy"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(dragon.locator('[data-who="girl"]')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#settingsDone').click();
+  await play(page);
+
+  await page.locator('.hud.bottom .who [data-c="boy"]').click();
+  await planToday(page, ['feedDragon']);
+  await expect(page.locator('#taskList')).toContainText("Feed P's bearded dragon");
+  const got = await page.evaluate(() => {
+    const h = window.house;
+    h.days.setCharacter('mum');
+    h.days.plan(['work']);
+    const st = h.board.find('work').steps[0];
+    return [h.settings.doers('dragon'), h.board.levelOf(st), st.glow];
+  });
+  expect(got).toEqual([['boy'], 1, 'dadScreen']);
+  // kept after a reload
+  await page.reload();
+  await expect(page.locator('#taskCount')).toHaveText(/^\d+\/\d+$/, { timeout: 20000 });
+  expect(await page.evaluate(() => [window.house.settings.desksSwapped(), window.house.settings.doers('dragon')])).toEqual([true, ['boy']]);
 });
 
 test('the home screen: carry on, pick who plays, missions, back to Game Zone', async ({ page }) => {

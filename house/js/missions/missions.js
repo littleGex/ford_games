@@ -23,6 +23,7 @@
 import { S } from '../state.js';
 import { NAMES, nameOf, possessive, their } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
+import { deskOf, pageAt } from '../pack/workdesks.js';
 import { resetItems } from '../items.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
@@ -46,12 +47,19 @@ const kidSpots = k => {
 };
 export const KIDS = { get girl() { return kidSpots('girl'); }, get boy() { return kidSpots('boy'); } };
 
-const DAD_DESK = [3.75, 0.5];   // Dad's desk in the dressing room, with the laptop
+const DAD_DESK = [3.75, 0.5];   // the desk in the dressing room: the laptop next to the 3D printer
 
-// Mum's and Dad's desks for working from home, and which screen shows for each kind of work
+// Mum's and Dad's desks for working from home (pack/workdesks.js: they can swap), and which screen shows for each
+// kind of work: Dad's calls, emails, reports and code, Mum's spreadsheets (or the nearest the desk's screen has)
+const WORK_PAGES = { dad: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'code' }, mum: { meeting: 'sheet', mail: 'sheet', doc: 'sheet', code: 'sheet' } };
+const homeDesk = who => {
+  const d = deskOf(who);
+  return { level: d.level, at: d.at, seat: d.seat, glow: d.glow, radio: d.radio,
+           pages: Object.fromEntries(Object.entries(WORK_PAGES[who]).map(([kind, page]) => [kind, pageAt(d, page)])) };
+};
 const DESKS = {
-  dad: { level: 1, at: DAD_DESK, seat: [3.74, 0.45, 0.5, -Math.PI / 2], glow: 'dadScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'code' }, radio: 'dadNotes' },
-  mum: { level: 2, at: [1.17, 5.22], seat: [1.17, 0.45, 5.22, -Math.PI / 2], glow: 'mumScreen', pages: { meeting: 'sheet', mail: 'sheet', doc: 'sheet', code: 'sheet' }, radio: 'mumNotes' },
+  get dad() { return homeDesk('dad'); },
+  get mum() { return homeDesk('mum'); },
   mumOffice: { level: 1, at: MUM.desk.at, seat: MUM.desk.seat, glow: 'mumOfficeScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'doc' }, radio: null },   // Mum's desk at her office
   office: { level: 0, at: OFFICE.desk.at, seat: OFFICE.desk.seat, glow: 'officeScreen', pages: { meeting: 'call', mail: 'mail', doc: 'doc', code: 'code' }, radio: null },   // Dad's desk at the office
 };

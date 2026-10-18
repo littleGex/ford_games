@@ -9,6 +9,7 @@
 import { S } from '../state.js';
 import { DEFAULT_NAMES, GROWN_UPS, PRONOUNS, nameOf, pronounOf, showNames } from '../names.js';
 import { kidIn } from '../pack/kidrooms.js';
+import { WORK_DESKS, workerAt } from '../pack/workdesks.js';
 import { JOB_GROUPS } from '../settings.js';
 
 export const SETUP_KEY = 'fordHouse.setup.v1';
@@ -104,7 +105,11 @@ export function createSetup(ctx) {
     rooms: () => {
       const swap = make('button', { type: 'button', className: 'avatar-chip settings-share', id: 'setupSwap', textContent: `Swap: ${nameOf(kidIn('attic'))} downstairs, ${nameOf(kidIn('first'))} in the attic` });
       swap.addEventListener('click', () => { settings.setRoomsSwapped(!settings.roomsSwapped()); changed = true; render(); });
-      return [note(`${nameOf(kidIn('first'))} sleeps in the room on the first floor, ${nameOf(kidIn('attic'))} in the attic room. Their bed, wardrobe and desk go with them.`), swap];
+      const both = players.inFamily('dad') && players.inFamily('mum'), d = workerAt('dressing'), a = workerAt('attic');
+      const desks = make('button', { type: 'button', className: 'avatar-chip settings-share', id: 'setupSwapDesks', textContent: `Swap: ${nameOf(a)} in the dressing room, ${nameOf(d)} in the attic` });
+      desks.addEventListener('click', () => { settings.setDesksSwapped(!settings.desksSwapped()); changed = true; render(); });
+      return [note(`${nameOf(kidIn('first'))} sleeps in the room on the first floor, ${nameOf(kidIn('attic'))} in the attic room. Their bed, wardrobe and desk go with them.`), swap,
+        ...(both ? [make('h2', { textContent: 'Working from home' }), note(`${nameOf(d)} works at ${WORK_DESKS.dressing.name}, ${nameOf(a)} in ${WORK_DESKS.attic.name}.`), desks] : [])];
     },
     jobs: () => {
       const list = make('ul', { className: 'settings-jobs' });
@@ -131,7 +136,7 @@ export function createSetup(ctx) {
       return [list, note('Looks and birthdays are in "Names, looks and birthdays" on the home screen; bedrooms, jobs and sharing with another phone in the card under it.')];
     },
   };
-  const TITLES = { welcome: 'Welcome to Ford House', grownUps: 'The grown-ups', children: 'The children', rooms: 'Bedrooms', jobs: 'Jobs in the house', done: 'All set!' };
+  const TITLES = { welcome: 'Welcome to Ford House', grownUps: 'The grown-ups', children: 'The children', rooms: 'Bedrooms and desks', jobs: 'Jobs in the house', done: 'All set!' };
 
   function render() {
     const id = STEPS[at];
