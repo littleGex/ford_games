@@ -85,6 +85,71 @@
         "$other": { ".validate": false }
       }
     },
+    "duels": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.child('a/uid').val() === auth.uid && !newData.hasChild('b') && !newData.hasChild('moves')) || (data.exists() && !newData.exists() && data.child('created').val() < now - 86400000))",
+        ".validate": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/) && newData.hasChildren(['created', 'game', 'round', 'count', 'a'])",
+        "created": {
+          ".validate": "!data.exists() && newData.val() === now"
+        },
+        "game": {
+          ".validate": "!data.exists() && (newData.val() === 'c4' || newData.val() === 'ttt')"
+        },
+        "round": {
+          ".write": "auth != null && (data.parent().child('a/uid').val() === auth.uid || data.parent().child('b/uid').val() === auth.uid)",
+          ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 0) || (data.exists() && newData.val() === data.val() + 1 && newData.parent().child('count').val() === 0 && data.parent().child('b').exists()))"
+        },
+        "count": {
+          ".write": "auth != null && (data.parent().child('a/uid').val() === auth.uid || data.parent().child('b/uid').val() === auth.uid)",
+          ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 0) || (data.exists() && newData.parent().child('round').val() === data.parent().child('round').val() && newData.val() === data.val() + 1 && newData.parent().child('moves/' + data.parent().child('round').val() + '/' + data.val()).exists()) || (data.exists() && newData.val() === 0 && newData.parent().child('round').val() === data.parent().child('round').val() + 1))"
+        },
+        "a": {
+          ".validate": "newData.hasChildren(['uid', 'name'])",
+          "uid": {
+            ".validate": "!data.exists() && newData.val() === auth.uid"
+          },
+          "name": {
+            ".validate": "!data.exists() && newData.isString() && newData.val().length >= 1 && newData.val().length <= 14"
+          },
+          "left": {
+            ".write": "data.parent().child('uid').val() === auth.uid",
+            ".validate": "newData.val() === true"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "b": {
+          ".validate": "newData.hasChildren(['uid', 'name'])",
+          "uid": {
+            ".validate": "!data.exists() && newData.val() === auth.uid"
+          },
+          "name": {
+            ".validate": "!data.exists() && newData.isString() && newData.val().length >= 1 && newData.val().length <= 14"
+          },
+          "left": {
+            ".write": "data.parent().child('uid').val() === auth.uid",
+            ".validate": "newData.val() === true"
+          },
+          "$other": {
+            ".validate": false
+          },
+          ".write": "auth != null && !data.exists() && data.parent().exists() && data.parent().child('a/uid').val() !== auth.uid"
+        },
+        "moves": {
+          "$r": {
+            "$i": {
+              ".write": "auth != null && !data.exists() && data.parent().parent().parent().child('b').exists() && $r === '' + data.parent().parent().parent().child('round').val() && $i === '' + data.parent().parent().parent().child('count').val() && data.parent().parent().parent().child(((data.parent().parent().parent().child('round').val() + data.parent().parent().parent().child('count').val()) % 2 === 0 ? 'a' : 'b') + '/uid').val() === auth.uid && newData.parent().parent().parent().child('count').val() === data.parent().parent().parent().child('count').val() + 1",
+              ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= (data.parent().parent().parent().child('game').val() === 'c4' ? 6 : 8)"
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "$other": { ".read": false, ".write": false }
   }
 }
