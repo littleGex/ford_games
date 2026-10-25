@@ -10,6 +10,17 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.14.0] - 2026-10-25
+
+### Changed
+- Game Zone home page: **a new look that fits more on screen**. Chunky, pressable game tiles show three
+  across on a phone (up to five or six on a big screen) instead of two, each with how many players it's for.
+  Ford House gets its own banner at the top.
+
+### Added
+- Game Zone home page: **filters** for Words, Board and cards, and Action and sport, remembered on the device.
+- Game Zone home page: **Play again** shows the last three games opened on this device.
+
 ## [4.13.0] - 2026-10-18
 
 ### Added
@@ -375,7 +386,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.13.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.14.0...HEAD
+[4.14.0]: https://github.com/littleGex/ford_games/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/littleGex/ford_games/compare/v4.12.0...v4.13.0
 [4.12.0]: https://github.com/littleGex/ford_games/compare/v4.11.0...v4.12.0
 [4.11.0]: https://github.com/littleGex/ford_games/compare/v4.10.0...v4.11.0
