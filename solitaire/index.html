@@ -46,12 +46,21 @@
   }
   #newBtn.sure { background: var(--gold); color: #3a2a00; border-color: var(--gold); }
   h1 { margin: 0; font-size: clamp(20px, 5.5vw, 26px); font-weight: 700; flex: 1; text-align: center; }
-  .stats { display: flex; justify-content: center; align-items: center; gap: 14px; margin: -4px 0 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stats { display: flex; justify-content: center; align-items: center; gap: 10px; margin: -4px 0 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .chip {
     font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
     padding: 4px 11px; border-radius: 999px; border: 1px solid rgba(243, 247, 242, .25); background: rgba(0, 0, 0, .2); cursor: pointer;
   }
-  .chip[hidden] { display: none; }
+  .chip[hidden], .chip.icon[hidden] { display: none; }
+  .chip.icon { width: 34px; height: 30px; padding: 0; font-size: 16px; display: inline-grid; place-items: center; }
+  .quiet svg { vertical-align: -2px; }
+  .chip:disabled { opacity: .35; cursor: default; }
+  #finishBtn {
+    position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 95;
+    font-family: inherit; font-size: 20px; font-weight: 700; padding: 12px 28px; border: 0; border-radius: 999px;
+    background: var(--gold); color: #3a2a00; cursor: pointer; box-shadow: 0 5px 0 #b88a1c, 0 10px 24px rgba(0, 0, 0, .4);
+  }
+  #finishBtn[hidden] { display: none; }
   .stats b { color: var(--ink); font-weight: 600; }
   .chip:focus-visible, .overlay button:focus-visible,
   #homeBtn:focus-visible, #newBtn:focus-visible, .card:focus-visible, .slot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
@@ -107,6 +116,8 @@
   .overlay[hidden] { display: none; }
   .win-card { width: min(340px, 100%); text-align: center; background: #123d2a; border: 1px solid rgba(243, 247, 242, .2); border-radius: 22px; padding: 22px 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); animation: pop .35s ease-out; }
   .win-card h2 { margin: 0 0 4px; font-size: 36px; color: var(--gold); }
+  #winBest { margin-top: -12px; color: var(--gold); font-weight: 600; }
+  #winBest:empty { display: none; }
   .win-card p { margin: 0 0 18px; color: var(--muted); font-size: 16px; }
   .levels { display: grid; gap: 10px; }
   .level {
@@ -115,6 +126,7 @@
   }
   .level b { display: block; font-size: 20px; }
   .level span { font-size: 14px; color: var(--muted); }
+  .level .stat { display: block; margin-top: 3px; font-size: 13px; color: var(--ink); opacity: .85; }
   .level.current { border-color: var(--gold); }
   .level.sure { background: var(--gold); border-color: var(--gold); color: #3a2a00; }
   .level.sure span { color: #3a2a00; }
@@ -142,11 +154,13 @@
   </header>
   <p class="stats">
     <button id="levelBtn" class="chip" type="button" aria-label="Level: Easy. Change level">Easy</button>
-    <span>Moves <b id="moves">0</b></span><span>Time <b id="time">0:00</b></span>
-    <button id="hintBtn" class="chip" type="button">💡 Hint</button>
+    <span>Moves <b id="moves">0</b></span><span><span aria-label="Time">⏱</span> <b id="time">0:00</b></span>
+    <button id="undoBtn" class="chip icon" type="button" aria-label="Undo" title="Undo" disabled><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button id="hintBtn" class="chip icon" type="button" aria-label="Hint" title="Hint">💡</button>
   </p>
   <div id="table" aria-label="The solitaire table"></div>
   <p class="deal" id="dealNo"></p>
+  <button id="finishBtn" type="button" hidden>✨ Finish</button>
 </main>
 
 <div id="levels" class="overlay" role="dialog" aria-modal="true" aria-labelledby="levelsTitle" hidden>
@@ -163,7 +177,7 @@
     <h2 id="stuckTitle">No more moves</h2>
     <p>Nothing else can go anywhere this time. Have another go?</p>
     <div class="row">
-      <button id="undoBtn" class="quiet" type="button">↶ Undo</button>
+      <button id="stuckUndoBtn" class="quiet" type="button"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg> Undo</button>
       <button id="stuckNewBtn" type="button">New game</button>
     </div>
   </div>
@@ -173,6 +187,7 @@
   <div class="win-card">
     <h2 id="winTitle">You won! 🎉</h2>
     <p id="winText"></p>
+    <p id="winBest"></p>
     <button id="againBtn" type="button">New game</button>
   </div>
 </div>
@@ -181,14 +196,20 @@
   // Klondike, tap first: tapping a card sends it to the best place it can go (a foundation first, then a column),
   // because dragging is fiddly for small hands. Dragging works too. The rules are in klondike.js; this draws the
   // table and turns taps and drags into moves.
-  import { deal, move, draw, canDraw, canMove, bestMove, picked, won, hint, stuck, turnsLeft, rulesOf, LEVELS, SYMBOL, RED, RANK_NAME } from './klondike.js';
+  import {
+    deal, move, draw, canDraw, canMove, bestMove, picked, won, hint, stuck, turnsLeft, rulesOf, autoMove, canFinish, finishStep,
+    cardCount, LEVELS, SYMBOL, RED, RANK_NAME,
+  } from './klondike.js';
 
   const $ = id => document.getElementById(id);
   const table = $('table');
   const params = new URLSearchParams(location.search);
 
-  let game = null, started = null, timer = null;
+  let game = null;
   let history = [];        // the games before each move, for Undo
+  let elapsed = 0, since = null, timer = null;   // the clock: time banked, and when it last started running
+  let counted = false;     // this game has been counted as played in the stats
+  let finishing = false;   // the end being played out for you
   const els = new Map();   // card id -> its element, kept so a card glides from place to place
   let L = null;            // the current layout: card size, where every pile is
 
@@ -198,6 +219,37 @@
   const saved = (() => { try { return localStorage.getItem(LEVEL_KEY); } catch { return null; } })();
   let level = LEVELS[params.get('level')] ? params.get('level') : LEVELS[saved] ? saved : 'easy';
   const saveLevel = () => { try { localStorage.setItem(LEVEL_KEY, level); } catch { /* private window: just for now */ } };
+
+  // ---------- stats per level, and the game in progress, on this device ----------
+
+  const STATS_KEY = 'solitaire.stats.v1', SAVE_KEY = 'solitaire.save.v1';
+  const blankStats = () => ({ played: 0, won: 0, bestTime: null, fewestMoves: null, streak: 0 });
+  function loadStats() {
+    try { const all = JSON.parse(localStorage.getItem(STATS_KEY)); return all && typeof all === 'object' ? all : {}; } catch { return {}; }
+  }
+  function updateStats(lvl, change) {
+    const all = loadStats(), st = { ...blankStats(), ...all[lvl] };
+    change(st);
+    all[lvl] = st;
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(all)); } catch { /* not kept this time */ }
+    return st;
+  }
+
+  /** Keep the game (and the last 100 moves to undo) so closing the page doesn't lose it. */
+  function save() {
+    try {
+      if (!game || game.moves === 0 || won(game)) localStorage.removeItem(SAVE_KEY);
+      else localStorage.setItem(SAVE_KEY, JSON.stringify({ game, history: history.slice(-100), elapsed: clockMs(), counted }));
+    } catch { /* not kept this time */ }
+  }
+  function loadSave() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!s || !s.game || !LEVELS[s.game.level] || !Array.isArray(s.history)) return null;
+      const n = cardCount(s.game);
+      return n.total === 52 && n.distinct === 52 ? s : null;
+    } catch { return null; }
+  }
 
   // ---------- drawing the table ----------
 
@@ -315,6 +367,8 @@
     $('levelBtn').textContent = LEVELS[level].name;
     $('levelBtn').setAttribute('aria-label', `Level: ${LEVELS[level].name}. Change level`);
     $('hintBtn').hidden = !LEVELS[level].hints;
+    $('undoBtn').disabled = !history.length || finishing;
+    $('finishBtn').hidden = !canFinish(game) || finishing;
   }
 
   // ---------- moves ----------
@@ -327,16 +381,74 @@
   }
 
   function apply(next) {
-    if (!next) return false;
+    if (!next || finishing) return false;
     clearHint();
     history.push(game);
     game = next;
-    if (!started) startClock();
-    render();
-    if (won(game)) finish();
-    else if (stuck(game)) showStuck();
+    playing();
+    settle();
     return true;
   }
+
+  /** The game is under way: count it as played (once) and run the clock. */
+  function playing() {
+    if (!counted) { counted = true; updateStats(game.level, st => { st.played++; }); }
+    runClock();
+  }
+
+  /** After a move: the win, no more moves, or (on Easy) safe cards going up by themselves, one after another. */
+  let autoTimer = null;
+  function settle() {
+    clearTimeout(autoTimer);
+    render();
+    if (won(game)) { finish(); return; }
+    if (stuck(game)) { showStuck(); return; }
+    save();
+    if (LEVELS[game.level || level].autoMove && autoMove(game)) {
+      autoTimer = setTimeout(() => {
+        const m = autoMove(game);
+        if (!m || finishing) return;
+        game = move(game, m.from, m.to);   // part of the move before it: one Undo takes back both
+        settle();
+      }, 200);
+    }
+  }
+
+  function undo() {
+    if (!history.length || finishing) return;
+    clearHint();
+    clearTimeout(autoTimer);
+    $('stuck').hidden = true;
+    game = history.pop();
+    render();
+    save();
+    if (inPlay()) runClock();
+  }
+  $('undoBtn').addEventListener('click', undo);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && $('win').hidden && $('levels').hidden) { e.preventDefault(); undo(); }
+  });
+
+  /** Play out the end: every card up, one after another. */
+  $('finishBtn').addEventListener('click', () => {
+    if (!canFinish(game) || finishing) return;
+    clearHint();
+    clearTimeout(autoTimer);
+    history.push(game);
+    playing();
+    finishing = true;
+    render();
+    const step = () => {
+      const next = finishStep(game);
+      if (!next) { finishing = false; settle(); return; }
+      game = next;
+      if (won(game)) { finishing = false; settle(); return; }
+      render();
+      setTimeout(step, reduceMotion ? 0 : 90);
+    };
+    step();
+  });
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /** Only the top card of the waste plays (when three are fanned, the two under it are just for show). */
   const underneath = from => from.pile === 'waste' && from.at !== game.waste.length - 1;
@@ -361,7 +473,7 @@
 
   let press = null;   // { el, from, cards: [el], x, y, dragging }
   table.addEventListener('pointerdown', e => {
-    if (!game || won(game)) return;
+    if (!game || won(game) || finishing) return;
     // a tap where the stock is always draws, even on a card that's still sliding off it to the waste
     const r = table.getBoundingClientRect();
     if (e.clientX - r.left < L.w && e.clientY - r.top < L.h) { apply(draw(game)); return; }
@@ -423,23 +535,61 @@
   // ---------- the clock, new games, the win ----------
 
   const fmt = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-  function startClock() {
-    started = Date.now();
+  const clockMs = () => elapsed + (since === null ? 0 : Date.now() - since);
+  const showTime = () => { $('time').textContent = fmt(clockMs()); };
+  const inPlay = () => game && game.moves > 0 && !won(game) && !stuck(game);
+  function runClock() {
+    if (since !== null) return;
+    since = Date.now();
     clearInterval(timer);
-    timer = setInterval(() => { $('time').textContent = fmt(Date.now() - started); }, 1000);
+    timer = setInterval(showTime, 1000);
+  }
+  function stopClock() {
+    if (since !== null) { elapsed += Date.now() - since; since = null; }
+    clearInterval(timer);
+    showTime();
+  }
+  // the clock stops while the page is hidden (another tab, the phone locked), and the game is kept
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { stopClock(); save(); } else if (inPlay()) runClock();
+  });
+
+  function clearTable() {
+    clearTimeout(autoTimer);
+    finishing = false;
+    els.forEach(el => el.remove());
+    els.clear();
+    $('win').hidden = true;
+    $('stuck').hidden = true;
   }
 
   function newGame(seed = Math.floor(Math.random() * 1000000) + 1) {
-    clearInterval(timer);
-    started = null;
-    $('time').textContent = '0:00';
-    $('win').hidden = true;
-    $('stuck').hidden = true;
-    els.forEach(el => el.remove());
-    els.clear();
+    // a game given up on ends the winning streak
+    if (game && counted && !won(game)) updateStats(game.level, st => { st.streak = 0; });
+    stopClock();
+    elapsed = 0;
+    counted = false;
+    clearTable();
     history = [];
     game = deal(seed, rulesOf(level), level);
     render();
+    showTime();
+    save();
+  }
+
+  /** Carry on with a saved game. */
+  function resume(s) {
+    clearTable();
+    level = s.game.level;
+    game = s.game;
+    history = s.history;
+    elapsed = s.elapsed || 0;
+    since = null;
+    counted = !!s.counted;
+    render();
+    showTime();
+    if (stuck(game)) showStuck();
+    else if (inPlay()) runClock();
   }
 
   // ---------- hints, no more moves ----------
@@ -470,18 +620,13 @@
   $('hintBtn').addEventListener('click', showHint);
 
   function showStuck() {
-    clearInterval(timer);
-    $('undoBtn').hidden = !history.length;
+    stopClock();
+    save();
+    $('stuckUndoBtn').hidden = !history.length;
     $('stuck').hidden = false;
     $('stuckNewBtn').focus();
   }
-  $('undoBtn').addEventListener('click', () => {
-    $('stuck').hidden = true;
-    if (!history.length) return;
-    game = history.pop();
-    if (started) { const was = Date.now() - started; startClock(); started = Date.now() - was; }
-    render();
-  });
+  $('stuckUndoBtn').addEventListener('click', undo);
   $('stuckNewBtn').addEventListener('click', () => newGame());
 
   // ---------- the levels ----------
@@ -498,7 +643,10 @@
       b.type = 'button';
       b.className = `level${id === level ? ' current' : ''}`;
       b.dataset.level = id;
-      b.innerHTML = `<b>${l.name}</b><span>${l.about}</span>`;
+      const st = { ...blankStats(), ...loadStats()[id] };
+      const line = !st.played ? 'Not played yet'
+        : [`Won ${st.won} of ${st.played}`, st.bestTime !== null && `best ${fmt(st.bestTime)}`, st.fewestMoves !== null && `${st.fewestMoves} moves`, st.streak > 1 && `${st.streak} in a row`].filter(Boolean).join(' · ');
+      b.innerHTML = `<b>${l.name}</b><span>${l.about}</span><span class="stat">${line}</span>`;
       b.addEventListener('click', () => {
         if (id === level && playing) { hideLevels(); return; }
         if (playing && sureLevel !== id) {
@@ -530,15 +678,27 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('levels').hidden) hideLevels(); });
 
   function finish() {
-    clearInterval(timer);
-    const time = fmt(Date.now() - started);
-    $('time').textContent = time;
+    stopClock();
+    const ms = clockMs(), time = fmt(ms);
+    let best = '';
+    updateStats(game.level, st => {
+      if (st.won > 0 && (st.bestTime === null || ms < st.bestTime)) best = 'Your fastest yet!';
+      else if (st.won > 0 && (st.fewestMoves === null || game.moves < st.fewestMoves)) best = 'Your fewest moves yet!';
+      st.won++;
+      st.streak++;
+      st.bestTime = st.bestTime === null ? ms : Math.min(st.bestTime, ms);
+      st.fewestMoves = st.fewestMoves === null ? game.moves : Math.min(st.fewestMoves, game.moves);
+      if (st.streak > 1 && !best) best = `${st.streak} wins in a row!`;
+    });
+    counted = false;
+    save();
     game.foundations.forEach((pile, i) => {
       const king = els.get(pile[pile.length - 1].id);
       king.style.animationDelay = `${i * 0.12}s`;
       king.classList.add('bounce');
     });
     $('winText').textContent = `${game.moves} moves in ${time}`;
+    $('winBest').textContent = best;
     setTimeout(() => { $('win').hidden = false; $('againBtn').focus(); }, 500);
   }
 
@@ -563,13 +723,16 @@
   // for the tests
   window.solitaire = {
     get game() { return game; },
-    load(g) { els.forEach(el => el.remove()); els.clear(); game = g; history = []; render(); if (won(game)) finish(); else if (stuck(game)) showStuck(); },
+    load(g) { clearTable(); stopClock(); elapsed = 0; counted = false; game = g; history = []; render(); showTime(); if (stuck(game)) showStuck(); },
     newGame,
   };
 
-  newGame(Number(params.get('seed')) || undefined);
+  // carry on with the saved game, unless a link asks for another deal or level
+  const kept = loadSave(), seed = Number(params.get('seed')) || undefined;
+  if (kept && (!seed || kept.game.seed === seed) && (!params.has('level') || params.get('level') === kept.game.level)) resume(kept);
+  else newGame(seed);
   // the first time here, pick a level (a deal link or ?level= goes straight to the game)
-  if (!saved && !params.has('seed') && !params.has('level')) showLevels();
+  if (!saved && !kept && !params.has('seed') && !params.has('level')) showLevels();
 </script>
 <script>
   // offline: the game works after the first visit with no connection (sw.js)

@@ -197,11 +197,115 @@ test('no more moves: say so, with Undo and New game', async ({ page }) => {
   await expect(page.locator('#stuck')).toBeHidden();
   await card(page, 'S8').click();   // onto the 9♥: and then nothing else can go anywhere
   await expect(page.locator('#stuck')).toBeVisible();
-  await page.click('#undoBtn');
+  await page.click('#stuckUndoBtn');
   await expect(page.locator('#stuck')).toBeHidden();
   expect((await game(page)).tableau[0].map(c => c.id)).toEqual(['S8']);
   await card(page, 'S8').click();
   await page.click('#stuckNewBtn');
   await expect(page.locator('#stuck')).toBeHidden();
   expect((await game(page)).tableau.flat()).toHaveLength(28);
+});
+
+// ---------- undo, helpers, stats and the saved game (#117)
+
+const load = (page, g) => page.evaluate(g => {
+  const c = ([suit, rank, up = true]) => ({ id: `${suit}${rank}`, suit, rank, up });
+  const cards = list => list.map(c);
+  window.solitaire.load({
+    seed: 1234, moves: 10, pass: 1, ...g,
+    stock: cards(g.stock), waste: cards(g.waste), foundations: g.foundations.map(cards), tableau: g.tableau.map(cards),
+  });
+}, g);
+
+test('Undo takes back a move, and a draw, exactly', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('#undoBtn')).toBeDisabled();
+  const before = await game(page);
+  await card(page, 'C6').click();
+  const afterMove = await game(page);
+  await tapStock(page);
+  await page.click('#undoBtn');
+  expect(await game(page)).toEqual(afterMove);
+  await page.keyboard.press('Control+z');
+  expect(await game(page)).toEqual(before);
+  await expect(page.locator('#undoBtn')).toBeDisabled();
+  await expect(card(page, 'C6')).toHaveCSS('top', await card(page, 'C6').evaluate(el => el.style.top));
+});
+
+const upAndAway = level => ({
+  level, rules: level === 'easy' ? { draw: 1, passes: null } : { draw: 1, passes: 3 },
+  stock: [['C', 9, false]], waste: [], foundations: [[], [], [], []],
+  tableau: [[['H', 2, false], ['S', 7]], [['D', 8]], [['H', 1]], [['D', 10]], [], [], []],   // the 10♦ will take the 9♣
+});
+
+test('Easy: safe cards go up by themselves, and one Undo takes it all back', async ({ page }) => {
+  await open(page);
+  await load(page, upAndAway('easy'));
+  await card(page, 'S7').click();   // onto the 8♦, which turns the 2♥ over: the A♥ and 2♥ go up
+  await expect.poll(async () => (await game(page)).foundations.flat().map(c => c.id)).toEqual(['H1', 'H2']);
+  expect((await game(page)).moves).toBe(13);
+  await page.click('#undoBtn');
+  const g = await game(page);
+  expect(g.foundations.flat()).toHaveLength(0);
+  expect(g.tableau[0].map(c => c.id)).toEqual(['H2', 'S7']);
+  expect(g.tableau[2].map(c => c.id)).toEqual(['H1']);
+});
+
+test('Medium: cards stay where they are', async ({ page }) => {
+  await open(page);
+  await load(page, upAndAway('medium'));
+  await card(page, 'S7').click();
+  await page.waitForTimeout(600);
+  expect((await game(page)).foundations.flat()).toHaveLength(0);
+});
+
+test('Finish plays out the end, and the win counts in the stats', async ({ page }) => {
+  await open(page);
+  const run = (suits, top) => Array.from({ length: top }, (_, k) => [suits[k % 2], 13 - k]);
+  await load(page, {
+    level: 'medium', rules: { draw: 1, passes: 3 }, moves: 90, stock: [], waste: [],
+    foundations: [[['S', 1]], [['H', 1]], [], []],
+    tableau: [run(['S', 'H'], 12), run(['H', 'S'], 12), run(['D', 'C'], 13), run(['C', 'D'], 13), [], [], []],
+  });
+  await expect(page.locator('#finishBtn')).toBeVisible();
+  await page.click('#finishBtn');
+  await expect(page.locator('#win')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('#winText')).toHaveText(/^140 moves in /);
+  await page.click('#againBtn');
+  await page.click('#levelBtn');
+  await expect(page.locator('.level[data-level="medium"] .stat')).toHaveText(/^Won 1 of 1 · best \d+:\d\d · 140 moves$/);
+  await expect(page.locator('.level[data-level="easy"] .stat')).toHaveText('Not played yet');
+});
+
+test('a reload carries on with the same game', async ({ page }) => {
+  await open(page);
+  await card(page, 'C6').click();
+  await tapStock(page);
+  const g = await game(page);
+  await page.reload();
+  expect(await game(page)).toEqual(g);
+  await expect(page.locator('#moves')).toHaveText('2');
+  await expect(page.locator('#undoBtn')).toBeEnabled();
+  await page.click('#undoBtn');
+  expect((await game(page)).waste).toHaveLength(0);
+  // a new game (once sure) replaces it, and a different deal link doesn't resume it
+  await page.click('#newBtn');
+  await page.click('#newBtn');
+  await page.goto('/solitaire/?seed=99');
+  expect((await game(page)).seed).toBe(99);
+});
+
+test('the clock stops while the page is hidden', async ({ page }) => {
+  await open(page);
+  await card(page, 'C6').click();
+  const hide = hidden => page.evaluate(h => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+  await hide(true);
+  const t = await page.locator('#time').textContent();
+  await page.waitForTimeout(2200);
+  await expect(page.locator('#time')).toHaveText(t);
+  await hide(false);
+  await expect(page.locator('#time')).not.toHaveText(t, { timeout: 3000 });
 });

@@ -18,6 +18,11 @@ pull request; at release time that section becomes the new version (see "Releasi
   as often as you like), **Medium** (draw 1, three times through, with a count by the stock) and **Hard** (draw 3,
   fanned, only the top card plays). A Hint button on Easy and Medium, and a "No more moves" message with Undo and
   New game when nothing else can go anywhere. Another level mid-game asks first (#116).
+- Solitaire helpers: **Undo** on every level (Ctrl/⌘+Z too; one Undo also takes back the cards that went up by
+  themselves), safe cards going up to the foundations by themselves on Easy, a **✨ Finish** button that plays out
+  the end once every card is face up, a clock that stops while the page is hidden, stats per level (won of
+  played, best time, fewest moves, wins in a row) in the level menu, and the game in progress kept on the device
+  so a reload carries on with it (#117).
 
 ## [4.15.0] - 2026-10-25
 
