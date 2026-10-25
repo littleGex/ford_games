@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 // The Game Zone home page: every game is linked, the filters work, and "Play again" remembers games.
-const games = ['house', 'dice', 'snake', 'tictactoe', 'connect4', 'uno', 'hangman', 'wordle', 'wordsearch', 'soccer', 'soccer5v5'];
+const games = ['house', 'dice', 'snake', 'tictactoe', 'connect4', 'battleships', 'uno', 'hangman', 'wordle', 'wordsearch', 'soccer', 'soccer5v5'];
 
 test('every game has a tile that links to its folder', async ({ page }) => {
   await page.goto('/');
@@ -12,7 +12,7 @@ test('every game has a tile that links to its folder', async ({ page }) => {
 
 test('the filters show only that kind of game, and are remembered', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#games .tile:visible')).toHaveCount(10);
+  await expect(page.locator('#games .tile:visible')).toHaveCount(11);
 
   await page.getByRole('button', { name: 'Words' }).click();
   await expect(page.getByRole('button', { name: 'Words' })).toHaveAttribute('aria-pressed', 'true');
@@ -24,7 +24,7 @@ test('the filters show only that kind of game, and are remembered', async ({ pag
   await expect(page.locator('#games .tile:visible')).toHaveCount(3);
 
   await page.getByRole('button', { name: 'All games' }).click();
-  await expect(page.locator('#games .tile:visible')).toHaveCount(10);
+  await expect(page.locator('#games .tile:visible')).toHaveCount(11);
 });
 
 test('"Play again" lists the last games opened, newest first', async ({ page }) => {

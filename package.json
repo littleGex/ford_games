@@ -1,11 +1,12 @@
 {
   "name": "ford-games",
-  "version": "4.14.0",
-  "description": "Game Zone: the Ford family's browser games (dice, snake, word games, Uno, soccer, Ford House)",
+  "version": "4.15.0",
+  "description": "Game Zone: the Ford family's browser games (dice, snake, word games, Uno, Battleships, soccer, Ford House)",
   "main": "index.html",
   "scripts": {
     "serve": "http-server -c-1 -p 8080 .",
     "test:e2e": "playwright test tests/e2e",
+    "test:battleships": "node tests/battleships/play.mjs && node tests/battleships/online.mjs",
     "test:house": "node tests/house/planner.mjs && node --import ./tests/house/register.mjs tests/house/playthrough.mjs"
   },
   "devDependencies": {

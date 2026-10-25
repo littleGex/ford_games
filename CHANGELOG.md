@@ -10,6 +10,17 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.15.0] - 2026-10-25
+
+### Added
+- **Battleships**, a new game in 3D in the Ford House style: wooden jetty boards on an evening sea, ships built
+  from blocks, shells that arc across, splashes, fires and ships that sink. Drag your ships to place them (tap
+  to turn), then take turns firing. Play the computer (Easy, Normal or Hard), or two players on one device with
+  a hand-off screen between turns. Games are saved on the device; wins against the computer are counted (#121).
+- Battleships: **play from two phones**. Start a game to get a 4-letter code (or send the link), and the other
+  player joins with it. Each phone keeps its own fleet secret; at the end each checks the other's answers were
+  honest. Uses its own Firebase project, with security rules that make both players take turns (#122).
+
 ## [4.14.0] - 2026-10-25
 
 ### Changed
@@ -386,7 +397,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.14.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.15.0...HEAD
+[4.15.0]: https://github.com/littleGex/ford_games/compare/v4.14.0...v4.15.0
 [4.14.0]: https://github.com/littleGex/ford_games/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/littleGex/ford_games/compare/v4.12.0...v4.13.0
 [4.12.0]: https://github.com/littleGex/ford_games/compare/v4.11.0...v4.12.0

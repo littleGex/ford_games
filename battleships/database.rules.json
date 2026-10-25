@@ -1,0 +1,90 @@
+{
+  "rules": {
+    "rooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.child('a/uid').val() === auth.uid) || (data.exists() && !newData.exists() && data.child('created').val() < now - 86400000))",
+        ".validate": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/) && newData.hasChildren(['created', 'n', 'a'])",
+
+        "created": { ".validate": "!data.exists() && newData.val() === now" },
+
+        "n": {
+          ".write": "auth != null && (data.parent().child('a/uid').val() === auth.uid || data.parent().child('b/uid').val() === auth.uid)",
+          ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 0) || (data.exists() && newData.val() === data.val() + 1 && newData.parent().child('shots/' + data.val()).exists()))"
+        },
+
+        "a": {
+          ".validate": "newData.hasChildren(['uid', 'name'])",
+          "uid": { ".validate": "!data.exists() && newData.val() === auth.uid" },
+          "name": { ".validate": "!data.exists() && newData.isString() && newData.val().length >= 1 && newData.val().length <= 14" },
+          "hash": {
+            ".write": "!data.exists() && data.parent().child('uid').val() === auth.uid",
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{64}$/)"
+          },
+          "seen": {
+            ".write": "data.parent().child('uid').val() === auth.uid",
+            ".validate": "newData.val() === now"
+          },
+          "$other": { ".validate": false }
+        },
+
+        "b": {
+          ".write": "auth != null && !data.exists() && data.parent().exists() && data.parent().child('a/uid').val() !== auth.uid",
+          ".validate": "newData.hasChildren(['uid', 'name'])",
+          "uid": { ".validate": "!data.exists() && newData.val() === auth.uid" },
+          "name": { ".validate": "!data.exists() && newData.isString() && newData.val().length >= 1 && newData.val().length <= 14" },
+          "hash": {
+            ".write": "!data.exists() && data.parent().child('uid').val() === auth.uid",
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{64}$/)"
+          },
+          "seen": {
+            ".write": "data.parent().child('uid').val() === auth.uid",
+            ".validate": "newData.val() === now"
+          },
+          "$other": { ".validate": false }
+        },
+
+        "shots": {
+          "$s": {
+            ".write": "auth != null && !data.exists() && $s === '' + data.parent().parent().child('n').val() && data.parent().parent().child('a/hash').exists() && data.parent().parent().child('b/hash').exists() && newData.child('by').val() === (data.parent().parent().child('n').val() % 2 === 0 ? 'a' : 'b') && data.parent().parent().child(newData.child('by').val() + '/uid').val() === auth.uid && (data.parent().parent().child('n').val() === 0 || data.parent().parent().child('results/' + (data.parent().parent().child('n').val() - 1)).exists())",
+            ".validate": "newData.hasChildren(['x', 'y', 'by'])",
+            "x": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 9" },
+            "y": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 9" },
+            "by": { ".validate": "newData.val() === 'a' || newData.val() === 'b'" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "results": {
+          "$s": {
+            ".write": "auth != null && !data.exists() && data.parent().parent().child('shots/' + $s).exists() && data.parent().parent().child((data.parent().parent().child('shots/' + $s + '/by').val() === 'a' ? 'b' : 'a') + '/uid').val() === auth.uid",
+            ".validate": "newData.hasChild('r') && (newData.child('r').val() === 'sunk') === newData.hasChild('ship')",
+            "r": { ".validate": "newData.val() === 'miss' || newData.val() === 'hit' || newData.val() === 'sunk'" },
+            "ship": {
+              ".validate": "newData.hasChildren(['id', 'x', 'y', 'dir'])",
+              "id": { ".validate": "newData.isString() && newData.val().matches(/^(carrier|battleship|cruiser|submarine|destroyer)$/)" },
+              "x": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 9" },
+              "y": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 9" },
+              "dir": { ".validate": "newData.val() === 'h' || newData.val() === 'v'" },
+              "$other": { ".validate": false }
+            },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "reveal": {
+          "$seat": {
+            ".write": "auth != null && !data.exists() && ($seat === 'a' || $seat === 'b') && data.parent().parent().child($seat + '/uid').val() === auth.uid",
+            ".validate": "newData.hasChildren(['fleet', 'salt'])",
+            "fleet": { ".validate": "newData.isString() && newData.val().length <= 200" },
+            "salt": { ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{32}$/)" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "$other": { ".validate": false }
+      }
+    },
+    "$other": { ".read": false, ".write": false }
+  }
+}

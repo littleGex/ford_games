@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Battleships</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#16202f">
+  <link rel="stylesheet" href="css/battleships.css">
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="3D view of the two boards on the sea"></canvas>
+
+  <div class="hud top">
+    <div class="topleft">
+      <button class="chip menubtn" id="menuBtn" aria-label="Menu" aria-haspopup="dialog">☰</button>
+      <div class="chip status" aria-live="polite">
+        <div class="label" id="statusLabel"></div>
+        <div class="name" id="statusText"></div>
+      </div>
+    </div>
+    <div class="chip fleets" id="fleets" hidden>
+      <div class="fleet-row"><span class="fleet-who" id="enemyName">Enemy</span><ul id="enemyFleet" aria-label="The enemy fleet"></ul></div>
+      <div class="fleet-row"><span class="fleet-who" id="myName">Yours</span><ul id="myFleet" aria-label="Your fleet"></ul></div>
+    </div>
+  </div>
+
+  <div class="hud bottom">
+    <div class="left">
+      <button class="ghost" id="viewBtn" hidden>👁 Your fleet</button>
+      <button class="ghost" id="shuffleBtn" hidden>🔀 Shuffle</button>
+    </div>
+    <div class="right">
+      <button class="btn act" id="fireBtn" hidden disabled>Fire!</button>
+      <button class="btn act" id="readyBtn" hidden>Ready</button>
+    </div>
+  </div>
+
+  <div class="hint" id="hint" hidden></div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <div class="home" id="home" role="dialog" aria-modal="true" aria-labelledby="homeTitle">
+    <div class="home-card">
+      <p class="eyebrow">Game Zone</p>
+      <h1 id="homeTitle">Battleships</h1>
+      <p class="home-sub">Hide your fleet, then find and sink theirs</p>
+      <button class="btn home-play" id="resumeBtn" hidden>Carry on</button>
+      <p class="resume-what" id="resumeWhat" hidden></p>
+      <button class="linkbtn" id="leaveBtn" hidden>Leave the game on two devices</button>
+
+      <h2>Against the computer</h2>
+      <div class="pills" role="group" aria-label="How good the computer is">
+        <button data-level="easy" aria-pressed="false">Easy</button><button data-level="normal" aria-pressed="true">Normal</button><button data-level="hard" aria-pressed="false">Hard</button>
+      </div>
+      <button class="btn home-play" id="playCpu">Play the computer</button>
+      <p class="stats" id="stats"></p>
+
+      <h2>Two players, one device</h2>
+      <div class="names">
+        <label>Player 1 <input id="name1" maxlength="14" placeholder="Player 1" autocomplete="off"></label>
+        <label>Player 2 <input id="name2" maxlength="14" placeholder="Player 2" autocomplete="off"></label>
+      </div>
+      <button class="btn home-play second" id="playLocal">Play each other</button>
+
+      <h2>Two devices</h2>
+      <label class="solo">Your name <input id="onlineName" maxlength="14" placeholder="Your name" autocomplete="off"></label>
+      <button class="btn home-play second" id="hostBtn">Start a game</button>
+      <form class="join" id="joinForm">
+        <input id="joinCode" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Game code">
+        <button class="btn" id="joinBtn">Join</button>
+      </form>
+      <p class="online-msg" id="onlineMsg" role="status"></p>
+
+      <div class="home-foot">
+        <button class="linkbtn" id="soundBtn" aria-pressed="true">Sound: on</button>
+        <a class="linkbtn" href="../">Back to Game Zone</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="home" id="lobby" role="dialog" aria-modal="true" aria-labelledby="lobbyTitle" hidden>
+    <div class="home-card">
+      <p class="eyebrow">Two devices</p>
+      <h1 id="lobbyTitle">Your game code</h1>
+      <p class="code" id="lobbyCode">····</p>
+      <p class="home-sub">On the other phone or tablet, open Battleships, tap <b>Join</b> and type in this code. Or send them the link.</p>
+      <button class="btn home-play second" id="shareBtn">Send the link</button>
+      <p class="lobby-wait"><span class="dots" aria-hidden="true"></span> Waiting for the other player to join</p>
+      <div class="home-foot"><button class="linkbtn" id="lobbyCancel">Cancel</button></div>
+    </div>
+  </div>
+
+  <div class="handoff" id="handoff" role="dialog" aria-modal="true" aria-labelledby="handoffTitle" hidden>
+    <div class="handoff-card">
+      <p class="eyebrow" id="handoffEyebrow">Pass the device</p>
+      <h1 id="handoffTitle"></h1>
+      <p id="handoffText"></p>
+      <button class="btn home-play" id="handoffBtn">I'm ready</button>
+    </div>
+  </div>
+
+  <div class="home" id="over" role="dialog" aria-modal="true" aria-labelledby="overTitle" hidden>
+    <div class="home-card over-card">
+      <p class="eyebrow">Game over</p>
+      <h1 id="overTitle"></h1>
+      <p class="home-sub" id="overText"></p>
+      <p class="check" id="overCheck" role="status" hidden></p>
+      <button class="btn home-play" id="againBtn">Play again</button>
+      <div class="home-foot">
+        <button class="linkbtn" id="lookBtn">Look at the boards</button>
+        <button class="linkbtn" id="overMenuBtn">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  </script>
+</body>
+</html>
