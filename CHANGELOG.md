@@ -23,6 +23,9 @@ pull request; at release time that section becomes the new version (see "Releasi
   the end once every card is face up, a clock that stops while the page is hidden, stats per level (won of
   played, best time, fewest moves, wins in a row) in the level menu, and the game in progress kept on the device
   so a reload carries on with it (#117).
+- Solitaire on Easy deals only games that can be won: a small solver (`solve` in `solitaire/klondike.js`) checks
+  each deal before it's dealt and moves on to the next deal number if it can't find a win quickly. It works
+  offline and takes well under a second even on a slow phone. Deal links still deal the deal asked for (#119).
 
 ## [4.15.0] - 2026-10-25
 

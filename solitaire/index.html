@@ -198,7 +198,7 @@
   // table and turns taps and drags into moves.
   import {
     deal, move, draw, canDraw, canMove, bestMove, picked, won, hint, stuck, turnsLeft, rulesOf, autoMove, canFinish, finishStep,
-    cardCount, LEVELS, SYMBOL, RED, RANK_NAME,
+    winnableSeed, cardCount, LEVELS, SYMBOL, RED, RANK_NAME,
   } from './klondike.js';
 
   const $ = id => document.getElementById(id);
@@ -563,7 +563,12 @@
     $('stuck').hidden = true;
   }
 
-  function newGame(seed = Math.floor(Math.random() * 1000000) + 1) {
+  /** A new deal: the one asked for (a deal link), or a random one, which on Easy is always one that can be won. */
+  function newGame(seed = null) {
+    if (seed === null) {
+      seed = Math.floor(Math.random() * 1000000) + 1;
+      if (LEVELS[level].winnable) seed = winnableSeed(seed);
+    }
     // a game given up on ends the winning streak
     if (game && counted && !won(game)) updateStats(game.level, st => { st.streak = 0; });
     stopClock();
@@ -728,7 +733,7 @@
   };
 
   // carry on with the saved game, unless a link asks for another deal or level
-  const kept = loadSave(), seed = Number(params.get('seed')) || undefined;
+  const kept = loadSave(), seed = Number(params.get('seed')) || null;
   if (kept && (!seed || kept.game.seed === seed) && (!params.has('level') || params.get('level') === kept.game.level)) resume(kept);
   else newGame(seed);
   // the first time here, pick a level (a deal link or ?level= goes straight to the game)

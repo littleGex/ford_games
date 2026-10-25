@@ -309,3 +309,21 @@ test('the clock stops while the page is hidden', async ({ page }) => {
   await hide(false);
   await expect(page.locator('#time')).not.toHaveText(t, { timeout: 3000 });
 });
+
+// ---------- Easy deals can be won (#119)
+
+test('Easy deals only games that can be won; a deal link still deals that deal', async ({ page }) => {
+  await page.goto('/solitaire/?level=easy');
+  const results = await page.evaluate(async () => {
+    const k = await import('./klondike.js');
+    const out = [];
+    for (let n = 0; n < 8; n++) {
+      window.solitaire.newGame();
+      out.push(k.solve(window.solitaire.game).result);
+    }
+    return out;
+  });
+  expect(results).toEqual(Array(8).fill('won'));
+  await page.goto('/solitaire/?seed=1234&level=easy');
+  expect((await game(page)).seed).toBe(1234);
+});
