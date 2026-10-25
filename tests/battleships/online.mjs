@@ -1,7 +1,11 @@
 // Games on two devices, without a network: the room as the database keeps it, what each side makes of it, and the
 // check at the end that catches a wrong answer.  node tests/battleships/online.mjs
+import { webcrypto } from 'node:crypto';
 import { randomFleet, resolveShot, cells, seededRandom } from '../../battleships/js/rules.js';
 import { view, check, fleetHash, fleetString, parseFleet, newSalt, newCode, CODE_RE, shooter } from '../../battleships/js/net/online.js';
+
+// browsers (and Node 20+) have crypto built in; CI's Node 18 needs it handed over
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 const fail = [];
 const check_ = (ok, msg) => { if (!ok) fail.push(msg); };
