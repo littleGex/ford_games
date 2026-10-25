@@ -138,7 +138,9 @@ test('Easy draws one card, Hard three fanned, and only the top one plays', async
   const lefts = await Promise.all(g.waste.map(c => card(page, c.id).evaluate(el => parseFloat(el.style.left))));
   expect(lefts[0]).toBeLessThan(lefts[1]);
   expect(lefts[1]).toBeLessThan(lefts[2]);
-  await card(page, g.waste[0].id).click({ force: true });   // under the top card: nothing happens
+  // once the cards have slid into place, tap the strip of the bottom card that shows: nothing happens
+  await expect(card(page, g.waste[2].id)).toHaveCSS('left', `${lefts[2]}px`);
+  await card(page, g.waste[0].id).click({ position: { x: 4, y: 30 } });
   expect((await game(page)).moves).toBe(1);
 });
 
