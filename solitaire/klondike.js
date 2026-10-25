@@ -17,12 +17,13 @@ export const SYMBOL = { S: '♠', H: '♥', D: '♦', C: '♣' };
 export const RANK_NAME = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 /**
  * The levels, all in one place so they're easy to change. draw: cards turned over from the stock at a time;
- * passes: how many times you may go through the stock (null: as often as you like); hints: the Hint button.
+ * passes: how many times you may go through the stock (null: as often as you like); hints: the Hint button;
+ * autoMove: cards that can safely go up to the foundations go by themselves.
  */
 export const LEVELS = {
-  easy: { name: 'Easy', draw: 1, passes: null, hints: true, about: 'Draw 1 card, through the stock as often as you like' },
-  medium: { name: 'Medium', draw: 1, passes: 3, hints: true, about: 'Draw 1 card, three times through the stock' },
-  hard: { name: 'Hard', draw: 3, passes: null, hints: false, about: 'Draw 3 cards at a time, only the top one plays, no hints' },
+  easy: { name: 'Easy', draw: 1, passes: null, hints: true, autoMove: true, about: 'Draw 1 card, through the stock as often as you like, cards go up by themselves' },
+  medium: { name: 'Medium', draw: 1, passes: 3, hints: true, autoMove: false, about: 'Draw 1 card, three times through the stock' },
+  hard: { name: 'Hard', draw: 3, passes: null, hints: false, autoMove: false, about: 'Draw 3 cards at a time, only the top one plays, no hints' },
 };
 export const DEFAULT_RULES = { draw: 1, passes: null };
 /** The stock rules for a level. */
@@ -181,6 +182,39 @@ export function hint(game) {
 
 /** No more moves: not won, and nothing (not even the stock) gets anywhere. */
 export const stuck = game => !won(game) && !hint(game);
+
+/**
+ * A card that can safely go up by itself (Easy): an Ace or a 2, or a card whose two foundations of the other
+ * colour are both up to one below it, so nothing still on the table could need to go on it. Returns the move.
+ */
+export function autoMove(game) {
+  const froms = [{ pile: 'waste' }, ...game.tableau.map((_, i) => ({ pile: 'tableau', i }))];
+  for (const from of froms) {
+    const [c] = picked(game, from);
+    if (!c) continue;
+    const to = bestMove(game, from);
+    if (!to || to.pile !== 'foundation') continue;
+    const height = suit => (game.foundations.find(f => f.length && f[0].suit === suit) || []).length;
+    const otherColour = SUITS.filter(suit => RED.has(suit) !== red(c));
+    if (c.rank <= 2 || otherColour.every(suit => height(suit) >= c.rank - 1)) return { from, to };
+  }
+  return null;
+}
+
+/** Can the rest be played out for you: the stock and waste empty and every card on the table face up? */
+export const canFinish = game => !won(game) && !game.stock.length && !game.waste.length && game.tableau.every(col => col.every(c => c.up));
+
+/** The next card up when finishing off: the lowest card on top of a column that fits a foundation. */
+export function finishStep(game) {
+  let best = null;
+  game.tableau.forEach((col, i) => {
+    const c = col[col.length - 1];
+    if (!c || (best && best.rank <= c.rank)) return;
+    const f = game.foundations.findIndex(pile => fitsFoundation(c, pile));
+    if (f >= 0) best = { rank: c.rank, from: { pile: 'tableau', i }, to: { pile: 'foundation', i: f } };
+  });
+  return best && move(game, best.from, best.to);
+}
 
 /** Every card on the foundations? */
 export const won = game => game.foundations.every(f => f.length === 13);

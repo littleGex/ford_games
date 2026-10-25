@@ -1,5 +1,5 @@
 // Klondike rules, checked without a browser:  node tests/solitaire/rules.mjs
-import { deal, move, draw, canMove, bestMove, picked, won, cardCount, fitsTableau, fitsFoundation, hint, stuck, turnsLeft, rulesOf, LEVELS } from '../../solitaire/klondike.js';
+import { deal, move, draw, canMove, bestMove, picked, won, cardCount, fitsTableau, fitsFoundation, hint, stuck, turnsLeft, rulesOf, LEVELS, autoMove, canFinish, finishStep } from '../../solitaire/klondike.js';
 
 const fail = [];
 const check = (ok, msg) => { if (!ok) fail.push(msg); };
@@ -100,6 +100,31 @@ check(stuck(blocked), 'nothing goes anywhere and the stock is spent: stuck');
 check(!stuck({ ...blocked, rules: { draw: 1, passes: 2 }, waste: [card('H', 7), card('C', 9)] }), 'a card in the waste that fits: not stuck while it can be turned over');
 check(JSON.stringify(hint({ ...blocked, rules: { draw: 1, passes: 2 }, waste: [card('H', 7), card('C', 9)] })) === '{"draw":true}', 'the hint: tap the stock');
 check(!stuck(deal(1234)), 'a new deal isn\'t stuck');
+
+// --- Easy's helpers: safe moves up, and playing out the end
+check(JSON.stringify(autoMove(table)) === '{"from":{"pile":"waste"},"to":{"pile":"foundation","i":0}}', 'an Ace goes up by itself');
+const threes = {
+  ...table, waste: [],
+  foundations: [[card('S', 1), card('S', 2)], [card('H', 1), card('H', 2)], [card('D', 1)], [card('C', 1), card('C', 2)]],
+  tableau: [[card('H', 3)], [card('S', 3)], [], [], [], [], []],
+};
+check(autoMove(threes) && autoMove(threes).from.i === 0, 'the 3♥ goes up: both blacks are up to 2');
+check(autoMove({ ...threes, tableau: [[], [card('S', 3)], [], [], [], [], []] }) === null, 'the 3♠ waits: the ♦ is only up to the Ace');
+const ending = {
+  ...table, stock: [], waste: [],
+  foundations: [[], [], [], []],
+  tableau: [
+    ['S', 'H', 'S', 'H', 'S', 'H', 'S', 'H', 'S', 'H', 'S', 'H', 'S'].map((x, k) => card(x, 13 - k)),
+    ['H', 'S', 'H', 'S', 'H', 'S', 'H', 'S', 'H', 'S', 'H', 'S', 'H'].map((x, k) => card(x, 13 - k)),
+    ['D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D'].map((x, k) => card(x, 13 - k)),
+    ['C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C'].map((x, k) => card(x, 13 - k)),
+    [], [], [],
+  ],
+};
+check(canFinish(ending) && !canFinish(table), 'finishing off: only with the stock empty and every card face up');
+let fin = ending, steps = 0;
+while (fin && !won(fin) && steps < 60) { fin = finishStep(fin); steps++; }
+check(fin && won(fin) && steps === 52, 'finishing off plays all 52 up, one at a time');
 
 const nearlyDone = {
   ...table, stock: [], waste: [], tableau: [[card('S', 13)], [], [], [], [], [], []],
