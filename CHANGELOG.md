@@ -10,6 +10,13 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- **Connect 4 and Tic-Tac-Toe on two phones**: a 📱 Two phones mode. One player starts a game and gets a
+  four-letter code, the other types it in, and each plays on their own phone; Play again swaps who goes first,
+  a reload carries on, and leaving tells the other player. Without the internet the mode is greyed out and the
+  game is played on one device as before. The rooms live in the Battleships database under `duels/`, with
+  their own security rules (`battleships/database.rules.json`, checked by `tests/duels/rules-live.mjs`).
+
 ## [4.16.0] - 2026-10-25
 
 ### Added

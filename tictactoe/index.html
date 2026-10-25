@@ -6,6 +6,8 @@
 <title>Tic-Tac-Toe</title>
 <link rel="manifest" href="manifest.json">
 <style>
+  #board[hidden], #resetBtn[hidden] { display: none !important; }
+  #modeBar label:has(input:disabled) { opacity: .45; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; overflow-x: hidden; }
   body {
@@ -128,12 +130,15 @@
   <div id="modeBar">
     <label><input type="radio" name="mode" value="2p" checked> 2 Player</label>
     <label><input type="radio" name="mode" value="cpu"> vs Computer</label>
+    <label><input type="radio" name="mode" value="online"> 📱 Two phones</label>
   </div>
 
   <div id="difficultyBar">
     <label><input type="radio" name="difficulty" value="easy" checked> Easy</label>
     <label><input type="radio" name="difficulty" value="unbeatable"> Unbeatable</label>
   </div>
+
+  <div id="duel" hidden></div>
 
   <div id="status">X's turn</div>
 
@@ -166,11 +171,17 @@
   }
 
   modeRadios.forEach(r => r.addEventListener('change', () => {
+    r.blur();
+    applyMode();
+  }));
+  function applyMode() {
+    const was = mode;
     mode = getMode();
     difficultyBar.style.display = mode === 'cpu' ? 'flex' : 'none';
-    r.blur();
-    newGame();
-  }));
+    if (was === 'online' && mode !== 'online') leaveOnline();
+    if (mode === 'online') goOnline();
+    else newGame();
+  }
   difficultyRadios.forEach(r => r.addEventListener('change', () => {
     difficulty = getDifficulty();
     r.blur();
@@ -232,6 +243,7 @@
   }
 
   function handleMove(i) {
+    if (mode === 'online') { onlineMove(i); return; }
     if (gameOver || board[i]) return;
     if (mode === 'cpu' && current === 'O') return; // block clicks during computer's turn
     place(i, current);
@@ -322,10 +334,85 @@
     }
   }
 
-  resetBtn.addEventListener('click', newGame);
+  resetBtn.addEventListener('click', () => (mode === 'online' ? duel && duel.rematch() : newGame()));
+
+  // ---------- two phones: a room in the Game Zone database (../shared/duel.js, loaded only when picked) ----------
+  // The room holds the moves; the board is worked out from them each time they change. X is the player who
+  // started the room, O the one who joined; the rounds take turns going first.
+  let duel = null, net = null;
+  const duelEl = document.getElementById('duel');
+  const onlineRadio = document.querySelector('input[name="mode"][value="online"]');
+  const MARK = { a: 'X', b: 'O' };
+  function checkOnline() {
+    // without the internet there's no playing on two phones: one device it is
+    onlineRadio.disabled = !navigator.onLine && mode !== 'online';
+    onlineRadio.parentElement.title = onlineRadio.disabled ? 'Needs the internet on both phones' : '';
+  }
+  window.addEventListener('online', checkOnline);
+  window.addEventListener('offline', checkOnline);
+
+  function playOnOneDevice(message) {
+    document.querySelector('input[name="mode"][value="2p"]').checked = true;
+    applyMode();
+    if (message) statusEl.textContent = message;
+  }
+
+  async function goOnline() {
+    net = null;
+    gameOver = true;
+    boardEl.hidden = true;
+    resetBtn.hidden = true;
+    statusEl.textContent = '';
+    try {
+      if (!duel) {
+        const { createDuel } = await import('../shared/duel.js');
+        duel = createDuel({ game: 'ttt', mount: duelEl, colours: { a: 'X', b: 'O' }, onState: showOnline, onExit: () => playOnOneDevice() });
+      }
+      if (mode === 'online') duel.show();
+    } catch (e) {
+      playOnOneDevice('Two phones needs the internet: playing on this one');
+    }
+  }
+
+  function leaveOnline() {
+    if (duel) duel.hide();
+    net = null;
+    boardEl.hidden = false;
+    resetBtn.hidden = false;
+    resetBtn.textContent = 'New Game';
+    checkOnline();
+  }
+
+  function showOnline(state) {
+    if (mode !== 'online') return;
+    if (!state.playing) { net = null; boardEl.hidden = true; resetBtn.hidden = true; statusEl.textContent = ''; return; }
+    net = state;
+    const mine = MARK[state.seat], them = state.names[state.seat === 'a' ? 'b' : 'a'];
+    board = Array(9).fill(null);
+    state.moves.forEach((cell, i) => { board[cell] = MARK[(state.round + i) % 2 === 0 ? 'a' : 'b']; });
+    current = MARK[(state.round + state.moves.length) % 2 === 0 ? 'a' : 'b'];
+    const result = checkWinner(board), draw = !result && board.every(c => c);
+    gameOver = !!(result || draw);
+    if (boardEl.hidden || !cellEls) { boardEl.hidden = false; buildBoard(); }
+    render();
+    if (result) result.line.forEach(idx => cellEls[idx].classList.add('win'));
+    // only the squares this phone may take can be tapped
+    if (!gameOver && current !== mine) cellEls.forEach(el => { el.disabled = true; });
+    statusEl.textContent = result ? (result.winner === mine ? 'You win! 🎉' : `${them} wins!`)
+      : draw ? "It's a draw!"
+      : current === mine ? `Your turn (${mine})` : `${them}'s turn (${current})…`;
+    resetBtn.hidden = !gameOver || state.left;
+    resetBtn.textContent = 'Play again';
+  }
+
+  function onlineMove(i) {
+    if (!net || gameOver || net.left || current !== MARK[net.seat] || board[i]) return;
+    duel.move(i);
+  }
 
   mode = getMode();
   difficulty = getDifficulty();
+  checkOnline();
   newGame();
 })();
 </script>
