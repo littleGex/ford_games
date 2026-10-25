@@ -6,11 +6,11 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 
 - 🎲 **Dice** — roll up to 6 dice, hold dice between rolls, switch dice styles, shake your phone to roll.
 - 🐍 **Snake** — Easy (wrap-around walls) or Classic (walls kill) mode, on-screen controls for touch devices, and a shared top-5 leaderboard (Firebase Realtime Database, via plain REST calls).
-- ❌⭕ **Tic-Tac-Toe** — 2 player, or vs computer with Easy/Unbeatable difficulty (Unbeatable uses a full minimax search).
+- ❌⭕ **Tic-Tac-Toe** — 2 player (on one phone, or 📱 on two phones over the internet), or vs computer with Easy/Unbeatable difficulty (Unbeatable uses a full minimax search).
 - 🎯 **Hangman** — guess the word before the figure is complete; 8 wrong guesses allowed. Words come from a built-in list plus a shared, Firebase-backed list anyone can add to.
 - 🟩 **Wordle** — guess a hidden word in limited tries with letter feedback (correct position / wrong position / not in word). Easy (4 letters) or Hard (6 letters), each with its own shared, Firebase-backed word list.
 - 🔍 **Word Search** — find hidden words in a letter grid by clicking/dragging across them (any of the 8 directions, forwards or backwards). Easy (8×8, 6 words) or Hard (12×12, 10 words), drawing from a 200+ word bundled list plus a shared, Firebase-backed list anyone can add to.
-- 🔴🟡 **Connect 4** — 2 player, or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
+- 🔴🟡 **Connect 4** — 2 player (on one phone, or 📱 on two phones over the internet), or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
 - ⚽ **1v1 Soccer** — real-time canvas arcade soccer, inspired by retro top-down football games (an original build — no licensed clubs, players, or assets). 2 player (WASD vs arrow keys) or vs computer with rule-based AI. Timed match: two configurable halves (1/2/3 min), teams swap ends at half time, netted goals.
 - 🥅 **5v5 Soccer** — full team match, same original art/engine style. Auto-switch control (you drive whichever of your outfielders is nearest the ball — goalkeepers are always computer-controlled, with real collision physics so shots can't pass through them, and they automatically clear a held ball toward the center circle after ~1.3 seconds so play never stalls; pressing your own kick button clears it immediately instead of waiting), with teammates and opponents holding simple zonal formation positions rather than deliberate passing AI. 2 player, vs computer, or **League** mode: a full 6-team single round-robin season against 5 original opponent teams (own names/colors, no real clubs) of varying AI skill (easy/medium/hard — same decision code, different tuning). You play your own fixtures; the AI-vs-AI matches are simulated with skill-weighted random scorelines, so the standings are a real league table you can win, lose, or finish mid-table in on goal difference. Saved locally in the browser.
 - ♠️ **Solitaire** — Klondike for one, built for a phone: tap a card and it goes to the best place it can (a foundation first, then a column), or drag it. Runs move together, the card underneath turns over by itself, and a win shows the moves and time. CSS-drawn cards with the suit beside every rank. Three levels (Easy: draw 1, as many times through the stock as you like, and every deal can be won, checked by a small solver; Medium: draw 1, three times through; Hard: draw 3), hints on Easy and Medium, Undo, a ✨ Finish button for the end, stats per level, and the game in progress kept on the device so a reload carries on. Each deal has a number, and `?seed=1234` plays that deal again (`&level=hard` picks the level). The rules are in `solitaire/klondike.js`, tested in Node (`npm run test:solitaire`).
@@ -53,6 +53,9 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
+├── shared/             # online play on two phones for Connect 4 and Tic-Tac-Toe
+│   ├── firebase.js     # the database: plain REST and streaming, anonymous sign-in
+│   └── duel.js         # rooms, codes, turns and the start/join panel
 ├── solitaire/
 │   ├── index.html
 │   ├── klondike.js     # the rules, no page (tested in Node)
@@ -95,6 +98,7 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
     │   ├── soccer5v5.spec.js
     │   └── house.spec.js
     ├── battleships/    # Node tests of the Battleships rules, computer players and two-device games
+    ├── duels/          # rules-live.mjs: the two-phone rules checked against the real database (by hand)
     ├── solitaire/      # Node test of the Klondike rules
     └── house/          # Node play-through test for Ford House (no browser)
 ```
@@ -160,6 +164,18 @@ only the player fired at can answer, nothing can be changed once written, and ev
 over a day old may be deleted (by hand, in the console). After changing the rules, run
 `node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
 and not. It isn't part of CI, since it needs the real database.
+
+### Connect 4 and Tic-Tac-Toe on two phones
+
+The same database holds two-phone games of Connect 4 and Tic-Tac-Toe, under `duels/<code>`, using
+`shared/firebase.js` (a copy of Battleships' database code) and `shared/duel.js`. A game holds the two players,
+the round, and the moves (a column or a square each); each phone works out the board from the moves, so a reload
+or a dropped connection just picks up again. The player who starts is Red (or X), the one who joins Yellow (or
+O), and the rounds take turns going first. The pages load `shared/duel.js` only when 📱 Two phones is picked, so
+they still work offline; without the internet that option is greyed out and the game is played on one device.
+The rules for `duels/` are in the same rules file: only the two players, one move at a time on their own turn,
+no changing a move. After changing them, run `node tests/duels/rules-live.mjs` (41 checks against the real
+database).
 
 ## 5v5 League mode
 
