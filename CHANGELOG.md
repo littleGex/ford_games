@@ -10,6 +10,12 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- **Battleships**, a new game in 3D in the Ford House style: wooden jetty boards on an evening sea, ships built
+  from blocks, shells that arc across, splashes, fires and ships that sink. Drag your ships to place them (tap
+  to turn), then take turns firing. Play the computer (Easy, Normal or Hard), or two players on one device with
+  a hand-off screen between turns. Games are saved on the device; wins against the computer are counted.
+
 ## [4.14.0] - 2026-10-25
 
 ### Changed
