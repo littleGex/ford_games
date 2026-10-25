@@ -69,6 +69,9 @@ async function twoPhones(browser, path) {
   }
   return { db, phones };
 }
+/** Wait until it's this phone's turn (it has heard about the last move), as a player would. */
+const myTurn = page => expect(page.locator('#status')).toHaveText(/^Your turn/);
+
 /** P starts a game, Dude joins it with the code. */
 async function startAndJoin([p, dude]) {
   await p.fill('#duelName', 'P');
@@ -93,6 +96,7 @@ test('Connect 4 on two phones: start, join, take turns, win, play again', async 
   await col(dude, 3);   // not Dude's turn: nothing happens
   await expect.poll(() => db.get(`duels/${code}/count`)).toBe(0);
   for (const [page, c, after] of [[p, 0, 1], [dude, 1, 2], [p, 0, 3], [dude, 1, 4], [p, 0, 5], [dude, 1, 6], [p, 0, 7]]) {
+    await myTurn(page);
     await col(page, c);
     await expect.poll(() => db.get(`duels/${code}/count`)).toBe(after);
   }
@@ -109,6 +113,7 @@ test('Connect 4 on two phones: start, join, take turns, win, play again', async 
 test('a reload carries on, a wrong code is turned away, and leaving tells the other phone', async ({ browser }) => {
   const { phones: [p, dude] } = await twoPhones(browser, '/connect4/');
   await startAndJoin([p, dude]);
+  await myTurn(p);
   await p.locator('#board .col').nth(2).click();
   await expect(dude.locator('#status')).toHaveText('Your turn (Yellow)');
 
@@ -132,6 +137,7 @@ test('a Tic-Tac-Toe code doesn\'t open in Connect 4; Tic-Tac-Toe plays on two ph
   const cell = (page, i) => page.locator('#board .cell').nth(i).click();
   await expect(dude.locator('#board .cell').nth(4)).toBeDisabled();   // not Dude's turn
   for (const [page, i] of [[p, 0], [dude, 3], [p, 1], [dude, 4], [p, 2]]) {
+    await myTurn(page);
     await cell(page, i);
     await expect(page.locator('#board .cell').nth(i)).not.toHaveText('');
   }
