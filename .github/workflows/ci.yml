@@ -24,5 +24,6 @@ jobs:
       - run: npm install
       - run: npm run test:house
       - run: npm run test:battleships
+      - run: npm run test:solitaire
       - run: npx playwright install --with-deps
       - run: npm run test:e2e

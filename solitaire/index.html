@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#123d2a">
+<title>Solitaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #1a5a3c;
+    --felt-dark: #0f3424;
+    --ink: #f3f7f2;
+    --muted: #a9c7b5;
+    --gold: #ffcf5a;
+    --card: #fdfcf7;
+    --card-edge: #d8d3c4;
+    --red: #d1342f;
+    --black: #1e2430;
+    --gap: 6px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: radial-gradient(ellipse at 50% 20%, var(--felt), var(--felt-dark) 85%);
+    color: var(--ink);
+    font-family: 'Fredoka', 'Segoe UI', system-ui, sans-serif;
+    padding: max(10px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  #homeBtn, #newBtn {
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    padding: 7px 12px; border-radius: 999px;
+    border: 1px solid rgba(243, 247, 242, .25); background: rgba(0, 0, 0, .2); color: var(--ink);
+    text-decoration: none; cursor: pointer; white-space: nowrap;
+  }
+  #newBtn.sure { background: var(--gold); color: #3a2a00; border-color: var(--gold); }
+  h1 { margin: 0; font-size: clamp(20px, 5.5vw, 26px); font-weight: 700; flex: 1; text-align: center; }
+  .stats { display: flex; justify-content: center; gap: 18px; margin: -4px 0 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--ink); font-weight: 600; }
+  #homeBtn:focus-visible, #newBtn:focus-visible, .card:focus-visible, .slot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  /* the table: every card is placed by script (layout()), so moves glide from place to place */
+  #table { position: relative; margin: 0 auto; touch-action: none; }
+  .slot {
+    position: absolute; border-radius: 8%/6%;
+    border: 2px dashed rgba(243, 247, 242, .22);
+    display: grid; place-items: center;
+    color: rgba(243, 247, 242, .28); font-weight: 700;
+  }
+  .slot.stock { cursor: pointer; border-style: solid; }
+  .slot.stock.spent { cursor: default; }
+
+  .card {
+    position: absolute; border-radius: 8%/6%;
+    background: var(--card); border: 1px solid var(--card-edge);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    color: var(--black);
+    transition: left .22s ease, top .22s ease;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .card.red { color: var(--red); }
+  .card .corner { position: absolute; left: 7%; top: 2%; font-weight: 700; line-height: 1; letter-spacing: -.04em; white-space: nowrap; }
+  .card .corner .s { font-size: .82em; margin-left: .04em; }
+  .card .pip { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; line-height: 1; }
+  .card .face { position: absolute; right: 7%; top: 3%; line-height: 1; opacity: .8; }
+  .card.court .pip { font-weight: 700; }
+  .card.down {
+    background:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, .12) 0 3px, transparent 3px 8px),
+      repeating-linear-gradient(-45deg, rgba(255, 255, 255, .12) 0 3px, transparent 3px 8px),
+      linear-gradient(160deg, #2f6fb0, #1d4a80);
+    border: 2px solid #f3f7f2;
+    cursor: default;
+  }
+  .card.down > * { display: none; }
+  .card.dragging { transition: none; box-shadow: 0 10px 22px rgba(0, 0, 0, .45); cursor: grabbing; }
+  .card.hint { box-shadow: 0 0 0 3px var(--gold), 0 1px 2px rgba(0, 0, 0, .35); }
+  .card.shake { animation: shake .3s; }
+  @keyframes shake { 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+
+  .deal { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
+
+  /* the win */
+  #win { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5, 20, 12, .6); z-index: 100; }
+  #win[hidden] { display: none; }
+  .win-card { width: min(340px, 100%); text-align: center; background: #123d2a; border: 1px solid rgba(243, 247, 242, .2); border-radius: 22px; padding: 22px 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); animation: pop .35s ease-out; }
+  .win-card h2 { margin: 0 0 4px; font-size: 36px; color: var(--gold); }
+  .win-card p { margin: 0 0 18px; color: var(--muted); font-size: 16px; }
+  #againBtn { width: 100%; font-family: inherit; font-size: 20px; font-weight: 700; padding: 13px; border: 0; border-radius: 999px; background: var(--gold); color: #3a2a00; cursor: pointer; box-shadow: 0 5px 0 #b88a1c; }
+  #againBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b88a1c; }
+  @keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .card.bounce { animation: bounce .6s ease-in-out infinite alternate; }
+  @keyframes bounce { to { translate: 0 -10px; } }
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+    .card.bounce, .card.shake, .win-card { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a id="homeBtn" href="../">🏠 Menu</a>
+    <h1>Solitaire</h1>
+    <button id="newBtn" type="button">New game</button>
+  </header>
+  <p class="stats"><span>Moves <b id="moves">0</b></span><span>Time <b id="time">0:00</b></span></p>
+  <div id="table" aria-label="The solitaire table"></div>
+  <p class="deal" id="dealNo"></p>
+</main>
+
+<div id="win" role="dialog" aria-modal="true" aria-labelledby="winTitle" hidden>
+  <div class="win-card">
+    <h2 id="winTitle">You won! 🎉</h2>
+    <p id="winText"></p>
+    <button id="againBtn" type="button">New game</button>
+  </div>
+</div>
+
+<script type="module">
+  // Klondike, tap first: tapping a card sends it to the best place it can go (a foundation first, then a column),
+  // because dragging is fiddly for small hands. Dragging works too. The rules are in klondike.js; this draws the
+  // table and turns taps and drags into moves.
+  import { deal, move, draw, canDraw, canMove, bestMove, picked, won, SYMBOL, RED, RANK_NAME } from './klondike.js';
+
+  const $ = id => document.getElementById(id);
+  const table = $('table');
+  const params = new URLSearchParams(location.search);
+
+  let game = null, started = null, timer = null;
+  const els = new Map();   // card id -> its element, kept so a card glides from place to place
+  let L = null;            // the current layout: card size, where every pile is
+
+  // ---------- drawing the table ----------
+
+  function cardEl(card) {
+    let el = els.get(card.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'card';
+      const r = RANK_NAME[card.rank], s = SYMBOL[card.suit], court = card.rank === 1 || card.rank > 10;
+      el.innerHTML = `<span class="corner">${r}<span class="s">${s}</span></span><span class="face">${s}</span><span class="pip">${court ? (card.rank === 1 ? s : r) : s}</span>`;
+      if (court) el.classList.add('court');
+      if (RED.has(card.suit)) el.classList.add('red');
+      el.dataset.id = card.id;
+      el.setAttribute('aria-label', `${RANK_NAME[card.rank]} of ${{ S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' }[card.suit]}`);
+      table.appendChild(el);
+      els.set(card.id, el);
+    }
+    return el;
+  }
+
+  function slot(cls, x, y, text = '') {
+    const el = document.createElement('div');
+    el.className = `slot ${cls}`;
+    Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${L.w}px`, height: `${L.h}px`, fontSize: `${L.w * 0.45}px` });
+    el.textContent = text;
+    table.appendChild(el);
+    return el;
+  }
+
+  /** Card size and where each pile goes, from the space there is. Long columns squeeze their overlap to fit. */
+  function measure() {
+    const width = Math.min(table.parentElement.clientWidth, 760);
+    const gap = width < 500 ? 6 : 12;
+    const w = Math.floor((width - gap * 6) / 7), h = Math.round(w * 1.4);
+    const col = i => i * (w + gap);
+    const rowY = h + gap * 2.5;
+    // the columns may use the screen down to the bottom (but never less than room for a dozen cards)
+    const room = Math.max(h * 3.2, window.innerHeight - table.getBoundingClientRect().top - rowY - h - 44);
+    return { w, h, gap, col, rowY, room, width };
+  }
+
+  function offsets(column) {
+    let down = L.w * 0.14, up = L.w * 0.36;
+    const need = column.slice(0, -1).reduce((sum, c) => sum + (c.up ? up : down), 0);
+    if (need > L.room) { const k = L.room / need; down *= k; up = Math.max(up * k, L.w * 0.26); down = Math.max(down, 3); }
+    return { down, up };
+  }
+
+  function render() {
+    L = measure();
+    table.style.width = `${L.width}px`;
+    table.querySelectorAll('.slot').forEach(s => s.remove());
+    const fontPx = L.w * 0.34;
+    let tallest = L.rowY + L.h;
+    const place = (card, x, y, z, where) => {
+      const el = cardEl(card);
+      el.classList.toggle('down', !card.up);
+      Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${L.w}px`, height: `${L.h}px`, zIndex: z, fontSize: `${fontPx}px` });
+      el.querySelector('.pip').style.fontSize = `${L.w * (card.rank > 10 || card.rank === 1 ? 0.5 : 0.56)}px`;
+      el.querySelector('.face').style.fontSize = `${L.w * 0.22}px`;
+      el.dataset.pile = where.pile;
+      el.dataset.i = where.i ?? '';
+      el.dataset.at = where.at ?? '';
+      el.tabIndex = card.up && where.pile !== 'stock' ? 0 : -1;
+      el.setAttribute('role', card.up ? 'button' : 'img');
+      if (!card.up) el.setAttribute('aria-label', 'face-down card');
+      else el.setAttribute('aria-label', `${RANK_NAME[card.rank]} of ${{ S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' }[card.suit]}`);
+    };
+
+    // the stock: a face-down pile; empty, a circle to turn the waste over (or a cross when it can't)
+    const stockSlot = slot('stock', L.col(0), 0, game.stock.length ? '' : canDraw(game) ? '↻' : '✕');
+    stockSlot.classList.toggle('spent', !canDraw(game));
+    stockSlot.setAttribute('role', 'button');
+    stockSlot.tabIndex = 0;
+    stockSlot.setAttribute('aria-label', game.stock.length ? `Draw from the stock (${game.stock.length} left)` : 'Turn the waste over');
+    game.stock.forEach((c, k) => place(c, L.col(0), 0, 10 + k, { pile: 'stock' }));
+
+    // the waste: the top one (or three, fanned, when drawing three)
+    slot('waste', L.col(1), 0);
+    const fan = game.rules.draw > 1 ? 3 : 1, shown = game.waste.slice(-fan);
+    game.waste.forEach((c, k) => {
+      const f = Math.max(0, k - (game.waste.length - shown.length));
+      place(c, L.col(1) + f * L.w * 0.24, 0, 10 + k, { pile: 'waste' });
+    });
+
+    game.foundations.forEach((pile, i) => {
+      slot('foundation', L.col(3 + i), 0, 'A');
+      pile.forEach((c, k) => place(c, L.col(3 + i), 0, 10 + k, { pile: 'foundation', i }));
+    });
+
+    game.tableau.forEach((column, i) => {
+      slot('column', L.col(i), L.rowY, 'K');
+      const { down, up } = offsets(column);
+      let y = L.rowY;
+      column.forEach((c, at) => {
+        place(c, L.col(i), y, 10 + at, { pile: 'tableau', i, at });
+        y += c.up ? up : down;
+      });
+      tallest = Math.max(tallest, y - (column.length ? (column[column.length - 1].up ? up : down) : 0) + L.h);
+    });
+    table.style.height = `${tallest + 4}px`;
+    $('moves').textContent = game.moves;
+    $('dealNo').textContent = `Deal #${game.seed}`;
+  }
+
+  // ---------- moves ----------
+
+  function placeOf(el) {
+    const p = { pile: el.dataset.pile };
+    if (el.dataset.i !== '') p.i = Number(el.dataset.i);
+    if (el.dataset.at !== '') p.at = Number(el.dataset.at);
+    return p;
+  }
+
+  function apply(next) {
+    if (!next) return false;
+    game = next;
+    if (!started) startClock();
+    render();
+    if (won(game)) finish();
+    return true;
+  }
+
+  function shake(el) {
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+  /** A tap on a card: send it (and the cards on it) to the best place it can go. */
+  function tapCard(el) {
+    const from = placeOf(el);
+    if (from.pile === 'stock') return apply(draw(game));
+    const to = bestMove(game, from);
+    if (!to) { shake(el); return false; }
+    return apply(move(game, from, to));
+  }
+
+  // ---------- pointer: tap or drag ----------
+
+  let press = null;   // { el, from, cards: [el], x, y, dragging }
+  table.addEventListener('pointerdown', e => {
+    if (!game || won(game)) return;
+    const el = e.target.closest('.card'), stock = e.target.closest('.slot.stock');
+    if (!el) { if (stock) apply(draw(game)); return; }
+    const from = placeOf(el);
+    if (from.pile === 'stock') { apply(draw(game)); return; }
+    const cards = picked(game, from);
+    if (!cards.length) return;
+    press = { el, from, cards: cards.map(c => els.get(c.id)), x: e.clientX, y: e.clientY, dragging: false };
+    table.setPointerCapture(e.pointerId);
+  });
+  table.addEventListener('pointermove', e => {
+    if (!press) return;
+    const dx = e.clientX - press.x, dy = e.clientY - press.y;
+    if (!press.dragging && Math.hypot(dx, dy) < 8) return;
+    press.dragging = true;
+    press.cards.forEach((c, k) => {
+      c.classList.add('dragging');
+      c.style.zIndex = 1000 + k;
+      c.style.translate = `${dx}px ${dy}px`;
+    });
+  });
+  table.addEventListener('pointerup', e => {
+    if (!press) return;
+    const p = press;
+    press = null;
+    if (!p.dragging) { tapCard(p.el); return; }
+    // dropped: the pile under the middle of the card that was picked up
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    const cx = parseFloat(p.el.style.left) + L.w / 2 + dx, cy = parseFloat(p.el.style.top) + L.h / 2 + dy;
+    const col = Math.max(0, Math.min(6, Math.floor((cx + L.gap / 2) / (L.w + L.gap))));
+    const to = cy < L.rowY - L.gap ? (col >= 3 ? { pile: 'foundation', i: col - 3 } : null) : { pile: 'tableau', i: col };
+    p.cards.forEach(c => { c.classList.remove('dragging'); c.style.translate = ''; });
+    if (!(to && canMove(game, p.from, to) && apply(move(game, p.from, to)))) {
+      render();   // back where it came from
+      if (to && !(to.pile === 'tableau' && p.from.pile === 'tableau' && to.i === p.from.i)) shake(p.el);
+    }
+  });
+  table.addEventListener('pointercancel', () => {
+    if (!press) return;
+    press.cards.forEach(c => { c.classList.remove('dragging'); c.style.translate = ''; });
+    press = null;
+    render();
+  });
+  // keyboard: Enter or Space on a card does what a tap does; on the stock, draws
+  table.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('.card'), stock = e.target.closest('.slot.stock');
+    if (!el && !stock) return;
+    e.preventDefault();
+    const id = el && el.dataset.id;
+    if (stock) apply(draw(game)); else tapCard(el);
+    // keep the keyboard where it was: on the same card if it's still showing, else the stock
+    const again = id && els.get(id);
+    (again && again.tabIndex === 0 ? again : table.querySelector('.slot.stock')).focus();
+  });
+
+  // ---------- the clock, new games, the win ----------
+
+  const fmt = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  function startClock() {
+    started = Date.now();
+    clearInterval(timer);
+    timer = setInterval(() => { $('time').textContent = fmt(Date.now() - started); }, 1000);
+  }
+
+  function newGame(seed = Math.floor(Math.random() * 1000000) + 1) {
+    clearInterval(timer);
+    started = null;
+    $('time').textContent = '0:00';
+    $('win').hidden = true;
+    els.forEach(el => el.remove());
+    els.clear();
+    game = deal(seed);
+    render();
+  }
+
+  function finish() {
+    clearInterval(timer);
+    const time = fmt(Date.now() - started);
+    $('time').textContent = time;
+    game.foundations.forEach((pile, i) => {
+      const king = els.get(pile[pile.length - 1].id);
+      king.style.animationDelay = `${i * 0.12}s`;
+      king.classList.add('bounce');
+    });
+    $('winText').textContent = `${game.moves} moves in ${time}`;
+    setTimeout(() => { $('win').hidden = false; $('againBtn').focus(); }, 500);
+  }
+
+  // "New game" in the middle of one asks once more ("Sure?") rather than throwing the game away on a slip
+  let sureTimer = null;
+  $('newBtn').addEventListener('click', () => {
+    const btn = $('newBtn');
+    if (game.moves > 0 && !won(game) && !btn.classList.contains('sure')) {
+      btn.classList.add('sure');
+      btn.textContent = 'Sure? New game';
+      sureTimer = setTimeout(() => { btn.classList.remove('sure'); btn.textContent = 'New game'; }, 3000);
+      return;
+    }
+    clearTimeout(sureTimer);
+    btn.classList.remove('sure');
+    btn.textContent = 'New game';
+    newGame();
+  });
+  $('againBtn').addEventListener('click', () => newGame());
+  window.addEventListener('resize', () => { if (game) render(); });
+
+  // for the tests
+  window.solitaire = {
+    get game() { return game; },
+    load(g) { game = g; render(); if (won(game)) finish(); },
+    newGame,
+  };
+
+  newGame(Number(params.get('seed')) || undefined);
+</script>
+</body>
+</html>
