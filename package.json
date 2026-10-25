@@ -1,6 +1,6 @@
 {
   "name": "ford-games",
-  "version": "4.15.0",
+  "version": "4.16.0",
   "description": "Game Zone: the Ford family's browser games (dice, snake, word games, Uno, Battleships, soccer, Ford House)",
   "main": "index.html",
   "scripts": {
