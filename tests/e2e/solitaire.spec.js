@@ -93,3 +93,17 @@ test('New game asks once more in the middle of a game', async ({ page }) => {
   await page.click('#newBtn');
   expect((await game(page)).moves).toBe(0);
 });
+
+test('after one visit it plays offline', async ({ page, context }) => {
+  await open(page);
+  // wait for the service worker to have the files cached and to look after this page
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('.card:not(.down)')).toHaveCount(7);
+  await card(page, 'C6').click();
+  expect((await game(page)).moves).toBe(1);
+  await context.setOffline(false);
+});
