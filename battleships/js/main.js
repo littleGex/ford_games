@@ -1,5 +1,6 @@
 // Battleships: the menu, placing the fleet, taking turns, and the end of the game. The rules live in game.js and
-// rules.js, the computer in ai.js, the 3D world in scene/. This file joins them up and runs the page.
+// rules.js, the computer in ai.js, the 3D world in scene/, games between two devices in net/. This file joins them
+// up and runs the page.
 //
 // A turn is a little story told with awaits: aim, the shell flies, it lands, the camera swings across, the other
 // side fires back. Nothing can be tapped while one plays (`busy`).
@@ -9,10 +10,13 @@ import * as sound from './audio.js';
 import { FLEET, randomFleet, fits, shipAt, shipName, shipLength, label, seededRandom, sunkIds, inBounds, cells, resolveShot } from './rules.js';
 import { newGame, place, fire, fired, other, isComputer, validState, tally } from './game.js';
 import { chooseShot } from './ai.js';
+import { createFirebase, NOW } from './net/firebase.js';
+import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat } from './net/online.js';
 
 const params = new URLSearchParams(location.search);
 const rng = params.has('seed') ? seededRandom(Number(params.get('seed')) || 1) : Math.random;
 const SAVE_KEY = 'battleships.save.v1', STATS_KEY = 'battleships.stats.v1', PREFS_KEY = 'battleships.prefs.v1';
+const ONLINE_KEY = 'battleships.online.v1';   // the game on two devices this one is in: { code, seat, fleet, salt }
 const LEVEL_NAME = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
 
 const load = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch (e) { return fallback; } };
@@ -29,13 +33,13 @@ const wait = ms => new Promise(r => setTimeout(r, ms / speed));
 let state = null;     // the game being played (game.js)
 let viewer = 0;       // whose side the world shows
 let draft = null;     // the fleet being placed
-let mode = 'menu';    // 'menu' | 'placing' | 'aiming' | 'waiting' | 'handoff' | 'over' | 'looking'
+let mode = 'menu';    // 'menu' | 'placing' | 'aiming' | 'waiting' | 'watching' | 'handoff' | 'over' | 'looking'
 let busy = false;
 let aimSq = null;
-let prefs = { level: 'normal', names: ['', ''], sound: true, ...load(PREFS_KEY, {}) };
+let prefs = { level: 'normal', names: ['', ''], onlineName: '', sound: true, ...load(PREFS_KEY, {}) };
 sound.setSound(prefs.sound);
 
-const save = () => keep(SAVE_KEY, state && state.phase !== 'over' ? state : null);
+const save = () => { if (!state || state.mode !== 'online') keep(SAVE_KEY, state && state.phase !== 'over' ? state : null); };
 const nameOf = i => state.players[i].name;
 
 // ---------- the HUD ----------
@@ -45,8 +49,8 @@ function setMode(m) {
   mode = m;
   $('shuffleBtn').hidden = $('readyBtn').hidden = m !== 'placing';
   $('fireBtn').hidden = m !== 'aiming';
-  $('viewBtn').hidden = !['aiming', 'looking'].includes(m);
-  $('fleets').hidden = !['aiming', 'waiting', 'looking'].includes(m);
+  $('viewBtn').hidden = !['aiming', 'watching', 'looking'].includes(m);
+  $('fleets').hidden = !['aiming', 'waiting', 'watching', 'looking'].includes(m);
   $('fireBtn').disabled = !aimSq;
   hint(m === 'placing' ? 'Drag a ship to move it · tap it to turn it' : m === 'aiming' ? 'Tap a square to aim, then Fire!' : '');
   updateViewBtn();
@@ -98,8 +102,11 @@ function showSide(i, { reveal = false } = {}) {
 function openMenu() {
   setMode('menu');
   aim(null);
-  const saved = state && state.phase !== 'over' ? state : null;
-  $('resumeBtn').hidden = $('resumeWhat').hidden = !saved;
+  const session = load(ONLINE_KEY, null);
+  const saved = session ? null : state && state.mode !== 'online' && state.phase !== 'over' ? state : null;
+  $('resumeBtn').hidden = $('resumeWhat').hidden = !saved && !session;
+  $('leaveBtn').hidden = !session;
+  if (session) $('resumeWhat').textContent = `Your game on two devices (code ${session.code}). A new game leaves it.`;
   if (saved) {
     const shots = saved.shots[0].length + saved.shots[1].length;
     $('resumeWhat').textContent = (saved.mode === 'cpu' ? `Against the computer (${LEVEL_NAME[saved.level]})` : `${saved.players[0].name} against ${saved.players[1].name}`)
@@ -108,6 +115,7 @@ function openMenu() {
   document.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.level === prefs.level)));
   $('name1').value = prefs.names[0] || '';
   $('name2').value = prefs.names[1] || '';
+  $('onlineName').value = prefs.onlineName || '';
   $('soundBtn').textContent = `Sound: ${prefs.sound ? 'on' : 'off'}`;
   $('soundBtn').setAttribute('aria-pressed', String(prefs.sound));
   const stats = load(STATS_KEY, {});
@@ -129,7 +137,11 @@ $('playLocal').addEventListener('click', () => {
   keep(PREFS_KEY, prefs);
   start({ mode: 'local', names: prefs.names });
 });
-$('resumeBtn').addEventListener('click', () => { closeMenu(); resume(); });
+$('resumeBtn').addEventListener('click', () => {
+  closeMenu();
+  const session = load(ONLINE_KEY, null);
+  if (session) connect(session); else resume();
+});
 $('soundBtn').addEventListener('click', () => {
   prefs.sound = !prefs.sound;
   sound.setSound(prefs.sound);
@@ -142,6 +154,7 @@ $('menuBtn').addEventListener('click', () => { if (!busy) openMenu(); });
 // ---------- starting, carrying on ----------
 
 function start(opts) {
+  leaveOnline();
   closeMenu();
   state = newGame({ ...opts, rng });
   last = null;
@@ -211,6 +224,7 @@ $('shuffleBtn').addEventListener('click', () => {
 });
 $('readyBtn').addEventListener('click', () => {
   if (mode !== 'placing') return;
+  if (state.mode === 'online') return readyOnline();
   place(state, viewer, draft);
   save();
   if (state.phase === 'playing' && state.mode === 'cpu') showSide(0);
@@ -310,7 +324,8 @@ function aim(sq) {
   else $('fireBtn').textContent = 'Fire!';
 }
 function tapSquare(sq) {
-  if (fired(state, viewer, ...sq)) { toast(`Already fired at ${label(...sq)}`, 'miss'); return; }
+  const pending = online && online.room && view(online.room, online.seat).pending;
+  if (fired(state, viewer, ...sq) || (pending && pending.x === sq[0] && pending.y === sq[1])) { toast(`Already fired at ${label(...sq)}`, 'miss'); return; }
   if (aimSq && aimSq[0] === sq[0] && aimSq[1] === sq[1]) return shoot();
   aim(sq);
 }
@@ -343,6 +358,7 @@ function shotWords(shot, byMe, defender) {
 const soundOf = shot => (shot.result === 'miss' ? sound.splash() : (sound.boom(), shot.result === 'sunk' && sound.sink()));
 
 async function shoot() {
+  if (state.mode === 'online') return shootOnline();
   busy = true;
   const me = state.turn, [x, y] = aimSq;
   const shot = fire(state, x, y);
@@ -418,16 +434,336 @@ async function finish() {
   $('overText').textContent = cpu && winner === 1
     ? `It took the computer ${shots} shots. Its ships still afloat are on the right.`
     : `The whole fleet sunk in ${shots} shots (${accuracy}% hits).`;
+  $('againBtn').textContent = 'Play again';
+  $('overCheck').hidden = true;
   $('over').hidden = false;
   $('againBtn').focus();
   busy = false;
 }
 $('againBtn').addEventListener('click', () => {
   $('over').hidden = true;
+  if (state.mode === 'online') { leaveOnline(); return openMenu(); }
   start({ mode: state.mode, level: state.level, names: state.players.map(p => p.name) });
 });
 $('lookBtn').addEventListener('click', () => { $('over').hidden = true; setMode('looking'); });
 $('overMenuBtn').addEventListener('click', openMenu);
+
+// ---------- two devices ----------
+//
+// The room in the database is the game. This device follows it (net.listen) and, every time it changes, works out
+// what's new (sync): the other player has joined or placed their fleet, a shot to answer, answered shots to play
+// out. Shots are only played once they're answered, so both devices show the same thing. The fleet and its salt
+// stay on this device (ONLINE_KEY) until the end.
+
+let net = null;
+let online = null;   // { code, seat, fleet, salt, room, stop, shown, answered, turnShown, finished, checked }
+const theirName = () => (online && online.room && online.room[otherSeat(online.seat)] || {}).name || 'the other player';
+const rooms = code => `rooms/${code}`;
+
+function onlineName() {
+  const name = $('onlineName').value.trim().slice(0, 14) || 'Player';
+  prefs.onlineName = $('onlineName').value.trim();
+  keep(PREFS_KEY, prefs);
+  return name;
+}
+function onlineMsg(text) { $('onlineMsg').textContent = text; }
+function netError(e, what) {
+  if (e && e.denied) return `${what}: the game server said no`;
+  return e && e.status === 0 ? `${what}: no connection` : `${what}: ${e && e.message || 'something went wrong'}`;
+}
+
+async function host() {
+  net = net || createFirebase();
+  const name = onlineName();
+  onlineMsg('Starting a game…');
+  $('hostBtn').disabled = true;
+  try {
+    const uid = await net.uid();
+    for (let tries = 0; tries < 6; tries++) {
+      const code = newCode();
+      try {
+        await net.put(rooms(code), { created: NOW, n: 0, a: { uid, name, seen: NOW } });
+      } catch (e) {
+        if (e.denied) continue;   // that code is taken: try another
+        throw e;
+      }
+      onlineMsg('');
+      return connect({ code, seat: 'a', fleet: null, salt: null });
+    }
+    onlineMsg('Couldn\'t find a free code, try again');
+  } catch (e) {
+    onlineMsg(netError(e, 'Couldn\'t start a game'));
+  } finally {
+    $('hostBtn').disabled = false;
+  }
+}
+
+async function join(code) {
+  code = code.trim().toUpperCase();
+  if (!CODE_RE.test(code)) return onlineMsg('A code is 4 letters and numbers, like KQ7P');
+  net = net || createFirebase();
+  const name = onlineName();
+  onlineMsg('Joining…');
+  try {
+    const uid = await net.uid();
+    const room = await net.get(rooms(code));
+    if (!room) return onlineMsg(`There's no game with the code ${code}`);
+    let seat = room.a && room.a.uid === uid ? 'a' : room.b && room.b.uid === uid ? 'b' : null;
+    if (!seat) {
+      if (room.b) return onlineMsg('That game already has two players');
+      await net.put(`${rooms(code)}/b`, { uid, name, seen: NOW });
+      seat = 'b';
+    }
+    onlineMsg('');
+    const session = load(ONLINE_KEY, null);
+    connect(session && session.code === code && session.seat === seat ? session : { code, seat, fleet: null, salt: null });
+  } catch (e) {
+    onlineMsg(netError(e, 'Couldn\'t join'));
+  }
+}
+
+/** Take a seat in a room (new, or carrying on after a reload) and follow it. */
+function connect(session) {
+  if (online && online.stop) online.stop();
+  net = net || createFirebase();
+  online = { ...session, room: undefined, shown: null, answered: new Set(), turnShown: -1, finished: false, checked: false };
+  keep(ONLINE_KEY, { code: session.code, seat: session.seat, fleet: session.fleet, salt: session.salt });
+  state = {
+    mode: 'online', phase: 'placing', turn: 0, winner: null,
+    players: [{ name: 'You', fleet: session.fleet }, { name: '', fleet: null }],
+    shots: [[], []],
+  };
+  viewer = 0;
+  closeMenu();
+  setStatus('', 'Connecting…');
+  setMode('waiting');
+  online.stop = net.listen(rooms(session.code), room => {
+    online.room = room;
+    syncing = syncing.then(sync).catch(e => console.error(e));
+  }, s => { if (s === 'reconnecting') hint('Reconnecting to the game server…'); else if (mode !== 'menu') setMode(mode); });
+}
+
+function leaveOnline() {
+  if (online && online.stop) online.stop();
+  online = null;
+  keep(ONLINE_KEY, null);
+  $('lobby').hidden = true;
+}
+
+let syncing = Promise.resolve();
+async function sync() {
+  if (!online) return;
+  const room = online.room, me = online.seat;
+  if (room === null) {
+    leaveOnline();
+    toast('That game has finished', 'miss');
+    return openMenu();
+  }
+  if (room === undefined) return;
+  const v = view(room, me);
+  state.players[0].name = v.names[0] || 'You';
+  state.players[1].name = v.names[1] || 'the other player';
+
+  // still waiting for someone to join: show the code
+  if (v.phase === 'waiting') {
+    $('lobbyCode').textContent = online.code;
+    $('lobby').hidden = false;
+    setStatus('', 'Waiting for the other player');
+    return;
+  }
+  $('lobby').hidden = true;
+
+  // placing: this device first, then waiting for the other one
+  if (!online.fleet) {
+    if (mode !== 'placing') startPlacing(0);
+    setStatus(v.ready[1] ? `${theirName()} is ready` : '', 'Place your fleet');
+    return;
+  }
+  if (v.phase === 'placing') {
+    setStatus('', `Waiting for ${theirName()} to place their fleet…`);
+    if (mode !== 'waiting') { world.show({ fleet: online.fleet }); world.view('home', 600 / speed); setMode('waiting'); }
+    return;
+  }
+
+  // playing: the first time here, show the game as it stands (after a reload, everything so far)
+  if (online.shown === null) {
+    state.shots = [v.shots[0].map(s => ({ ...s })), v.shots[1].map(s => ({ ...s }))];
+    online.shown = state.shots[0].length + state.shots[1].length;
+    showSide(0);
+  }
+
+  // a shot at this device's fleet: answer it (the answer comes back round and plays below)
+  if (v.pending && v.pending.by !== me && !online.answered.has(v.pending.n)) {
+    const { n, x, y } = v.pending;
+    online.answered.add(n);
+    const answer = resolveShot(online.fleet, v.shots[1], x, y);
+    net.put(`${rooms(online.code)}/results/${n}`, answer.result === 'sunk' ? { r: 'sunk', ship: answer.ship } : { r: answer.result })
+      .catch(e => { if (!e.denied) online.answered.delete(n); hint(netError(e, 'Couldn\'t answer')); setTimeout(() => { syncing = syncing.then(sync); }, 3000); });
+  }
+
+  // play out every answered shot not shown yet, in order
+  const answered = shotList(room).filter(s => s.result);
+  while (online && online.shown < answered.length) {
+    const s = answered[online.shown];
+    online.shown++;
+    await playOnlineShot(s);
+  }
+  if (!online) return;
+
+  if (v.phase === 'over') return finishOnline(v);
+  if (v.myTurn) {
+    if (online.turnShown !== v.n) { online.turnShown = v.n; humanTurn(0); }
+  } else {
+    online.turnShown = -1;
+    watch(v);
+  }
+}
+
+/** The other player's turn (or waiting for their answer): the camera on your fleet, the boards can be looked at. */
+function watch(v) {
+  const them = theirName();
+  const ago = v.seen ? Math.round((Date.now() - v.seen) / 60000) : 0;
+  const away = ago >= 1 ? ` (last here ${ago} min ago)` : '';
+  if (v.pending && v.pending.by === online.seat) setStatus(`Firing at ${label(v.pending.x, v.pending.y)}`, `Waiting for ${them} to answer${away}`);
+  else setStatus('', `${them}'s turn${away}`);
+  if (mode !== 'watching') {
+    setMode('watching');
+    if (!(v.pending && v.pending.by === online.seat)) world.view('home', 900 / speed).then(updateViewBtn);
+  }
+}
+
+async function playOnlineShot(s) {
+  busy = true;
+  const mine = s.by === online.seat;
+  const shot = s.result === 'sunk' ? { x: s.x, y: s.y, result: 'sunk', ship: s.ship } : { x: s.x, y: s.y, result: s.result };
+  state.shots[mine ? 0 : 1].push(shot);
+  setMode('waiting');
+  if (mine) {
+    setStatus('', `Firing at ${label(s.x, s.y)}…`);
+    if (world.viewing !== 'target') await world.view('target', 700 / speed);
+  } else {
+    setStatus('', `${theirName()} fires at ${label(s.x, s.y)}…`);
+    if (world.viewing !== 'home') await world.view('home', 900 / speed);
+  }
+  sound.launch();
+  await world.shot(mine ? 'target' : 'home', shot);
+  soundOf(shot);
+  if (!mine && shot.result !== 'miss' && navigator.vibrate) try { navigator.vibrate(60); } catch (e) { /* no vibration */ }
+  const w = shotWords(shot, mine, 0);
+  toast(w.text, w.kind);
+  updateFleets();
+  await wait(shot.result === 'miss' ? 900 : 1200);
+  busy = false;
+}
+
+async function readyOnline() {
+  const fleet = draft.map(s => ({ ...s })), salt = newSalt();
+  busy = true;
+  setStatus('', 'Sending…');
+  try {
+    const hash = await fleetHash(fleet, salt);
+    // kept here first: if the page closes just after the server has the fingerprint, the fleet isn't lost
+    keep(ONLINE_KEY, { code: online.code, seat: online.seat, fleet, salt });
+    try {
+      await net.put(`${rooms(online.code)}/${online.seat}/hash`, hash);
+    } catch (e) {
+      // it may have got there even though the answer didn't come back
+      const there = await net.get(`${rooms(online.code)}/${online.seat}/hash`).catch(() => null);
+      if (there !== hash) throw e;
+    }
+    online.fleet = fleet;
+    online.salt = salt;
+    state.players[0].fleet = fleet;
+    setMode('waiting');
+    syncing = syncing.then(sync);
+  } catch (e) {
+    keep(ONLINE_KEY, { code: online.code, seat: online.seat, fleet: null, salt: null });
+    toast(netError(e, 'Couldn\'t send your fleet'), 'miss');
+    setStatus('', 'Place your fleet');
+  } finally {
+    busy = false;
+  }
+}
+
+async function shootOnline() {
+  const [x, y] = aimSq, n = online.room.n;
+  aim(null);
+  busy = true;
+  setMode('waiting');
+  setStatus('', `Firing at ${label(x, y)}…`);
+  try {
+    await net.patch(rooms(online.code), { [`shots/${n}`]: { x, y, by: online.seat }, n: n + 1 });
+    online.turnShown = n;
+  } catch (e) {
+    toast(netError(e, 'Couldn\'t fire'), 'miss');
+    online.turnShown = -1;
+  }
+  busy = false;
+  syncing = syncing.then(sync);
+}
+
+async function finishOnline(v) {
+  const them = otherSeat(online.seat);
+  if (!online.finished) {
+    online.finished = true;
+    state.phase = 'over';
+    state.winner = v.winner === 'me' ? 0 : 1;
+    net.put(`${rooms(online.code)}/reveal/${online.seat}`, { fleet: fleetString(online.fleet), salt: online.salt }).catch(() => { online.finished = false; });
+    busy = true;
+    setMode('looking');
+    const won = state.winner === 0;
+    setStatus('Game over', won ? 'You won!' : `${theirName()} won`);
+    sound.tune(won);
+    await world.view('both', 1100 / speed);
+    updateViewBtn();
+    await wait(700);
+    const { shots, hits } = tally(state, state.winner);
+    $('overTitle').textContent = won ? 'You won! 🎉' : `${theirName()} won`;
+    $('overText').textContent = won
+      ? `You sank ${theirName()}'s whole fleet in ${shots} shots (${Math.round(hits / shots * 100)}% hits).`
+      : `${theirName()} sank your fleet in ${shots} shots.`;
+    $('overCheck').textContent = `Checking ${theirName()}'s answers…`;
+    $('overCheck').className = 'check';
+    $('overCheck').hidden = false;
+    $('againBtn').textContent = 'New game';
+    $('over').hidden = false;
+    $('againBtn').focus();
+    busy = false;
+  }
+  // when their fleet comes in, check it against every answer they gave, and show it
+  if (!online.checked && online.room.reveal && online.room.reveal[them]) {
+    online.checked = true;
+    const result = await check(online.room, online.seat);
+    if (result.fleet) {
+      state.players[1].fleet = result.fleet;
+      showSide(0, { reveal: true });
+    }
+    $('overCheck').textContent = result.ok
+      ? `✓ ${theirName()}'s fleet matches every answer they gave.`
+      : `⚠ Something doesn't add up: ${result.why}.`;
+    $('overCheck').className = result.ok ? 'check ok' : 'check bad';
+    keep(ONLINE_KEY, null);   // nothing left to carry on with
+  }
+}
+
+$('hostBtn').addEventListener('click', () => { leaveOnline(); host(); });
+$('joinForm').addEventListener('submit', e => { e.preventDefault(); leaveOnline(); join($('joinCode').value); });
+$('joinCode').addEventListener('input', () => { $('joinCode').value = $('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+$('leaveBtn').addEventListener('click', () => { leaveOnline(); openMenu(); });
+$('lobbyCancel').addEventListener('click', () => { leaveOnline(); openMenu(); });
+$('shareBtn').addEventListener('click', async () => {
+  const link = `${location.origin}${location.pathname}?join=${online.code}`;
+  try {
+    if (navigator.share) await navigator.share({ title: 'Battleships', text: `Play Battleships with me! The code is ${online.code}`, url: link });
+    else { await navigator.clipboard.writeText(link); toast('Link copied'); }
+  } catch (e) { /* closed the share sheet */ }
+});
+// say we're still here, so the other player can see how long ago we were; and keep "last here" up to date
+setInterval(() => {
+  if (!online || !online.room || document.visibilityState !== 'visible') return;
+  net.patch(`${rooms(online.code)}/${online.seat}`, { seen: NOW }).catch(() => {});
+  if (mode === 'watching') watch(view(online.room, online.seat));
+}, 20000);
 
 // ---------- start up ----------
 
@@ -436,6 +772,12 @@ if (validState(saved) && saved.phase !== 'over') state = saved;
 world.show({ fleet: randomFleet(rng) });
 world.view('both', 0);
 openMenu();
+// a shared link (?join=KQ7P): the code is filled in, ready to join
+if (CODE_RE.test((params.get('join') || '').toUpperCase())) {
+  $('joinCode').value = params.get('join').toUpperCase();
+  $('joinCode').scrollIntoView({ block: 'center' });
+  $('joinBtn').focus();
+}
 
 let lastFrame = performance.now(), t = 0;
 function frame(now) {

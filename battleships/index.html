@@ -52,6 +52,7 @@
       <p class="home-sub">Hide your fleet, then find and sink theirs</p>
       <button class="btn home-play" id="resumeBtn" hidden>Carry on</button>
       <p class="resume-what" id="resumeWhat" hidden></p>
+      <button class="linkbtn" id="leaveBtn" hidden>Leave the game on two devices</button>
 
       <h2>Against the computer</h2>
       <div class="pills" role="group" aria-label="How good the computer is">
@@ -68,12 +69,30 @@
       <button class="btn home-play second" id="playLocal">Play each other</button>
 
       <h2>Two devices</h2>
-      <div class="soon"><span aria-hidden="true">📡</span><span><b>Play from different phones</b><small>Share a code and play each other on your own devices. Coming soon.</small></span></div>
+      <label class="solo">Your name <input id="onlineName" maxlength="14" placeholder="Your name" autocomplete="off"></label>
+      <button class="btn home-play second" id="hostBtn">Start a game</button>
+      <form class="join" id="joinForm">
+        <input id="joinCode" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Game code">
+        <button class="btn" id="joinBtn">Join</button>
+      </form>
+      <p class="online-msg" id="onlineMsg" role="status"></p>
 
       <div class="home-foot">
         <button class="linkbtn" id="soundBtn" aria-pressed="true">Sound: on</button>
         <a class="linkbtn" href="../">Back to Game Zone</a>
       </div>
+    </div>
+  </div>
+
+  <div class="home" id="lobby" role="dialog" aria-modal="true" aria-labelledby="lobbyTitle" hidden>
+    <div class="home-card">
+      <p class="eyebrow">Two devices</p>
+      <h1 id="lobbyTitle">Your game code</h1>
+      <p class="code" id="lobbyCode">····</p>
+      <p class="home-sub">On the other phone or tablet, open Battleships, tap <b>Join</b> and type in this code. Or send them the link.</p>
+      <button class="btn home-play second" id="shareBtn">Send the link</button>
+      <p class="lobby-wait"><span class="dots" aria-hidden="true"></span> Waiting for the other player to join</p>
+      <div class="home-foot"><button class="linkbtn" id="lobbyCancel">Cancel</button></div>
     </div>
   </div>
 
@@ -91,6 +110,7 @@
       <p class="eyebrow">Game over</p>
       <h1 id="overTitle"></h1>
       <p class="home-sub" id="overText"></p>
+      <p class="check" id="overCheck" role="status" hidden></p>
       <button class="btn home-play" id="againBtn">Play again</button>
       <div class="home-foot">
         <button class="linkbtn" id="lookBtn">Look at the boards</button>

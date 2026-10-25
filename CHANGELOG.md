@@ -15,6 +15,9 @@ pull request; at release time that section becomes the new version (see "Releasi
   from blocks, shells that arc across, splashes, fires and ships that sink. Drag your ships to place them (tap
   to turn), then take turns firing. Play the computer (Easy, Normal or Hard), or two players on one device with
   a hand-off screen between turns. Games are saved on the device; wins against the computer are counted.
+- Battleships: **play from two phones**. Start a game to get a 4-letter code (or send the link), and the other
+  player joins with it. Each phone keeps its own fleet secret; at the end each checks the other's answers were
+  honest. Uses its own Firebase project, with security rules that make both players take turns.
 
 ## [4.14.0] - 2026-10-25
 

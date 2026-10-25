@@ -15,7 +15,7 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - ⚽ **1v1 Soccer** — real-time canvas arcade soccer, inspired by retro top-down football games (an original build — no licensed clubs, players, or assets). 2 player (WASD vs arrow keys) or vs computer with rule-based AI. Timed match: two configurable halves (1/2/3 min), teams swap ends at half time, netted goals.
 - 🥅 **5v5 Soccer** — full team match, same original art/engine style. Auto-switch control (you drive whichever of your outfielders is nearest the ball — goalkeepers are always computer-controlled, with real collision physics so shots can't pass through them, and they automatically clear a held ball toward the center circle after ~1.3 seconds so play never stalls; pressing your own kick button clears it immediately instead of waiting), with teammates and opponents holding simple zonal formation positions rather than deliberate passing AI. 2 player, vs computer, or **League** mode: a full 6-team single round-robin season against 5 original opponent teams (own names/colors, no real clubs) of varying AI skill (easy/medium/hard — same decision code, different tuning). You play your own fixtures; the AI-vs-AI matches are simulated with skill-weighted random scorelines, so the standings are a real league table you can win, lose, or finish mid-table in on goal difference. Saved locally in the browser.
 - 🃏 **Uno** — 2-4 players, same-device pass-and-play. Full 108-card deck, Skip/Reverse/Draw Two/Wild/Wild Draw Four, CSS-drawn cards (no image assets). A hand-off screen hides each player's cards until they tap through, so nobody sees anyone else's hand on a shared device.
-- 🚢 **Battleships** — a 3D sea in the Ford House style: two wooden jetty boards with lanterns, ships built from blocks, shells that arc across, splashes, fires and ships that sink. Place your fleet (drag to move, tap to turn, or Shuffle), then take turns firing. Against the computer (Easy / Normal / Hard — Hard works out where the remaining ships are most likely to be), or two players on one device with a hand-off screen between turns. Games are saved on the device, and wins against the computer are counted per level. Split into ES modules like Ford House — see [Battleships](#battleships) below.
+- 🚢 **Battleships** — a 3D sea in the Ford House style: two wooden jetty boards with lanterns, ships built from blocks, shells that arc across, splashes, fires and ships that sink. Place your fleet (drag to move, tap to turn, or Shuffle), then take turns firing. Against the computer (Easy / Normal / Hard — Hard works out where the remaining ships are most likely to be), two players on one device with a hand-off screen between turns, or **two players on their own phones**: one starts a game and gets a 4-letter code (or sends the link), the other joins with it. Games are saved on the device, and wins against the computer are counted per level. Split into ES modules like Ford House — see [Battleships](#battleships) below.
 - 🏠 **Ford House** — a 3D dollhouse of our own house (both floors, front and back garden), built from the floor plan and room photos. Walk around as Dad, P or Dude and do the household jobs: bins, mowing, hoovering, washing up, charging the car, coffee, TV, making the beds, putting a wash on and more, plus surprise events (post, a parcel at the door with a countdown, power cuts you fix at the fuse box with a torch). It runs in days: each day picks 10-12 jobs by their rules (dishes daily, mowing every 4 days, bins out then back in the next day), and progress is saved on the phone. Unlike the other games it's split into ES modules — see [`house/README.md`](house/README.md).
 
 ## Structure
@@ -83,11 +83,12 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
     │   ├── wordsearch.spec.js
     │   ├── connect4.spec.js
     │   ├── battleships.spec.js
+    │   ├── battleships-online.spec.js
     │   ├── uno.spec.js
     │   ├── soccer.spec.js
     │   ├── soccer5v5.spec.js
     │   └── house.spec.js
-    ├── battleships/    # Node test of the Battleships rules and computer players
+    ├── battleships/    # Node tests of the Battleships rules, computer players and two-device games
     └── house/          # Node play-through test for Ford House (no browser)
 ```
 
@@ -129,8 +130,29 @@ on Easy, 50 on Normal and 39 on Hard (`npm run test:battleships` plays 200 games
 stay in that order).
 
 Add `?seed=42` to the address to make the fleets and the computer play the same way each time, and `?speed=4` to
-run the animations faster. Playing on two different devices is planned next: it will use its own Firebase project
-(`ford-battleships`), separate from the shared database the other games use.
+run the animations faster.
+
+### Two devices
+
+Games between two phones go through their own Firebase project (`ford-battleships`, Realtime Database in
+europe-west1), separate from the database the other games share. As with the others there's no Firebase SDK:
+`js/net/firebase.js` uses plain REST calls, and the database's streaming (`EventSource`) to hear about changes as
+they happen. Each device signs in anonymously once (Firebase Authentication over REST) and keeps that sign-in, so
+after a reload it's the same player and takes its seat again.
+
+A game is a room under `rooms/<code>` (`js/net/online.js` describes it): the two players, `n` shots fired so
+far (even numbers are the starter's), the shots, and the answers. **The fleets never go into the database.** Each
+device keeps its own and puts up only a fingerprint (SHA-256 of the fleet and a random salt). The player who is
+fired at works out hit, miss or sunk on their own device and writes the answer; a shot plays out on both screens
+once it's answered. At the end both fleets are revealed and each device checks the other one against its
+fingerprint and every answer it gave, so a wrong answer shows up on the game over card.
+
+The security rules (`battleships/database.rules.json`, pasted into the Firebase console by hand) make everyone
+take turns: only signed-in players, a seat can't be taken twice, only the player whose turn it is can fire,
+only the player fired at can answer, nothing can be changed once written, and every field is checked. Rooms
+over a day old may be deleted (by hand, in the console). After changing the rules, run
+`node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
+and not. It isn't part of CI, since it needs the real database.
 
 ## 5v5 League mode
 
@@ -153,7 +175,8 @@ npm run test:e2e
 
 `playwright.config.js` starts a local static server automatically before running. Snake's tests mock the Firebase REST calls, so they never depend on network access or write to the live database. CI runs these on every push/PR via `.github/workflows/ci.yml`.
 
-Battleships has a Node test of its rules and computer players (`npm run test:battleships`).
+Battleships has Node tests of its rules, computer players and two-device games (`npm run test:battleships`); its
+two-device browser tests play two browser contexts against each other through a stand-in for the database.
 Ford House also has a play-through test in `tests/house/` that runs in plain Node against a stand-in for three.js (`npm run test:house`) — see `house/README.md`.
 
 ## Local development
