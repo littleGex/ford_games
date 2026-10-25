@@ -10,6 +10,25 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.16.0] - 2026-10-25
+
+### Added
+- **Solitaire** (Klondike), a new game for one: tap a card to send it where it fits (a foundation first), or
+  drag it; runs move together, the card underneath turns over, and a win shows moves and time (#115). On the
+  Game Zone page under Board and cards, installable, and playable offline after the first visit (#118).
+- Solitaire levels, picked on the first visit and remembered on the device: **Easy** (draw 1, through the stock
+  as often as you like), **Medium** (draw 1, three times through, with a count by the stock) and **Hard** (draw 3,
+  fanned, only the top card plays). A Hint button on Easy and Medium, and a "No more moves" message with Undo and
+  New game when nothing else can go anywhere. Another level mid-game asks first (#116).
+- Solitaire helpers: **Undo** on every level (Ctrl/⌘+Z too; one Undo also takes back the cards that went up by
+  themselves), safe cards going up to the foundations by themselves on Easy, a **✨ Finish** button that plays out
+  the end once every card is face up, a clock that stops while the page is hidden, stats per level (won of
+  played, best time, fewest moves, wins in a row) in the level menu, and the game in progress kept on the device
+  so a reload carries on with it (#117).
+- Solitaire on Easy deals only games that can be won: a small solver (`solve` in `solitaire/klondike.js`) checks
+  each deal before it's dealt and moves on to the next deal number if it can't find a win quickly. It works
+  offline and takes well under a second even on a slow phone. Deal links still deal the deal asked for (#119).
+
 ## [4.15.0] - 2026-10-25
 
 ### Added
@@ -397,7 +416,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.15.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.16.0...HEAD
+[4.16.0]: https://github.com/littleGex/ford_games/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/littleGex/ford_games/compare/v4.14.0...v4.15.0
 [4.14.0]: https://github.com/littleGex/ford_games/compare/v4.13.0...v4.14.0
 [4.13.0]: https://github.com/littleGex/ford_games/compare/v4.12.0...v4.13.0

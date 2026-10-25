@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#123d2a">
+<link rel="manifest" href="manifest.json">
+<title>Solitaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --felt: #1a5a3c;
+    --felt-dark: #0f3424;
+    --ink: #f3f7f2;
+    --muted: #a9c7b5;
+    --gold: #ffcf5a;
+    --card: #fdfcf7;
+    --card-edge: #d8d3c4;
+    --red: #d1342f;
+    --black: #1e2430;
+    --gap: 6px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: radial-gradient(ellipse at 50% 20%, var(--felt), var(--felt-dark) 85%);
+    color: var(--ink);
+    font-family: 'Fredoka', 'Segoe UI', system-ui, sans-serif;
+    padding: max(10px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  #homeBtn, #newBtn {
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    padding: 7px 12px; border-radius: 999px;
+    border: 1px solid rgba(243, 247, 242, .25); background: rgba(0, 0, 0, .2); color: var(--ink);
+    text-decoration: none; cursor: pointer; white-space: nowrap;
+  }
+  #newBtn.sure { background: var(--gold); color: #3a2a00; border-color: var(--gold); }
+  h1 { margin: 0; font-size: clamp(20px, 5.5vw, 26px); font-weight: 700; flex: 1; text-align: center; }
+  .stats { display: flex; justify-content: center; align-items: center; gap: 10px; margin: -4px 0 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chip {
+    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+    padding: 4px 11px; border-radius: 999px; border: 1px solid rgba(243, 247, 242, .25); background: rgba(0, 0, 0, .2); cursor: pointer;
+  }
+  .chip[hidden], .chip.icon[hidden] { display: none; }
+  .chip.icon { width: 34px; height: 30px; padding: 0; font-size: 16px; display: inline-grid; place-items: center; }
+  .quiet svg { vertical-align: -2px; }
+  .chip:disabled { opacity: .35; cursor: default; }
+  #finishBtn {
+    position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 95;
+    font-family: inherit; font-size: 20px; font-weight: 700; padding: 12px 28px; border: 0; border-radius: 999px;
+    background: var(--gold); color: #3a2a00; cursor: pointer; box-shadow: 0 5px 0 #b88a1c, 0 10px 24px rgba(0, 0, 0, .4);
+  }
+  #finishBtn[hidden] { display: none; }
+  .stats b { color: var(--ink); font-weight: 600; }
+  .chip:focus-visible, .overlay button:focus-visible,
+  #homeBtn:focus-visible, #newBtn:focus-visible, .card:focus-visible, .slot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  /* the table: every card is placed by script (layout()), so moves glide from place to place */
+  #table { position: relative; margin: 0 auto; touch-action: none; }
+  .slot {
+    position: absolute; border-radius: 8%/6%;
+    border: 2px dashed rgba(243, 247, 242, .22);
+    display: grid; place-items: center;
+    color: rgba(243, 247, 242, .28); font-weight: 700;
+  }
+  .slot.stock { cursor: pointer; border-style: solid; }
+  .slot.stock.spent { cursor: default; }
+  .slot.hint { border-color: var(--gold); color: var(--gold); }
+  /* how many more times the waste can be turned over (Medium) */
+  .turns { position: absolute; z-index: 90; transform: translate(-50%, -50%); padding: 1px 7px; border-radius: 999px; background: var(--felt-dark); border: 1px solid rgba(243, 247, 242, .3); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+  .turns.none { color: var(--muted); }
+
+  .card {
+    position: absolute; border-radius: 8%/6%;
+    background: var(--card); border: 1px solid var(--card-edge);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    color: var(--black);
+    transition: left .22s ease, top .22s ease;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .card.red { color: var(--red); }
+  .card .corner { position: absolute; left: 7%; top: 2%; font-weight: 700; line-height: 1; letter-spacing: -.04em; white-space: nowrap; }
+  .card .corner .s { font-size: .82em; margin-left: .04em; }
+  .card .pip { position: absolute; left: 0; right: 0; bottom: 8%; text-align: center; line-height: 1; }
+  .card .face { position: absolute; right: 7%; top: 3%; line-height: 1; opacity: .8; }
+  .card.court .pip { font-weight: 700; }
+  .card.down {
+    background:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, .12) 0 3px, transparent 3px 8px),
+      repeating-linear-gradient(-45deg, rgba(255, 255, 255, .12) 0 3px, transparent 3px 8px),
+      linear-gradient(160deg, #2f6fb0, #1d4a80);
+    border: 2px solid #f3f7f2;
+    cursor: default;
+  }
+  .card.down > * { display: none; }
+  .card.dragging { transition: none; box-shadow: 0 10px 22px rgba(0, 0, 0, .45); cursor: grabbing; }
+  .card.hint { box-shadow: 0 0 0 3px var(--gold), 0 1px 2px rgba(0, 0, 0, .35); }
+  .card.shake { animation: shake .3s; }
+  @keyframes shake { 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+
+  .deal { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
+
+  /* the win, the levels, no more moves */
+  .overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5, 20, 12, .6); z-index: 100; }
+  .overlay[hidden] { display: none; }
+  .win-card { width: min(340px, 100%); text-align: center; background: #123d2a; border: 1px solid rgba(243, 247, 242, .2); border-radius: 22px; padding: 22px 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); animation: pop .35s ease-out; }
+  .win-card h2 { margin: 0 0 4px; font-size: 36px; color: var(--gold); }
+  #winBest { margin-top: -12px; color: var(--gold); font-weight: 600; }
+  #winBest:empty { display: none; }
+  .win-card p { margin: 0 0 18px; color: var(--muted); font-size: 16px; }
+  .levels { display: grid; gap: 10px; }
+  .level {
+    font-family: inherit; text-align: left; width: 100%; cursor: pointer;
+    padding: 12px 16px; border-radius: 16px; border: 2px solid rgba(243, 247, 242, .2); background: rgba(0, 0, 0, .2); color: var(--ink);
+  }
+  .level b { display: block; font-size: 20px; }
+  .level span { font-size: 14px; color: var(--muted); }
+  .level .stat { display: block; margin-top: 3px; font-size: 13px; color: var(--ink); opacity: .85; }
+  .level.current { border-color: var(--gold); }
+  .level.sure { background: var(--gold); border-color: var(--gold); color: #3a2a00; }
+  .level.sure span { color: #3a2a00; }
+  .win-card .row { display: flex; gap: 10px; }
+  .win-card .row button { flex: 1; }
+  .quiet { font-family: inherit; font-size: 16px; font-weight: 600; padding: 12px; border-radius: 999px; cursor: pointer; background: transparent; color: var(--ink); border: 1px solid rgba(243, 247, 242, .35); }
+  #closeLevels { margin-top: 12px; width: 100%; }
+  #againBtn, #stuckNewBtn { width: 100%; font-family: inherit; font-size: 20px; font-weight: 700; padding: 13px; border: 0; border-radius: 999px; background: var(--gold); color: #3a2a00; cursor: pointer; box-shadow: 0 5px 0 #b88a1c; }
+  #againBtn:active, #stuckNewBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b88a1c; }
+  @keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .card.bounce { animation: bounce .6s ease-in-out infinite alternate; }
+  @keyframes bounce { to { translate: 0 -10px; } }
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+    .card.bounce, .card.shake, .win-card { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a id="homeBtn" href="../">🏠 Menu</a>
+    <h1>Solitaire</h1>
+    <button id="newBtn" type="button">New game</button>
+  </header>
+  <p class="stats">
+    <button id="levelBtn" class="chip" type="button" aria-label="Level: Easy. Change level">Easy</button>
+    <span>Moves <b id="moves">0</b></span><span><span aria-label="Time">⏱</span> <b id="time">0:00</b></span>
+    <button id="undoBtn" class="chip icon" type="button" aria-label="Undo" title="Undo" disabled><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+    <button id="hintBtn" class="chip icon" type="button" aria-label="Hint" title="Hint">💡</button>
+  </p>
+  <div id="table" aria-label="The solitaire table"></div>
+  <p class="deal" id="dealNo"></p>
+  <button id="finishBtn" type="button" hidden>✨ Finish</button>
+</main>
+
+<div id="levels" class="overlay" role="dialog" aria-modal="true" aria-labelledby="levelsTitle" hidden>
+  <div class="win-card">
+    <h2 id="levelsTitle">Pick a level</h2>
+    <p id="levelsText">You can change it whenever you like</p>
+    <div class="levels" id="levelList"></div>
+    <button id="closeLevels" class="quiet" type="button">Back to the game</button>
+  </div>
+</div>
+
+<div id="stuck" class="overlay" role="dialog" aria-modal="true" aria-labelledby="stuckTitle" hidden>
+  <div class="win-card">
+    <h2 id="stuckTitle">No more moves</h2>
+    <p>Nothing else can go anywhere this time. Have another go?</p>
+    <div class="row">
+      <button id="stuckUndoBtn" class="quiet" type="button"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg> Undo</button>
+      <button id="stuckNewBtn" type="button">New game</button>
+    </div>
+  </div>
+</div>
+
+<div id="win" class="overlay" role="dialog" aria-modal="true" aria-labelledby="winTitle" hidden>
+  <div class="win-card">
+    <h2 id="winTitle">You won! 🎉</h2>
+    <p id="winText"></p>
+    <p id="winBest"></p>
+    <button id="againBtn" type="button">New game</button>
+  </div>
+</div>
+
+<script type="module">
+  // Klondike, tap first: tapping a card sends it to the best place it can go (a foundation first, then a column),
+  // because dragging is fiddly for small hands. Dragging works too. The rules are in klondike.js; this draws the
+  // table and turns taps and drags into moves.
+  import {
+    deal, move, draw, canDraw, canMove, bestMove, picked, won, hint, stuck, turnsLeft, rulesOf, autoMove, canFinish, finishStep,
+    winnableSeed, cardCount, LEVELS, SYMBOL, RED, RANK_NAME,
+  } from './klondike.js';
+
+  const $ = id => document.getElementById(id);
+  const table = $('table');
+  const params = new URLSearchParams(location.search);
+
+  let game = null;
+  let history = [];        // the games before each move, for Undo
+  let elapsed = 0, since = null, timer = null;   // the clock: time banked, and when it last started running
+  let counted = false;     // this game has been counted as played in the stats
+  let finishing = false;   // the end being played out for you
+  const els = new Map();   // card id -> its element, kept so a card glides from place to place
+  let L = null;            // the current layout: card size, where every pile is
+
+  // ---------- the level, remembered on this device ----------
+
+  const LEVEL_KEY = 'solitaire.level.v1';
+  const saved = (() => { try { return localStorage.getItem(LEVEL_KEY); } catch { return null; } })();
+  let level = LEVELS[params.get('level')] ? params.get('level') : LEVELS[saved] ? saved : 'easy';
+  const saveLevel = () => { try { localStorage.setItem(LEVEL_KEY, level); } catch { /* private window: just for now */ } };
+
+  // ---------- stats per level, and the game in progress, on this device ----------
+
+  const STATS_KEY = 'solitaire.stats.v1', SAVE_KEY = 'solitaire.save.v1';
+  const blankStats = () => ({ played: 0, won: 0, bestTime: null, fewestMoves: null, streak: 0 });
+  function loadStats() {
+    try { const all = JSON.parse(localStorage.getItem(STATS_KEY)); return all && typeof all === 'object' ? all : {}; } catch { return {}; }
+  }
+  function updateStats(lvl, change) {
+    const all = loadStats(), st = { ...blankStats(), ...all[lvl] };
+    change(st);
+    all[lvl] = st;
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(all)); } catch { /* not kept this time */ }
+    return st;
+  }
+
+  /** Keep the game (and the last 100 moves to undo) so closing the page doesn't lose it. */
+  function save() {
+    try {
+      if (!game || game.moves === 0 || won(game)) localStorage.removeItem(SAVE_KEY);
+      else localStorage.setItem(SAVE_KEY, JSON.stringify({ game, history: history.slice(-100), elapsed: clockMs(), counted }));
+    } catch { /* not kept this time */ }
+  }
+  function loadSave() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!s || !s.game || !LEVELS[s.game.level] || !Array.isArray(s.history)) return null;
+      const n = cardCount(s.game);
+      return n.total === 52 && n.distinct === 52 ? s : null;
+    } catch { return null; }
+  }
+
+  // ---------- drawing the table ----------
+
+  function cardEl(card) {
+    let el = els.get(card.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'card';
+      const r = RANK_NAME[card.rank], s = SYMBOL[card.suit], court = card.rank === 1 || card.rank > 10;
+      el.innerHTML = `<span class="corner">${r}<span class="s">${s}</span></span><span class="face">${s}</span><span class="pip">${court ? (card.rank === 1 ? s : r) : s}</span>`;
+      if (court) el.classList.add('court');
+      if (RED.has(card.suit)) el.classList.add('red');
+      el.dataset.id = card.id;
+      el.setAttribute('aria-label', `${RANK_NAME[card.rank]} of ${{ S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' }[card.suit]}`);
+      table.appendChild(el);
+      els.set(card.id, el);
+    }
+    return el;
+  }
+
+  function slot(cls, x, y, text = '', i = '') {
+    const el = document.createElement('div');
+    el.className = `slot ${cls}`;
+    el.dataset.i = i;
+    Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${L.w}px`, height: `${L.h}px`, fontSize: `${L.w * 0.45}px` });
+    el.textContent = text;
+    table.appendChild(el);
+    return el;
+  }
+
+  /** Card size and where each pile goes, from the space there is. Long columns squeeze their overlap to fit. */
+  function measure() {
+    const width = Math.min(table.parentElement.clientWidth, 760);
+    const gap = width < 500 ? 6 : 12;
+    const w = Math.floor((width - gap * 6) / 7), h = Math.round(w * 1.4);
+    const col = i => i * (w + gap);
+    const rowY = h + gap * 2.5;
+    // the columns may use the screen down to the bottom (but never less than room for a dozen cards)
+    const room = Math.max(h * 3.2, window.innerHeight - table.getBoundingClientRect().top - rowY - h - 44);
+    return { w, h, gap, col, rowY, room, width };
+  }
+
+  function offsets(column) {
+    let down = L.w * 0.14, up = L.w * 0.36;
+    const need = column.slice(0, -1).reduce((sum, c) => sum + (c.up ? up : down), 0);
+    if (need > L.room) { const k = L.room / need; down *= k; up = Math.max(up * k, L.w * 0.26); down = Math.max(down, 3); }
+    return { down, up };
+  }
+
+  function render() {
+    L = measure();
+    table.style.width = `${L.width}px`;
+    table.querySelectorAll('.slot, .turns').forEach(s => s.remove());
+    const fontPx = L.w * 0.34;
+    let tallest = L.rowY + L.h;
+    const place = (card, x, y, z, where) => {
+      const el = cardEl(card);
+      el.classList.toggle('down', !card.up);
+      Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${L.w}px`, height: `${L.h}px`, zIndex: z, fontSize: `${fontPx}px` });
+      el.querySelector('.pip').style.fontSize = `${L.w * (card.rank > 10 || card.rank === 1 ? 0.5 : 0.56)}px`;
+      el.querySelector('.face').style.fontSize = `${L.w * 0.22}px`;
+      el.dataset.pile = where.pile;
+      el.dataset.i = where.i ?? '';
+      el.dataset.at = where.at ?? '';
+      el.tabIndex = card.up && where.pile !== 'stock' && !where.under ? 0 : -1;
+      el.setAttribute('role', card.up ? 'button' : 'img');
+      if (!card.up) el.setAttribute('aria-label', 'face-down card');
+      else el.setAttribute('aria-label', `${RANK_NAME[card.rank]} of ${{ S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' }[card.suit]}`);
+    };
+
+    // the stock: a face-down pile; empty, a circle to turn the waste over (or a cross when it can't)
+    const stockSlot = slot('stock', L.col(0), 0, game.stock.length ? '' : canDraw(game) ? '↻' : '✕');
+    stockSlot.classList.toggle('spent', !canDraw(game));
+    stockSlot.setAttribute('role', 'button');
+    stockSlot.tabIndex = 0;
+    stockSlot.setAttribute('aria-label', game.stock.length ? `Draw from the stock (${game.stock.length} left)` : canDraw(game) ? 'Turn the waste over' : 'No more times through the stock');
+    game.stock.forEach((c, k) => place(c, L.col(0), 0, 10 + k, { pile: 'stock' }));
+    // with a limit on times through the stock (Medium), how many more times the waste can be turned over
+    const left = turnsLeft(game);
+    if (left !== null) {
+      const t = document.createElement('div');
+      t.className = `turns${left ? '' : ' none'}`;
+      t.textContent = `↻ ${left}`;
+      t.title = left ? `The waste can be turned over ${left} more time${left > 1 ? 's' : ''}` : 'Last time through the stock';
+      Object.assign(t.style, { left: `${L.col(0) + L.w / 2}px`, top: `${L.h}px` });
+      table.appendChild(t);
+    }
+
+    // the waste: the top one (or three, fanned, when drawing three: only the top one plays)
+    slot('waste', L.col(1), 0);
+    const fan = game.rules.draw > 1 ? 3 : 1, shown = game.waste.slice(-fan);
+    game.waste.forEach((c, k) => {
+      const f = Math.max(0, k - (game.waste.length - shown.length));
+      place(c, L.col(1) + f * L.w * 0.24, 0, 10 + k, { pile: 'waste', at: k, under: k < game.waste.length - 1 });
+    });
+
+    game.foundations.forEach((pile, i) => {
+      slot('foundation', L.col(3 + i), 0, 'A', i);
+      pile.forEach((c, k) => place(c, L.col(3 + i), 0, 10 + k, { pile: 'foundation', i }));
+    });
+
+    game.tableau.forEach((column, i) => {
+      slot('column', L.col(i), L.rowY, 'K', i);
+      const { down, up } = offsets(column);
+      let y = L.rowY;
+      column.forEach((c, at) => {
+        place(c, L.col(i), y, 10 + at, { pile: 'tableau', i, at });
+        y += c.up ? up : down;
+      });
+      tallest = Math.max(tallest, y - (column.length ? (column[column.length - 1].up ? up : down) : 0) + L.h);
+    });
+    table.style.height = `${tallest + 4}px`;
+    $('moves').textContent = game.moves;
+    $('dealNo').textContent = `Deal #${game.seed}`;
+    $('levelBtn').textContent = LEVELS[level].name;
+    $('levelBtn').setAttribute('aria-label', `Level: ${LEVELS[level].name}. Change level`);
+    $('hintBtn').hidden = !LEVELS[level].hints;
+    $('undoBtn').disabled = !history.length || finishing;
+    $('finishBtn').hidden = !canFinish(game) || finishing;
+  }
+
+  // ---------- moves ----------
+
+  function placeOf(el) {
+    const p = { pile: el.dataset.pile };
+    if (el.dataset.i !== '') p.i = Number(el.dataset.i);
+    if (el.dataset.at !== '') p.at = Number(el.dataset.at);
+    return p;
+  }
+
+  function apply(next) {
+    if (!next || finishing) return false;
+    clearHint();
+    history.push(game);
+    game = next;
+    playing();
+    settle();
+    return true;
+  }
+
+  /** The game is under way: count it as played (once) and run the clock. */
+  function playing() {
+    if (!counted) { counted = true; updateStats(game.level, st => { st.played++; }); }
+    runClock();
+  }
+
+  /** After a move: the win, no more moves, or (on Easy) safe cards going up by themselves, one after another. */
+  let autoTimer = null;
+  function settle() {
+    clearTimeout(autoTimer);
+    render();
+    if (won(game)) { finish(); return; }
+    if (stuck(game)) { showStuck(); return; }
+    save();
+    if (LEVELS[game.level || level].autoMove && autoMove(game)) {
+      autoTimer = setTimeout(() => {
+        const m = autoMove(game);
+        if (!m || finishing) return;
+        game = move(game, m.from, m.to);   // part of the move before it: one Undo takes back both
+        settle();
+      }, 200);
+    }
+  }
+
+  function undo() {
+    if (!history.length || finishing) return;
+    clearHint();
+    clearTimeout(autoTimer);
+    $('stuck').hidden = true;
+    game = history.pop();
+    render();
+    save();
+    if (inPlay()) runClock();
+  }
+  $('undoBtn').addEventListener('click', undo);
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && $('win').hidden && $('levels').hidden) { e.preventDefault(); undo(); }
+  });
+
+  /** Play out the end: every card up, one after another. */
+  $('finishBtn').addEventListener('click', () => {
+    if (!canFinish(game) || finishing) return;
+    clearHint();
+    clearTimeout(autoTimer);
+    history.push(game);
+    playing();
+    finishing = true;
+    render();
+    const step = () => {
+      const next = finishStep(game);
+      if (!next) { finishing = false; settle(); return; }
+      game = next;
+      if (won(game)) { finishing = false; settle(); return; }
+      render();
+      setTimeout(step, reduceMotion ? 0 : 90);
+    };
+    step();
+  });
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /** Only the top card of the waste plays (when three are fanned, the two under it are just for show). */
+  const underneath = from => from.pile === 'waste' && from.at !== game.waste.length - 1;
+
+  function shake(el) {
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+
+  /** A tap on a card: send it (and the cards on it) to the best place it can go. */
+  function tapCard(el) {
+    const from = placeOf(el);
+    if (from.pile === 'stock') return apply(draw(game));
+    if (underneath(from)) return false;
+    const to = bestMove(game, from);
+    if (!to) { shake(el); return false; }
+    return apply(move(game, from, to));
+  }
+
+  // ---------- pointer: tap or drag ----------
+
+  let press = null;   // { el, from, cards: [el], x, y, dragging }
+  table.addEventListener('pointerdown', e => {
+    if (!game || won(game) || finishing) return;
+    // a tap where the stock is always draws, even on a card that's still sliding off it to the waste
+    const r = table.getBoundingClientRect();
+    if (e.clientX - r.left < L.w && e.clientY - r.top < L.h) { apply(draw(game)); return; }
+    const el = e.target.closest('.card');
+    if (!el) return;
+    const from = placeOf(el);
+    if (underneath(from)) return;
+    const cards = picked(game, from);
+    if (!cards.length) return;
+    press = { el, from, cards: cards.map(c => els.get(c.id)), x: e.clientX, y: e.clientY, dragging: false };
+    table.setPointerCapture(e.pointerId);
+  });
+  table.addEventListener('pointermove', e => {
+    if (!press) return;
+    const dx = e.clientX - press.x, dy = e.clientY - press.y;
+    if (!press.dragging && Math.hypot(dx, dy) < 8) return;
+    press.dragging = true;
+    press.cards.forEach((c, k) => {
+      c.classList.add('dragging');
+      c.style.zIndex = 1000 + k;
+      c.style.translate = `${dx}px ${dy}px`;
+    });
+  });
+  table.addEventListener('pointerup', e => {
+    if (!press) return;
+    const p = press;
+    press = null;
+    if (!p.dragging) { tapCard(p.el); return; }
+    // dropped: the pile under the middle of the card that was picked up
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    const cx = parseFloat(p.el.style.left) + L.w / 2 + dx, cy = parseFloat(p.el.style.top) + L.h / 2 + dy;
+    const col = Math.max(0, Math.min(6, Math.floor((cx + L.gap / 2) / (L.w + L.gap))));
+    const to = cy < L.rowY - L.gap ? (col >= 3 ? { pile: 'foundation', i: col - 3 } : null) : { pile: 'tableau', i: col };
+    p.cards.forEach(c => { c.classList.remove('dragging'); c.style.translate = ''; });
+    if (!(to && canMove(game, p.from, to) && apply(move(game, p.from, to)))) {
+      render();   // back where it came from
+      if (to && !(to.pile === 'tableau' && p.from.pile === 'tableau' && to.i === p.from.i)) shake(p.el);
+    }
+  });
+  table.addEventListener('pointercancel', () => {
+    if (!press) return;
+    press.cards.forEach(c => { c.classList.remove('dragging'); c.style.translate = ''; });
+    press = null;
+    render();
+  });
+  // keyboard: Enter or Space on a card does what a tap does; on the stock, draws
+  table.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('.card'), stock = e.target.closest('.slot.stock');
+    if (!el && !stock) return;
+    e.preventDefault();
+    const id = el && el.dataset.id;
+    if (stock) apply(draw(game)); else tapCard(el);
+    // keep the keyboard where it was: on the same card if it's still showing, else the stock
+    const again = id && els.get(id);
+    (again && again.tabIndex === 0 ? again : table.querySelector('.slot.stock')).focus();
+  });
+
+  // ---------- the clock, new games, the win ----------
+
+  const fmt = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const clockMs = () => elapsed + (since === null ? 0 : Date.now() - since);
+  const showTime = () => { $('time').textContent = fmt(clockMs()); };
+  const inPlay = () => game && game.moves > 0 && !won(game) && !stuck(game);
+  function runClock() {
+    if (since !== null) return;
+    since = Date.now();
+    clearInterval(timer);
+    timer = setInterval(showTime, 1000);
+  }
+  function stopClock() {
+    if (since !== null) { elapsed += Date.now() - since; since = null; }
+    clearInterval(timer);
+    showTime();
+  }
+  // the clock stops while the page is hidden (another tab, the phone locked), and the game is kept
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { stopClock(); save(); } else if (inPlay()) runClock();
+  });
+
+  function clearTable() {
+    clearTimeout(autoTimer);
+    finishing = false;
+    els.forEach(el => el.remove());
+    els.clear();
+    $('win').hidden = true;
+    $('stuck').hidden = true;
+  }
+
+  /** A new deal: the one asked for (a deal link), or a random one, which on Easy is always one that can be won. */
+  function newGame(seed = null) {
+    if (seed === null) {
+      seed = Math.floor(Math.random() * 1000000) + 1;
+      if (LEVELS[level].winnable) seed = winnableSeed(seed);
+    }
+    // a game given up on ends the winning streak
+    if (game && counted && !won(game)) updateStats(game.level, st => { st.streak = 0; });
+    stopClock();
+    elapsed = 0;
+    counted = false;
+    clearTable();
+    history = [];
+    game = deal(seed, rulesOf(level), level);
+    render();
+    showTime();
+    save();
+  }
+
+  /** Carry on with a saved game. */
+  function resume(s) {
+    clearTable();
+    level = s.game.level;
+    game = s.game;
+    history = s.history;
+    elapsed = s.elapsed || 0;
+    since = null;
+    counted = !!s.counted;
+    render();
+    showTime();
+    if (stuck(game)) showStuck();
+    else if (inPlay()) runClock();
+  }
+
+  // ---------- hints, no more moves ----------
+
+  let hintTimer = null;
+  function clearHint() {
+    clearTimeout(hintTimer);
+    table.querySelectorAll('.hint').forEach(el => el.classList.remove('hint'));
+  }
+  /** Light up the best move for a moment: the cards to move and where they go (or the stock, to draw). */
+  function showHint() {
+    clearHint();
+    const h = hint(game);
+    if (!h) { showStuck(); return; }
+    const lit = [];
+    const topOf = pile => pile[pile.length - 1];
+    if (h.draw) {
+      lit.push(table.querySelector('.slot.stock'));
+      if (game.stock.length) lit.push(els.get(topOf(game.stock).id));
+    } else {
+      picked(game, h.from).forEach(c => lit.push(els.get(c.id)));
+      const pile = h.to.pile === 'foundation' ? game.foundations[h.to.i] : game.tableau[h.to.i];
+      lit.push(pile.length ? els.get(topOf(pile).id) : table.querySelector(`.slot.${h.to.pile === 'foundation' ? 'foundation' : 'column'}[data-i="${h.to.i}"]`));
+    }
+    lit.forEach(el => el.classList.add('hint'));
+    hintTimer = setTimeout(clearHint, 1800);
+  }
+  $('hintBtn').addEventListener('click', showHint);
+
+  function showStuck() {
+    stopClock();
+    save();
+    $('stuckUndoBtn').hidden = !history.length;
+    $('stuck').hidden = false;
+    $('stuckNewBtn').focus();
+  }
+  $('stuckUndoBtn').addEventListener('click', undo);
+  $('stuckNewBtn').addEventListener('click', () => newGame());
+
+  // ---------- the levels ----------
+
+  // In the middle of a game, picking another level asks once more ("Sure?"): it starts a new game.
+  let sureLevel = null, sureLevelTimer = null;
+  function showLevels() {
+    const list = $('levelList');
+    list.innerHTML = '';
+    const playing = game && game.moves > 0 && !won(game);
+    $('levelsText').textContent = playing ? 'Another level starts a new game' : 'You can change it whenever you like';
+    for (const [id, l] of Object.entries(LEVELS)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `level${id === level ? ' current' : ''}`;
+      b.dataset.level = id;
+      const st = { ...blankStats(), ...loadStats()[id] };
+      const line = !st.played ? 'Not played yet'
+        : [`Won ${st.won} of ${st.played}`, st.bestTime !== null && `best ${fmt(st.bestTime)}`, st.fewestMoves !== null && `${st.fewestMoves} moves`, st.streak > 1 && `${st.streak} in a row`].filter(Boolean).join(' · ');
+      b.innerHTML = `<b>${l.name}</b><span>${l.about}</span><span class="stat">${line}</span>`;
+      b.addEventListener('click', () => {
+        if (id === level && playing) { hideLevels(); return; }
+        if (playing && sureLevel !== id) {
+          list.querySelectorAll('.sure').forEach(x => { x.classList.remove('sure'); x.querySelector('b').textContent = LEVELS[x.dataset.level].name; });
+          sureLevel = id;
+          b.classList.add('sure');
+          b.querySelector('b').textContent = `Sure? New ${l.name} game`;
+          clearTimeout(sureLevelTimer);
+          sureLevelTimer = setTimeout(() => { sureLevel = null; b.classList.remove('sure'); b.querySelector('b').textContent = l.name; }, 3000);
+          return;
+        }
+        level = id;
+        saveLevel();
+        hideLevels();
+        newGame();
+      });
+      list.appendChild(b);
+    }
+    $('levels').hidden = false;
+    (list.querySelector('.current') || list.firstChild).focus();
+  }
+  function hideLevels() {
+    clearTimeout(sureLevelTimer);
+    sureLevel = null;
+    $('levels').hidden = true;
+  }
+  $('levelBtn').addEventListener('click', showLevels);
+  $('closeLevels').addEventListener('click', hideLevels);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('levels').hidden) hideLevels(); });
+
+  function finish() {
+    stopClock();
+    const ms = clockMs(), time = fmt(ms);
+    let best = '';
+    updateStats(game.level, st => {
+      if (st.won > 0 && (st.bestTime === null || ms < st.bestTime)) best = 'Your fastest yet!';
+      else if (st.won > 0 && (st.fewestMoves === null || game.moves < st.fewestMoves)) best = 'Your fewest moves yet!';
+      st.won++;
+      st.streak++;
+      st.bestTime = st.bestTime === null ? ms : Math.min(st.bestTime, ms);
+      st.fewestMoves = st.fewestMoves === null ? game.moves : Math.min(st.fewestMoves, game.moves);
+      if (st.streak > 1 && !best) best = `${st.streak} wins in a row!`;
+    });
+    counted = false;
+    save();
+    game.foundations.forEach((pile, i) => {
+      const king = els.get(pile[pile.length - 1].id);
+      king.style.animationDelay = `${i * 0.12}s`;
+      king.classList.add('bounce');
+    });
+    $('winText').textContent = `${game.moves} moves in ${time}`;
+    $('winBest').textContent = best;
+    setTimeout(() => { $('win').hidden = false; $('againBtn').focus(); }, 500);
+  }
+
+  // "New game" in the middle of one asks once more ("Sure?") rather than throwing the game away on a slip
+  let sureTimer = null;
+  $('newBtn').addEventListener('click', () => {
+    const btn = $('newBtn');
+    if (game.moves > 0 && !won(game) && !btn.classList.contains('sure')) {
+      btn.classList.add('sure');
+      btn.textContent = 'Sure? New game';
+      sureTimer = setTimeout(() => { btn.classList.remove('sure'); btn.textContent = 'New game'; }, 3000);
+      return;
+    }
+    clearTimeout(sureTimer);
+    btn.classList.remove('sure');
+    btn.textContent = 'New game';
+    newGame();
+  });
+  $('againBtn').addEventListener('click', () => newGame());
+  window.addEventListener('resize', () => { if (game) render(); });
+
+  // for the tests
+  window.solitaire = {
+    get game() { return game; },
+    load(g) { clearTable(); stopClock(); elapsed = 0; counted = false; game = g; history = []; render(); showTime(); if (stuck(game)) showStuck(); },
+    newGame,
+  };
+
+  // carry on with the saved game, unless a link asks for another deal or level
+  const kept = loadSave(), seed = Number(params.get('seed')) || null;
+  if (kept && (!seed || kept.game.seed === seed) && (!params.has('level') || params.get('level') === kept.game.level)) resume(kept);
+  else newGame(seed);
+  // the first time here, pick a level (a deal link or ?level= goes straight to the game)
+  if (!saved && !kept && !params.has('seed') && !params.has('level')) showLevels();
+</script>
+<script>
+  // offline: the game works after the first visit with no connection (sw.js)
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

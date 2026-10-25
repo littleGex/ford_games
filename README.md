@@ -11,9 +11,9 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 - 🟩 **Wordle** — guess a hidden word in limited tries with letter feedback (correct position / wrong position / not in word). Easy (4 letters) or Hard (6 letters), each with its own shared, Firebase-backed word list.
 - 🔍 **Word Search** — find hidden words in a letter grid by clicking/dragging across them (any of the 8 directions, forwards or backwards). Easy (8×8, 6 words) or Hard (12×12, 10 words), drawing from a 200+ word bundled list plus a shared, Firebase-backed list anyone can add to.
 - 🔴🟡 **Connect 4** — 2 player, or vs computer with Easy/Hard difficulty (Hard uses depth-limited minimax with alpha-beta pruning and a positional heuristic — reliably takes winning moves and blocks immediate threats).
-- 🎴 **Uno** — 2-4 players, same-device pass-and-play with a hand-off screen between turns so hands stay private. Full 108-card deck, all action/wild cards, CSS-drawn cards (no image assets).
 - ⚽ **1v1 Soccer** — real-time canvas arcade soccer, inspired by retro top-down football games (an original build — no licensed clubs, players, or assets). 2 player (WASD vs arrow keys) or vs computer with rule-based AI. Timed match: two configurable halves (1/2/3 min), teams swap ends at half time, netted goals.
 - 🥅 **5v5 Soccer** — full team match, same original art/engine style. Auto-switch control (you drive whichever of your outfielders is nearest the ball — goalkeepers are always computer-controlled, with real collision physics so shots can't pass through them, and they automatically clear a held ball toward the center circle after ~1.3 seconds so play never stalls; pressing your own kick button clears it immediately instead of waiting), with teammates and opponents holding simple zonal formation positions rather than deliberate passing AI. 2 player, vs computer, or **League** mode: a full 6-team single round-robin season against 5 original opponent teams (own names/colors, no real clubs) of varying AI skill (easy/medium/hard — same decision code, different tuning). You play your own fixtures; the AI-vs-AI matches are simulated with skill-weighted random scorelines, so the standings are a real league table you can win, lose, or finish mid-table in on goal difference. Saved locally in the browser.
+- ♠️ **Solitaire** — Klondike for one, built for a phone: tap a card and it goes to the best place it can (a foundation first, then a column), or drag it. Runs move together, the card underneath turns over by itself, and a win shows the moves and time. CSS-drawn cards with the suit beside every rank. Three levels (Easy: draw 1, as many times through the stock as you like, and every deal can be won, checked by a small solver; Medium: draw 1, three times through; Hard: draw 3), hints on Easy and Medium, Undo, a ✨ Finish button for the end, stats per level, and the game in progress kept on the device so a reload carries on. Each deal has a number, and `?seed=1234` plays that deal again (`&level=hard` picks the level). The rules are in `solitaire/klondike.js`, tested in Node (`npm run test:solitaire`).
 - 🃏 **Uno** — 2-4 players, same-device pass-and-play. Full 108-card deck, Skip/Reverse/Draw Two/Wild/Wild Draw Four, CSS-drawn cards (no image assets). A hand-off screen hides each player's cards until they tap through, so nobody sees anyone else's hand on a shared device.
 - 🚢 **Battleships** — a 3D sea in the Ford House style: two wooden jetty boards with lanterns, ships built from blocks, shells that arc across, splashes, fires and ships that sink. Place your fleet (drag to move, tap to turn, or Shuffle), then take turns firing. Against the computer (Easy / Normal / Hard — Hard works out where the remaining ships are most likely to be), two players on one device with a hand-off screen between turns, or **two players on their own phones**: one starts a game and gets a 4-letter code (or sends the link), the other joins with it. Games are saved on the device, and wins against the computer are counted per level. Split into ES modules like Ford House — see [Battleships](#battleships) below.
 - 🏠 **Ford House** — a 3D dollhouse of our own house (both floors, front and back garden), built from the floor plan and room photos. Walk around as Dad, P or Dude and do the household jobs: bins, mowing, hoovering, washing up, charging the car, coffee, TV, making the beds, putting a wash on and more, plus surprise events (post, a parcel at the door with a countdown, power cuts you fix at the fuse box with a torch). It runs in days: each day picks 10-12 jobs by their rules (dishes daily, mowing every 4 days, bins out then back in the next day), and progress is saved on the phone. Unlike the other games it's split into ES modules — see [`house/README.md`](house/README.md).
@@ -53,6 +53,11 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 │   ├── index.html
 │   ├── manifest.json
 │   └── sw.js
+├── solitaire/
+│   ├── index.html
+│   ├── klondike.js     # the rules, no page (tested in Node)
+│   ├── manifest.json
+│   └── sw.js
 ├── uno/
 │   ├── index.html
 │   ├── manifest.json
@@ -84,11 +89,13 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
     │   ├── connect4.spec.js
     │   ├── battleships.spec.js
     │   ├── battleships-online.spec.js
+    │   ├── solitaire.spec.js
     │   ├── uno.spec.js
     │   ├── soccer.spec.js
     │   ├── soccer5v5.spec.js
     │   └── house.spec.js
     ├── battleships/    # Node tests of the Battleships rules, computer players and two-device games
+    ├── solitaire/      # Node test of the Klondike rules
     └── house/          # Node play-through test for Ford House (no browser)
 ```
 
