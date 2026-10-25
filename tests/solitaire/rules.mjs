@@ -1,5 +1,5 @@
 // Klondike rules, checked without a browser:  node tests/solitaire/rules.mjs
-import { deal, move, draw, canMove, bestMove, picked, won, cardCount, fitsTableau, fitsFoundation, hint, stuck, turnsLeft, rulesOf, LEVELS, autoMove, canFinish, finishStep } from '../../solitaire/klondike.js';
+import { deal, move, draw, canMove, bestMove, picked, won, cardCount, fitsTableau, fitsFoundation, hint, stuck, turnsLeft, rulesOf, LEVELS, autoMove, canFinish, finishStep, solve, winnableSeed } from '../../solitaire/klondike.js';
 
 const fail = [];
 const check = (ok, msg) => { if (!ok) fail.push(msg); };
@@ -125,6 +125,38 @@ check(canFinish(ending) && !canFinish(table), 'finishing off: only with the stoc
 let fin = ending, steps = 0;
 while (fin && !won(fin) && steps < 60) { fin = finishStep(fin); steps++; }
 check(fin && won(fin) && steps === 52, 'finishing off plays all 52 up, one at a time');
+
+// --- Easy's deals can be won: the solver's winning line, played out with the real rules, puts all 52 up
+function replay(game, moves) {
+  let g = game;
+  for (const { card: id, to } of moves) {
+    let from = null;
+    g.tableau.forEach((col, i) => { const at = col.findIndex(c => c.id === id); if (at >= 0 && col[at].up) from = { pile: 'tableau', i, at }; });
+    for (let turns = 0; !from && turns < 60; turns++) {
+      if (g.waste.length && g.waste[g.waste.length - 1].id === id) from = { pile: 'waste' };
+      else g = draw(g);
+    }
+    if (!from) return `can't find ${id}`;
+    const target = to === 'foundation'
+      ? [0, 1, 2, 3].map(i => ({ pile: 'foundation', i })).find(t => canMove(g, from, t))
+      : { pile: 'tableau', i: to };
+    const next = target && move(g, from, target);
+    if (!next) return `${id} can't go to ${to}`;
+    g = next;
+  }
+  return won(g) ? null : 'not won at the end';
+}
+let seed = 500;
+for (let k = 0; k < 25; k++, seed++) {
+  seed = winnableSeed(seed);
+  const game = deal(seed, rulesOf('easy'), 'easy');
+  const line = solve(game);
+  const problem = line.result !== 'won' ? `not won (${line.result})` : replay(game, line.moves);
+  if (problem) fail.push(`Easy deal ${seed}: ${problem}`);
+}
+const easy = deal(winnableSeed(seed), rulesOf('easy'), 'easy'), line = solve(easy);
+check(replay(easy, line.moves.slice(0, -1)) === 'not won at the end', 'the replay notices a line that falls short');
+check(solve({ ...table, stock: [], waste: [card('C', 9)], tableau: [[card('D', 4, false), card('S', 8)], [card('S', 9)], [], [], [], [], []] }).result === 'lost', 'a hopeless game is lost');
 
 const nearlyDone = {
   ...table, stock: [], waste: [], tableau: [[card('S', 13)], [], [], [], [], [], []],

@@ -18,12 +18,13 @@ export const RANK_NAME = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10',
 /**
  * The levels, all in one place so they're easy to change. draw: cards turned over from the stock at a time;
  * passes: how many times you may go through the stock (null: as often as you like); hints: the Hint button;
- * autoMove: cards that can safely go up to the foundations go by themselves.
+ * autoMove: cards that can safely go up to the foundations go by themselves; winnable: only deals that can be won
+ * (needs draw 1 with no limit on passes, see solve).
  */
 export const LEVELS = {
-  easy: { name: 'Easy', draw: 1, passes: null, hints: true, autoMove: true, about: 'Draw 1 card, through the stock as often as you like, cards go up by themselves' },
-  medium: { name: 'Medium', draw: 1, passes: 3, hints: true, autoMove: false, about: 'Draw 1 card, three times through the stock' },
-  hard: { name: 'Hard', draw: 3, passes: null, hints: false, autoMove: false, about: 'Draw 3 cards at a time, only the top one plays, no hints' },
+  easy: { name: 'Easy', draw: 1, passes: null, hints: true, autoMove: true, winnable: true, about: 'Draw 1 card, through the stock as often as you like, cards go up by themselves, every deal can be won' },
+  medium: { name: 'Medium', draw: 1, passes: 3, hints: true, autoMove: false, winnable: false, about: 'Draw 1 card, three times through the stock' },
+  hard: { name: 'Hard', draw: 3, passes: null, hints: false, autoMove: false, winnable: false, about: 'Draw 3 cards at a time, only the top one plays, no hints' },
 };
 export const DEFAULT_RULES = { draw: 1, passes: null };
 /** The stock rules for a level. */
@@ -214,6 +215,121 @@ export function finishStep(game) {
     if (f >= 0) best = { rank: c.rank, from: { pile: 'tableau', i }, to: { pile: 'foundation', i: f } };
   });
   return best && move(game, best.from, best.to);
+}
+
+// ---------- winnable deals (Easy, #119) ----------
+//
+// With one card drawn at a time and no limit on times through the stock, every card in the stock and waste can be
+// reached whenever it's wanted (go round until it's on top), so the solver treats them as one pool of cards that
+// can be played at any time. It only makes legal moves, so a deal it wins really can be won. It searches depth
+// first, never visiting a position twice, and gives up after `limit` positions.
+
+const SUIT_NO = { S: 0, H: 1, D: 2, C: 3 };
+const cardNo = c => SUIT_NO[c.suit] * 13 + c.rank - 1;   // 0-51
+const suitNo = n => (n / 13) | 0, rankNo = n => (n % 13) + 1;
+const redNo = n => suitNo(n) === 1 || suitNo(n) === 2;
+const goesOn = (n, t) => redNo(n) !== redNo(t) && rankNo(t) === rankNo(n) + 1;
+
+/**
+ * Can this game be won drawing one card at a time? Returns { result: 'won', moves } with the winning line (each
+ * move { card: 'H7', to: 'foundation' | column number }), { result: 'lost' } when no line wins, or
+ * { result: 'unknown' } after `limit` positions.
+ */
+export function solve(game, limit = 500) {
+  const fits = (s, n) => s.f[suitNo(n)] === rankNo(n) - 1;
+  const safe = (s, n) => rankNo(n) <= 2 || (redNo(n) ? [0, 3] : [1, 2]).every(x => s.f[x] >= rankNo(n) - 1);
+  const copyState = s => ({ cols: s.cols.map(c => ({ down: c.down.slice(), up: c.up.slice() })), f: s.f.slice(), pool: s.pool.slice(), from: s, line: [] });
+  const turnOver = col => { if (!col.up.length && col.down.length) col.up.push(col.down.pop()); };
+  const upFromColumn = (s, i) => { const n = s.cols[i].up.pop(); s.f[suitNo(n)]++; turnOver(s.cols[i]); s.line.push([n, 'foundation']); };
+  const upFromPool = (s, k) => { const [n] = s.pool.splice(k, 1); s.f[suitNo(n)]++; s.line.push([n, 'foundation']); };
+  // cards that can safely go up always do: it never hurts, and it keeps the search small
+  function settle(s) {
+    for (let again = true; again;) {
+      again = false;
+      s.cols.forEach((col, i) => {
+        const t = col.up[col.up.length - 1];
+        if (t !== undefined && fits(s, t) && safe(s, t)) { upFromColumn(s, i); again = true; }
+      });
+      for (let k = s.pool.length - 1; k >= 0; k--) if (fits(s, s.pool[k]) && safe(s, s.pool[k])) { upFromPool(s, k); again = true; }
+    }
+    return s;
+  }
+  const key = s => `${s.f}|${s.cols.map(c => `${c.down.length}:${c.up.join('.')}`).sort().join('/')}|${s.pool.slice().sort((a, b) => a - b).join('.')}`;
+  // where a card or run can go: onto a column it fits, or one gap (for a King; any gap will do)
+  const targets = (s, n, skip) => {
+    const out = [];
+    let gap = false;
+    s.cols.forEach((col, j) => {
+      if (j === skip) return;
+      const t = col.up[col.up.length - 1];
+      if (t === undefined ? !col.down.length && rankNo(n) === 13 && !gap && (gap = true) : goesOn(n, t)) out.push(j);
+    });
+    return out;
+  };
+  function children(s) {
+    const out = [];
+    s.cols.forEach((col, i) => {
+      const t = col.up[col.up.length - 1];
+      if (t !== undefined && fits(s, t)) { const c = copyState(s); upFromColumn(c, i); out.push(c); }
+    });
+    s.pool.forEach((n, k) => { if (fits(s, n)) { const c = copyState(s); upFromPool(c, k); out.push(c); } });
+    // runs: all of a column's face-up cards (turning a card over, or emptying the column), or the top part when that
+    // frees the card under it for a foundation
+    s.cols.forEach((col, i) => {
+      col.up.forEach((n, at) => {
+        if (at === 0 ? !col.down.length && rankNo(n) === 13 : !fits(s, col.up[at - 1])) return;
+        for (const j of targets(s, n, i)) {
+          const c = copyState(s);
+          c.cols[j].up.push(...c.cols[i].up.splice(at));
+          turnOver(c.cols[i]);
+          c.line.push([n, j]);
+          out.push(c);
+        }
+      });
+    });
+    s.pool.forEach((n, k) => {
+      for (const j of targets(s, n, -1)) {
+        const c = copyState(s);
+        c.pool.splice(k, 1);
+        c.cols[j].up.push(n);
+        c.line.push([n, j]);
+        out.push(c);
+      }
+    });
+    return out.map(settle);
+  }
+
+  const start = settle({
+    cols: game.tableau.map(col => ({ down: col.filter(c => !c.up).map(cardNo), up: col.filter(c => c.up).map(cardNo) })),
+    f: [0, 1, 2, 3].map(x => (game.foundations.find(p => p.length && SUIT_NO[p[0].suit] === x) || []).length),
+    pool: [...game.stock, ...game.waste].map(cardNo),
+    from: null, line: [],
+  });
+  const seen = new Set(), stack = [start];
+  let positions = 0;
+  while (stack.length) {
+    const s = stack.pop();
+    if (s.f.every(h => h === 13)) {
+      const moves = [];
+      for (let x = s; x; x = x.from) moves.unshift(...x.line.map(([n, to]) => ({ card: `${SUITS[suitNo(n)]}${rankNo(n)}`, to })));
+      return { result: 'won', moves };
+    }
+    const k = key(s);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    if (++positions > limit) return { result: 'unknown' };
+    stack.push(...children(s).reverse());
+  }
+  return { result: 'lost' };
+}
+
+/**
+ * The first deal from `seed` on that the solver wins quickly (Easy's deals). A deal it can't win within the small
+ * budget is skipped, so this takes a few tries at most, and a hundredth of a second or so each.
+ */
+export function winnableSeed(seed, budget = 500) {
+  for (let tries = 0; tries < 200; tries++, seed++) if (solve(deal(seed), budget).result === 'won') return seed;
+  return seed;   // never in practice: about half of all deals are won within the budget
 }
 
 /** Every card on the foundations? */
