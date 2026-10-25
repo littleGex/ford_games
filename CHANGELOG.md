@@ -10,6 +10,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.17.0] - 2026-10-25
+
 ### Added
 - **Connect 4 and Tic-Tac-Toe on two phones**: a 📱 Two phones mode. One player starts a game and gets a
   four-letter code, the other types it in, and each plays on their own phone; Play again swaps who goes first,
@@ -423,7 +425,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.16.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.17.0...HEAD
+[4.17.0]: https://github.com/littleGex/ford_games/compare/v4.16.0...v4.17.0
 [4.16.0]: https://github.com/littleGex/ford_games/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/littleGex/ford_games/compare/v4.14.0...v4.15.0
 [4.14.0]: https://github.com/littleGex/ford_games/compare/v4.13.0...v4.14.0
