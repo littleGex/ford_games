@@ -1,0 +1,8 @@
+{
+  "name": "Solitaire",
+  "short_name": "Solitaire",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f3424",
+  "theme_color": "#123d2a"
+}

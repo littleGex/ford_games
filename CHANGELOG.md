@@ -11,9 +11,9 @@ pull request; at release time that section becomes the new version (see "Releasi
 ## [Unreleased]
 
 ### Added
-- **Solitaire** (Klondike), the playable core: deal, tap a card to send it where it fits (a foundation first),
-  or drag it; runs move together, the card underneath turns over, and a win shows moves and time. Not on the
-  Game Zone page yet: that comes with offline play (#118) (#115).
+- **Solitaire** (Klondike), a new game for one: tap a card to send it where it fits (a foundation first), or
+  drag it; runs move together, the card underneath turns over, and a win shows moves and time (#115). On the
+  Game Zone page under Board and cards, installable, and playable offline after the first visit (#118).
 
 ## [4.15.0] - 2026-10-25
 
