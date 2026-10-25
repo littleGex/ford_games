@@ -1,5 +1,5 @@
 // Klondike rules, checked without a browser:  node tests/solitaire/rules.mjs
-import { deal, move, draw, canMove, bestMove, picked, won, cardCount, fitsTableau, fitsFoundation } from '../../solitaire/klondike.js';
+import { deal, move, draw, canMove, bestMove, picked, won, cardCount, fitsTableau, fitsFoundation, hint, stuck, turnsLeft, rulesOf, LEVELS } from '../../solitaire/klondike.js';
 
 const fail = [];
 const check = (ok, msg) => { if (!ok) fail.push(msg); };
@@ -22,7 +22,7 @@ check(fitsFoundation(card('D', 2), [card('D', 1)]) && !fitsFoundation(card('H', 
 
 // --- moves on a set-up table
 const table = {
-  seed: 0, moves: 0, passes: 0, rules: { draw: 1, passes: null },
+  seed: 0, moves: 0, pass: 1, rules: { draw: 1, passes: null },
   stock: [card('C', 9, false)], waste: [card('S', 1)],
   foundations: [[], [], [], []],
   tableau: [
@@ -53,17 +53,27 @@ const aceUp = move(table, { pile: 'waste' }, { pile: 'foundation', i: 0 });
 check(JSON.stringify(bestMove(aceUp, { pile: 'tableau', i: 4 })) === '{"pile":"foundation","i":0}', 'the 2 follows its Ace');
 check(!canMove(aceUp, { pile: 'tableau', i: 0, at: 1 }, { pile: 'foundation', i: 0 }), 'a run can\'t go up to a foundation');
 
-// --- the stock: draw, then turn the waste over; limited passes stop it
-let s = { ...deal(5), rules: { draw: 1, passes: 1 } };
+// --- the stock: draw, then turn the waste over; Medium's three times through stop there
+let s = deal(5, rulesOf('medium'), 'medium');
+check(s.level === 'medium' && s.pass === 1 && turnsLeft(s) === 2, 'Medium: the first of three times through');
 for (let k = 0; k < 24; k++) s = draw(s);
 check(s.stock.length === 0 && s.waste.length === 24 && s.waste.every(c => c.up), 'drawing one at a time empties the stock');
 s = draw(s);
-check(s.stock.length === 24 && s.passes === 1 && s.stock.every(c => !c.up), 'the waste turns back over into the stock');
+check(s.stock.length === 24 && s.pass === 2 && s.stock.every(c => !c.up), 'the waste turns back over into the stock');
 check(s.stock[s.stock.length - 1].id === deal(5).stock[23].id, 'in the same order as before');
+for (let k = 0; k < 25; k++) s = draw(s);
+check(s.pass === 3 && turnsLeft(s) === 0, 'the third time through');
 for (let k = 0; k < 24; k++) s = draw(s);
-check(draw(s) === null, 'no more passes than the rules allow');
-const three = draw({ ...deal(5), rules: { draw: 3, passes: null } });
-check(three.waste.length === 3 && three.stock.length === 21, 'draw-3 deals three');
+check(s.stock.length === 0 && draw(s) === null, 'no fourth time through');
+let e = deal(5, rulesOf('easy'));
+for (let k = 0; k < 24 * 6 + 5; k++) e = draw(e);
+check(e && turnsLeft(e) === null, 'Easy: as many times through as you like');
+const three = draw(deal(5, rulesOf('hard')));
+check(three.waste.length === 3 && three.stock.length === 21, 'Hard: draw-3 turns over three');
+let h = deal(5, rulesOf('hard'));
+for (let k = 0; k < 8; k++) h = draw(h);
+check(h.stock.length === 0 && h.waste.length === 24 && draw(h).stock.length === 24, 'draw-3: eight taps empty the stock');
+check(LEVELS.easy.hints && LEVELS.medium.hints && !LEVELS.hard.hints, 'hints on Easy and Medium, not Hard');
 
 // --- random play never loses or doubles a card, and a game played through the foundations is won
 for (let seed = 1; seed <= 40; seed++) {
@@ -78,6 +88,19 @@ for (let seed = 1; seed <= 40; seed++) {
     if (n.total !== 52 || n.distinct !== 52) { fail.push(`seed ${seed}: ${n.total} cards (${n.distinct} different) after step ${step}`); break; }
   }
 }
+// --- hints and being stuck
+check(JSON.stringify(hint(table)) === '{"from":{"pile":"waste"},"to":{"pile":"foundation","i":0}}', 'the hint: the Ace up first');
+const runHint = hint({ ...table, waste: [] });
+check(runHint && runHint.from.i === 0 && runHint.from.at === 1 && runHint.to.i === 1, 'then the run off the face-down card');
+const blocked = {
+  ...table, stock: [], waste: [card('C', 9)], pass: 1, rules: { draw: 1, passes: 1 },
+  tableau: [[card('D', 4, false), card('S', 8)], [card('S', 9)], [], [], [], [], []],
+};
+check(stuck(blocked), 'nothing goes anywhere and the stock is spent: stuck');
+check(!stuck({ ...blocked, rules: { draw: 1, passes: 2 }, waste: [card('H', 7), card('C', 9)] }), 'a card in the waste that fits: not stuck while it can be turned over');
+check(JSON.stringify(hint({ ...blocked, rules: { draw: 1, passes: 2 }, waste: [card('H', 7), card('C', 9)] })) === '{"draw":true}', 'the hint: tap the stock');
+check(!stuck(deal(1234)), 'a new deal isn\'t stuck');
+
 const nearlyDone = {
   ...table, stock: [], waste: [], tableau: [[card('S', 13)], [], [], [], [], [], []],
   foundations: ['S', 'H', 'D', 'C'].map(suit => Array.from({ length: suit === 'S' ? 12 : 13 }, (_, i) => card(suit, i + 1))),

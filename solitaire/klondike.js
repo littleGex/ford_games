@@ -4,7 +4,7 @@
 //
 // game = {
 //   stock: [card], waste: [card], foundations: [[card] x4], tableau: [[card] x7],   the last card is the top one
-//   moves, passes (times the waste has gone back into the stock), rules: { draw, passes },
+//   moves, pass (which time through the stock this is, from 1), rules: { draw, passes },
 // }
 // card = { id: 'H7', suit: 'H', rank: 7, up: true }    suits S H D C, ranks 1 (Ace) to 13 (King)
 //
@@ -15,8 +15,18 @@ export const SUITS = ['S', 'H', 'D', 'C'];
 export const RED = new Set(['H', 'D']);
 export const SYMBOL = { S: '♠', H: '♥', D: '♦', C: '♣' };
 export const RANK_NAME = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-/** How the stock works (#116 adds levels): draw 1 or 3, how many times the waste can go round again (null: always). */
+/**
+ * The levels, all in one place so they're easy to change. draw: cards turned over from the stock at a time;
+ * passes: how many times you may go through the stock (null: as often as you like); hints: the Hint button.
+ */
+export const LEVELS = {
+  easy: { name: 'Easy', draw: 1, passes: null, hints: true, about: 'Draw 1 card, through the stock as often as you like' },
+  medium: { name: 'Medium', draw: 1, passes: 3, hints: true, about: 'Draw 1 card, three times through the stock' },
+  hard: { name: 'Hard', draw: 3, passes: null, hints: false, about: 'Draw 3 cards at a time, only the top one plays, no hints' },
+};
 export const DEFAULT_RULES = { draw: 1, passes: null };
+/** The stock rules for a level. */
+export const rulesOf = level => ({ draw: LEVELS[level].draw, passes: LEVELS[level].passes });
 
 const red = card => RED.has(card.suit);
 const top = pile => pile[pile.length - 1];
@@ -34,7 +44,7 @@ export function seededRandom(seed) {
 }
 
 /** A new deal: 28 cards in seven columns (1 to 7, the top one face up), the other 24 in the stock. */
-export function deal(seed, rules = DEFAULT_RULES) {
+export function deal(seed, rules = DEFAULT_RULES, level = null) {
   const rng = seededRandom(seed);
   const deck = SUITS.flatMap(suit => Array.from({ length: 13 }, (_, i) => ({ id: `${suit}${i + 1}`, suit, rank: i + 1, up: false })));
   for (let i = deck.length - 1; i > 0; i--) {   // Fisher-Yates
@@ -44,7 +54,7 @@ export function deal(seed, rules = DEFAULT_RULES) {
   const tableau = Array.from({ length: 7 }, () => []);
   for (let row = 0; row < 7; row++) for (let col = row; col < 7; col++) tableau[col].push(deck.pop());
   for (const col of tableau) top(col).up = true;
-  return { seed, stock: deck, waste: [], foundations: [[], [], [], []], tableau, moves: 0, passes: 0, rules: { ...rules } };
+  return { seed, level, stock: deck, waste: [], foundations: [[], [], [], []], tableau, moves: 0, pass: 1, rules: { ...rules } };
 }
 
 const copy = game => JSON.parse(JSON.stringify(game));
@@ -87,8 +97,12 @@ export function move(game, from, to) {
   return g;
 }
 
-/** Can the stock be tapped: cards to draw, or the waste to turn back over (if the rules allow another pass)? */
-export const canDraw = game => game.stock.length > 0 || (game.waste.length > 0 && (game.rules.passes === null || game.passes < game.rules.passes));
+/** Can the waste be turned back over for another time through the stock? */
+export const canTurnOver = game => game.waste.length > 0 && (game.rules.passes === null || game.pass < game.rules.passes);
+/** Can the stock be tapped: cards to draw, or the waste to turn back over? */
+export const canDraw = game => game.stock.length > 0 || canTurnOver(game);
+/** How many more times the waste can be turned over (null: no limit). */
+export const turnsLeft = game => (game.rules.passes === null ? null : Math.max(0, game.rules.passes - game.pass));
 
 /** Tap the stock: draw 1 (or 3) onto the waste, or when it's empty turn the waste back over into the stock. */
 export function draw(game) {
@@ -99,7 +113,7 @@ export function draw(game) {
   } else {
     g.stock = g.waste.reverse().map(c => ({ ...c, up: false }));
     g.waste = [];
-    g.passes++;
+    g.pass++;
   }
   g.moves++;
   return g;
@@ -126,6 +140,47 @@ export function bestMove(game, from) {
   }
   return gap;
 }
+
+/**
+ * Moves that get somewhere, best first: a card up to a foundation; a run moved off a face-down card (turning it
+ * over) or off the bottom of a column (emptying it, unless it's a King, which would only go to another gap); the
+ * waste card onto a column. Shuffling a run between two columns that are just as good isn't counted.
+ */
+export function usefulMoves(game) {
+  const out = [], froms = [];
+  if (game.waste.length) froms.push({ pile: 'waste' });
+  game.tableau.forEach((col, i) => { if (col.length) froms.push({ pile: 'tableau', i, at: col.length - 1 }); });
+  for (const from of froms) {
+    for (let f = 0; f < 4; f++) if (canMove(game, from, { pile: 'foundation', i: f })) { out.push({ from, to: { pile: 'foundation', i: f } }); break; }
+  }
+  game.tableau.forEach((col, i) => {
+    const at = col.findIndex(c => c.up);
+    if (at < 0 || (at === 0 && col[0].rank === 13)) return;
+    const to = bestMove(game, { pile: 'tableau', i, at });
+    if (to && to.pile === 'tableau') out.push({ from: { pile: 'tableau', i, at }, to });
+  });
+  if (game.waste.length) {
+    const to = bestMove(game, { pile: 'waste' });
+    if (to && to.pile === 'tableau') out.push({ from: { pile: 'waste' }, to });
+  }
+  return out;
+}
+
+/**
+ * A hint: the best useful move ({ from, to }), or { draw: true } when the stock is worth tapping (a card in it or
+ * the waste could go somewhere), or null when nothing helps: the game is stuck.
+ */
+export function hint(game) {
+  const [best] = usefulMoves(game);
+  if (best) return best;
+  if (!canDraw(game)) return null;
+  const tops = game.tableau.map(col => top(col) || null);
+  const fits = c => game.foundations.some(f => fitsFoundation(c, f)) || tops.some(t => fitsTableau(c, t) && (t || c.rank === 13));
+  return [...game.stock, ...game.waste].some(fits) ? { draw: true } : null;
+}
+
+/** No more moves: not won, and nothing (not even the stock) gets anywhere. */
+export const stuck = game => !won(game) && !hint(game);
 
 /** Every card on the foundations? */
 export const won = game => game.foundations.every(f => f.length === 13);

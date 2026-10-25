@@ -14,6 +14,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 - **Solitaire** (Klondike), a new game for one: tap a card to send it where it fits (a foundation first), or
   drag it; runs move together, the card underneath turns over, and a win shows moves and time (#115). On the
   Game Zone page under Board and cards, installable, and playable offline after the first visit (#118).
+- Solitaire levels, picked on the first visit and remembered on the device: **Easy** (draw 1, through the stock
+  as often as you like), **Medium** (draw 1, three times through, with a count by the stock) and **Hard** (draw 3,
+  fanned, only the top card plays). A Hint button on Easy and Medium, and a "No more moves" message with Undo and
+  New game when nothing else can go anywhere. Another level mid-game asks first (#116).
 
 ## [4.15.0] - 2026-10-25
 

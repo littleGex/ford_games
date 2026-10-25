@@ -46,8 +46,14 @@
   }
   #newBtn.sure { background: var(--gold); color: #3a2a00; border-color: var(--gold); }
   h1 { margin: 0; font-size: clamp(20px, 5.5vw, 26px); font-weight: 700; flex: 1; text-align: center; }
-  .stats { display: flex; justify-content: center; gap: 18px; margin: -4px 0 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stats { display: flex; justify-content: center; align-items: center; gap: 14px; margin: -4px 0 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chip {
+    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+    padding: 4px 11px; border-radius: 999px; border: 1px solid rgba(243, 247, 242, .25); background: rgba(0, 0, 0, .2); cursor: pointer;
+  }
+  .chip[hidden] { display: none; }
   .stats b { color: var(--ink); font-weight: 600; }
+  .chip:focus-visible, .overlay button:focus-visible,
   #homeBtn:focus-visible, #newBtn:focus-visible, .card:focus-visible, .slot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
   /* the table: every card is placed by script (layout()), so moves glide from place to place */
@@ -60,6 +66,10 @@
   }
   .slot.stock { cursor: pointer; border-style: solid; }
   .slot.stock.spent { cursor: default; }
+  .slot.hint { border-color: var(--gold); color: var(--gold); }
+  /* how many more times the waste can be turned over (Medium) */
+  .turns { position: absolute; z-index: 90; transform: translate(-50%, -50%); padding: 1px 7px; border-radius: 999px; background: var(--felt-dark); border: 1px solid rgba(243, 247, 242, .3); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+  .turns.none { color: var(--muted); }
 
   .card {
     position: absolute; border-radius: 8%/6%;
@@ -92,14 +102,28 @@
 
   .deal { margin: 14px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
 
-  /* the win */
-  #win { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5, 20, 12, .6); z-index: 100; }
-  #win[hidden] { display: none; }
+  /* the win, the levels, no more moves */
+  .overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5, 20, 12, .6); z-index: 100; }
+  .overlay[hidden] { display: none; }
   .win-card { width: min(340px, 100%); text-align: center; background: #123d2a; border: 1px solid rgba(243, 247, 242, .2); border-radius: 22px; padding: 22px 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); animation: pop .35s ease-out; }
   .win-card h2 { margin: 0 0 4px; font-size: 36px; color: var(--gold); }
   .win-card p { margin: 0 0 18px; color: var(--muted); font-size: 16px; }
-  #againBtn { width: 100%; font-family: inherit; font-size: 20px; font-weight: 700; padding: 13px; border: 0; border-radius: 999px; background: var(--gold); color: #3a2a00; cursor: pointer; box-shadow: 0 5px 0 #b88a1c; }
-  #againBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b88a1c; }
+  .levels { display: grid; gap: 10px; }
+  .level {
+    font-family: inherit; text-align: left; width: 100%; cursor: pointer;
+    padding: 12px 16px; border-radius: 16px; border: 2px solid rgba(243, 247, 242, .2); background: rgba(0, 0, 0, .2); color: var(--ink);
+  }
+  .level b { display: block; font-size: 20px; }
+  .level span { font-size: 14px; color: var(--muted); }
+  .level.current { border-color: var(--gold); }
+  .level.sure { background: var(--gold); border-color: var(--gold); color: #3a2a00; }
+  .level.sure span { color: #3a2a00; }
+  .win-card .row { display: flex; gap: 10px; }
+  .win-card .row button { flex: 1; }
+  .quiet { font-family: inherit; font-size: 16px; font-weight: 600; padding: 12px; border-radius: 999px; cursor: pointer; background: transparent; color: var(--ink); border: 1px solid rgba(243, 247, 242, .35); }
+  #closeLevels { margin-top: 12px; width: 100%; }
+  #againBtn, #stuckNewBtn { width: 100%; font-family: inherit; font-size: 20px; font-weight: 700; padding: 13px; border: 0; border-radius: 999px; background: var(--gold); color: #3a2a00; cursor: pointer; box-shadow: 0 5px 0 #b88a1c; }
+  #againBtn:active, #stuckNewBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b88a1c; }
   @keyframes pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .card.bounce { animation: bounce .6s ease-in-out infinite alternate; }
   @keyframes bounce { to { translate: 0 -10px; } }
@@ -116,12 +140,36 @@
     <h1>Solitaire</h1>
     <button id="newBtn" type="button">New game</button>
   </header>
-  <p class="stats"><span>Moves <b id="moves">0</b></span><span>Time <b id="time">0:00</b></span></p>
+  <p class="stats">
+    <button id="levelBtn" class="chip" type="button" aria-label="Level: Easy. Change level">Easy</button>
+    <span>Moves <b id="moves">0</b></span><span>Time <b id="time">0:00</b></span>
+    <button id="hintBtn" class="chip" type="button">💡 Hint</button>
+  </p>
   <div id="table" aria-label="The solitaire table"></div>
   <p class="deal" id="dealNo"></p>
 </main>
 
-<div id="win" role="dialog" aria-modal="true" aria-labelledby="winTitle" hidden>
+<div id="levels" class="overlay" role="dialog" aria-modal="true" aria-labelledby="levelsTitle" hidden>
+  <div class="win-card">
+    <h2 id="levelsTitle">Pick a level</h2>
+    <p id="levelsText">You can change it whenever you like</p>
+    <div class="levels" id="levelList"></div>
+    <button id="closeLevels" class="quiet" type="button">Back to the game</button>
+  </div>
+</div>
+
+<div id="stuck" class="overlay" role="dialog" aria-modal="true" aria-labelledby="stuckTitle" hidden>
+  <div class="win-card">
+    <h2 id="stuckTitle">No more moves</h2>
+    <p>Nothing else can go anywhere this time. Have another go?</p>
+    <div class="row">
+      <button id="undoBtn" class="quiet" type="button">↶ Undo</button>
+      <button id="stuckNewBtn" type="button">New game</button>
+    </div>
+  </div>
+</div>
+
+<div id="win" class="overlay" role="dialog" aria-modal="true" aria-labelledby="winTitle" hidden>
   <div class="win-card">
     <h2 id="winTitle">You won! 🎉</h2>
     <p id="winText"></p>
@@ -133,15 +181,23 @@
   // Klondike, tap first: tapping a card sends it to the best place it can go (a foundation first, then a column),
   // because dragging is fiddly for small hands. Dragging works too. The rules are in klondike.js; this draws the
   // table and turns taps and drags into moves.
-  import { deal, move, draw, canDraw, canMove, bestMove, picked, won, SYMBOL, RED, RANK_NAME } from './klondike.js';
+  import { deal, move, draw, canDraw, canMove, bestMove, picked, won, hint, stuck, turnsLeft, rulesOf, LEVELS, SYMBOL, RED, RANK_NAME } from './klondike.js';
 
   const $ = id => document.getElementById(id);
   const table = $('table');
   const params = new URLSearchParams(location.search);
 
   let game = null, started = null, timer = null;
+  let history = [];        // the games before each move, for Undo
   const els = new Map();   // card id -> its element, kept so a card glides from place to place
   let L = null;            // the current layout: card size, where every pile is
+
+  // ---------- the level, remembered on this device ----------
+
+  const LEVEL_KEY = 'solitaire.level.v1';
+  const saved = (() => { try { return localStorage.getItem(LEVEL_KEY); } catch { return null; } })();
+  let level = LEVELS[params.get('level')] ? params.get('level') : LEVELS[saved] ? saved : 'easy';
+  const saveLevel = () => { try { localStorage.setItem(LEVEL_KEY, level); } catch { /* private window: just for now */ } };
 
   // ---------- drawing the table ----------
 
@@ -162,9 +218,10 @@
     return el;
   }
 
-  function slot(cls, x, y, text = '') {
+  function slot(cls, x, y, text = '', i = '') {
     const el = document.createElement('div');
     el.className = `slot ${cls}`;
+    el.dataset.i = i;
     Object.assign(el.style, { left: `${x}px`, top: `${y}px`, width: `${L.w}px`, height: `${L.h}px`, fontSize: `${L.w * 0.45}px` });
     el.textContent = text;
     table.appendChild(el);
@@ -193,7 +250,7 @@
   function render() {
     L = measure();
     table.style.width = `${L.width}px`;
-    table.querySelectorAll('.slot').forEach(s => s.remove());
+    table.querySelectorAll('.slot, .turns').forEach(s => s.remove());
     const fontPx = L.w * 0.34;
     let tallest = L.rowY + L.h;
     const place = (card, x, y, z, where) => {
@@ -205,7 +262,7 @@
       el.dataset.pile = where.pile;
       el.dataset.i = where.i ?? '';
       el.dataset.at = where.at ?? '';
-      el.tabIndex = card.up && where.pile !== 'stock' ? 0 : -1;
+      el.tabIndex = card.up && where.pile !== 'stock' && !where.under ? 0 : -1;
       el.setAttribute('role', card.up ? 'button' : 'img');
       if (!card.up) el.setAttribute('aria-label', 'face-down card');
       else el.setAttribute('aria-label', `${RANK_NAME[card.rank]} of ${{ S: 'spades', H: 'hearts', D: 'diamonds', C: 'clubs' }[card.suit]}`);
@@ -216,24 +273,34 @@
     stockSlot.classList.toggle('spent', !canDraw(game));
     stockSlot.setAttribute('role', 'button');
     stockSlot.tabIndex = 0;
-    stockSlot.setAttribute('aria-label', game.stock.length ? `Draw from the stock (${game.stock.length} left)` : 'Turn the waste over');
+    stockSlot.setAttribute('aria-label', game.stock.length ? `Draw from the stock (${game.stock.length} left)` : canDraw(game) ? 'Turn the waste over' : 'No more times through the stock');
     game.stock.forEach((c, k) => place(c, L.col(0), 0, 10 + k, { pile: 'stock' }));
+    // with a limit on times through the stock (Medium), how many more times the waste can be turned over
+    const left = turnsLeft(game);
+    if (left !== null) {
+      const t = document.createElement('div');
+      t.className = `turns${left ? '' : ' none'}`;
+      t.textContent = `↻ ${left}`;
+      t.title = left ? `The waste can be turned over ${left} more time${left > 1 ? 's' : ''}` : 'Last time through the stock';
+      Object.assign(t.style, { left: `${L.col(0) + L.w / 2}px`, top: `${L.h}px` });
+      table.appendChild(t);
+    }
 
-    // the waste: the top one (or three, fanned, when drawing three)
+    // the waste: the top one (or three, fanned, when drawing three: only the top one plays)
     slot('waste', L.col(1), 0);
     const fan = game.rules.draw > 1 ? 3 : 1, shown = game.waste.slice(-fan);
     game.waste.forEach((c, k) => {
       const f = Math.max(0, k - (game.waste.length - shown.length));
-      place(c, L.col(1) + f * L.w * 0.24, 0, 10 + k, { pile: 'waste' });
+      place(c, L.col(1) + f * L.w * 0.24, 0, 10 + k, { pile: 'waste', at: k, under: k < game.waste.length - 1 });
     });
 
     game.foundations.forEach((pile, i) => {
-      slot('foundation', L.col(3 + i), 0, 'A');
+      slot('foundation', L.col(3 + i), 0, 'A', i);
       pile.forEach((c, k) => place(c, L.col(3 + i), 0, 10 + k, { pile: 'foundation', i }));
     });
 
     game.tableau.forEach((column, i) => {
-      slot('column', L.col(i), L.rowY, 'K');
+      slot('column', L.col(i), L.rowY, 'K', i);
       const { down, up } = offsets(column);
       let y = L.rowY;
       column.forEach((c, at) => {
@@ -245,6 +312,9 @@
     table.style.height = `${tallest + 4}px`;
     $('moves').textContent = game.moves;
     $('dealNo').textContent = `Deal #${game.seed}`;
+    $('levelBtn').textContent = LEVELS[level].name;
+    $('levelBtn').setAttribute('aria-label', `Level: ${LEVELS[level].name}. Change level`);
+    $('hintBtn').hidden = !LEVELS[level].hints;
   }
 
   // ---------- moves ----------
@@ -258,12 +328,18 @@
 
   function apply(next) {
     if (!next) return false;
+    clearHint();
+    history.push(game);
     game = next;
     if (!started) startClock();
     render();
     if (won(game)) finish();
+    else if (stuck(game)) showStuck();
     return true;
   }
+
+  /** Only the top card of the waste plays (when three are fanned, the two under it are just for show). */
+  const underneath = from => from.pile === 'waste' && from.at !== game.waste.length - 1;
 
   function shake(el) {
     el.classList.remove('shake');
@@ -275,6 +351,7 @@
   function tapCard(el) {
     const from = placeOf(el);
     if (from.pile === 'stock') return apply(draw(game));
+    if (underneath(from)) return false;
     const to = bestMove(game, from);
     if (!to) { shake(el); return false; }
     return apply(move(game, from, to));
@@ -285,10 +362,13 @@
   let press = null;   // { el, from, cards: [el], x, y, dragging }
   table.addEventListener('pointerdown', e => {
     if (!game || won(game)) return;
-    const el = e.target.closest('.card'), stock = e.target.closest('.slot.stock');
-    if (!el) { if (stock) apply(draw(game)); return; }
+    // a tap where the stock is always draws, even on a card that's still sliding off it to the waste
+    const r = table.getBoundingClientRect();
+    if (e.clientX - r.left < L.w && e.clientY - r.top < L.h) { apply(draw(game)); return; }
+    const el = e.target.closest('.card');
+    if (!el) return;
     const from = placeOf(el);
-    if (from.pile === 'stock') { apply(draw(game)); return; }
+    if (underneath(from)) return;
     const cards = picked(game, from);
     if (!cards.length) return;
     press = { el, from, cards: cards.map(c => els.get(c.id)), x: e.clientX, y: e.clientY, dragging: false };
@@ -354,11 +434,100 @@
     started = null;
     $('time').textContent = '0:00';
     $('win').hidden = true;
+    $('stuck').hidden = true;
     els.forEach(el => el.remove());
     els.clear();
-    game = deal(seed);
+    history = [];
+    game = deal(seed, rulesOf(level), level);
     render();
   }
+
+  // ---------- hints, no more moves ----------
+
+  let hintTimer = null;
+  function clearHint() {
+    clearTimeout(hintTimer);
+    table.querySelectorAll('.hint').forEach(el => el.classList.remove('hint'));
+  }
+  /** Light up the best move for a moment: the cards to move and where they go (or the stock, to draw). */
+  function showHint() {
+    clearHint();
+    const h = hint(game);
+    if (!h) { showStuck(); return; }
+    const lit = [];
+    const topOf = pile => pile[pile.length - 1];
+    if (h.draw) {
+      lit.push(table.querySelector('.slot.stock'));
+      if (game.stock.length) lit.push(els.get(topOf(game.stock).id));
+    } else {
+      picked(game, h.from).forEach(c => lit.push(els.get(c.id)));
+      const pile = h.to.pile === 'foundation' ? game.foundations[h.to.i] : game.tableau[h.to.i];
+      lit.push(pile.length ? els.get(topOf(pile).id) : table.querySelector(`.slot.${h.to.pile === 'foundation' ? 'foundation' : 'column'}[data-i="${h.to.i}"]`));
+    }
+    lit.forEach(el => el.classList.add('hint'));
+    hintTimer = setTimeout(clearHint, 1800);
+  }
+  $('hintBtn').addEventListener('click', showHint);
+
+  function showStuck() {
+    clearInterval(timer);
+    $('undoBtn').hidden = !history.length;
+    $('stuck').hidden = false;
+    $('stuckNewBtn').focus();
+  }
+  $('undoBtn').addEventListener('click', () => {
+    $('stuck').hidden = true;
+    if (!history.length) return;
+    game = history.pop();
+    if (started) { const was = Date.now() - started; startClock(); started = Date.now() - was; }
+    render();
+  });
+  $('stuckNewBtn').addEventListener('click', () => newGame());
+
+  // ---------- the levels ----------
+
+  // In the middle of a game, picking another level asks once more ("Sure?"): it starts a new game.
+  let sureLevel = null, sureLevelTimer = null;
+  function showLevels() {
+    const list = $('levelList');
+    list.innerHTML = '';
+    const playing = game && game.moves > 0 && !won(game);
+    $('levelsText').textContent = playing ? 'Another level starts a new game' : 'You can change it whenever you like';
+    for (const [id, l] of Object.entries(LEVELS)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `level${id === level ? ' current' : ''}`;
+      b.dataset.level = id;
+      b.innerHTML = `<b>${l.name}</b><span>${l.about}</span>`;
+      b.addEventListener('click', () => {
+        if (id === level && playing) { hideLevels(); return; }
+        if (playing && sureLevel !== id) {
+          list.querySelectorAll('.sure').forEach(x => { x.classList.remove('sure'); x.querySelector('b').textContent = LEVELS[x.dataset.level].name; });
+          sureLevel = id;
+          b.classList.add('sure');
+          b.querySelector('b').textContent = `Sure? New ${l.name} game`;
+          clearTimeout(sureLevelTimer);
+          sureLevelTimer = setTimeout(() => { sureLevel = null; b.classList.remove('sure'); b.querySelector('b').textContent = l.name; }, 3000);
+          return;
+        }
+        level = id;
+        saveLevel();
+        hideLevels();
+        newGame();
+      });
+      list.appendChild(b);
+    }
+    $('levels').hidden = false;
+    (list.querySelector('.current') || list.firstChild).focus();
+  }
+  function hideLevels() {
+    clearTimeout(sureLevelTimer);
+    sureLevel = null;
+    $('levels').hidden = true;
+  }
+  $('levelBtn').addEventListener('click', showLevels);
+  $('closeLevels').addEventListener('click', hideLevels);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('levels').hidden) hideLevels(); });
 
   function finish() {
     clearInterval(timer);
@@ -394,11 +563,13 @@
   // for the tests
   window.solitaire = {
     get game() { return game; },
-    load(g) { game = g; render(); if (won(game)) finish(); },
+    load(g) { els.forEach(el => el.remove()); els.clear(); game = g; history = []; render(); if (won(game)) finish(); else if (stuck(game)) showStuck(); },
     newGame,
   };
 
   newGame(Number(params.get('seed')) || undefined);
+  // the first time here, pick a level (a deal link or ?level= goes straight to the game)
+  if (!saved && !params.has('seed') && !params.has('level')) showLevels();
 </script>
 <script>
   // offline: the game works after the first visit with no connection (sw.js)
