@@ -1,0 +1,8 @@
+{
+  "name": "Battleships",
+  "short_name": "Battleships",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#16202f",
+  "theme_color": "#16202f"
+}
