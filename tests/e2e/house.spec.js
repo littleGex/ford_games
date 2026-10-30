@@ -930,6 +930,70 @@ test('a day at school: P starts at the top of the school stairs, goes in and han
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
+test('a day at school: the maths lesson is a card of six sums (a wrong one turns red), and the clock waits', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="school"][data-kid="girl"]').click();
+  // skip ahead to 7:56: through the door, coat on the hook, at the desk
+  await page.evaluate(() => { const m = window.house.missions.active; m.t = 11 * m.clock.secondsPerMinute; });
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.glassDoors; window.house.player.group.position.set(x, 0, z); });
+  await page.locator('#actBtn').click();
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.hook; window.house.player.group.position.set(x, 0, z); });
+  await page.locator('#actBtn').click();
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.desk.at; window.house.player.group.position.set(x, 0, z); });
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk for maths: six sums');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#quiz')).toBeVisible();
+  await expect(page.locator('#quizSubject')).toContainText('Maths');
+  await expect(page.locator('#quizCount')).toHaveText('1 of 6');
+  await expect(page.locator('#quizText')).toHaveText(/^\d+ [+−×÷] \d+ = \?$/);
+  await expect(page.locator('.quiz-answer')).toHaveCount(4);
+  const before = await page.evaluate(() => window.house.missions.minutes());
+  // a wrong answer: red, and "try another"
+  const right = await page.evaluate(() => window.house.quiz.right());
+  const wrong = page.locator(`.quiz-answer:not([data-answer="${right}"])`).first();
+  await wrong.click();
+  await expect(wrong).toHaveClass(/wrong/);
+  await expect(page.locator('#quizSaid')).toHaveText('Not quite: try another one');
+  // then each right answer by its number key
+  for (let i = 1; i <= 6; i++) {
+    await expect(page.locator('#quizCount')).toHaveText(`${i} of 6`);
+    const id = await page.evaluate(() => window.house.quiz.right());
+    const n = await page.locator('.quiz-answer').evaluateAll((bs, want) => bs.findIndex(b => b.dataset.answer === want) + 1, id);
+    await page.keyboard.press(String(n));
+  }
+  await expect(page.locator('#quiz')).toBeHidden();
+  expect(await page.evaluate(() => window.house.missions.active.scores.maths)).toEqual({ right: 5, of: 6 });
+  // the clock waited while the card was open, then moved on by the lesson (25 minutes)
+  const after = await page.evaluate(() => window.house.missions.minutes());
+  expect(after - before).toBeGreaterThanOrEqual(25);
+  expect(after - before).toBeLessThan(28);
+  await expect(page.locator('#taskList')).toContainText('Story circle at 8:40');
+  await page.evaluate(() => window.house.missions.end());
+});
+
+test('a day at school: the flags lesson shows drawn flags', async ({ page }) => {
+  await openHouse(page);
+  await page.evaluate(() => {
+    const h = window.house, job = h.board.add({ id: 'flagsTest', title: 'Flags', steps: [{ kind: 'quiz', quiz: 'flags', at: [0, 0], label: 'Flags' }] });
+    h.quiz.open(job, job.steps[0]);
+  });
+  await expect(page.locator('#quizSubject')).toContainText('Geography: flags');
+  for (let i = 0; i < 6; i++) {
+    const q = await page.evaluate(() => window.house.quiz.question());
+    if (q.kind === 'whichCountry') {
+      await expect(page.locator('#quizPic')).toBeVisible();
+      expect(await page.locator('#quizPic').getAttribute('src')).toMatch(/^data:image\/png/);
+    } else {
+      await expect(page.locator('#quizPic')).toBeHidden();
+      await expect(page.locator('.quiz-answer img')).toHaveCount(4);
+    }
+    await page.locator(`.quiz-answer[data-answer="${q.right}"]`).click();
+    await page.waitForTimeout(800);
+  }
+  await expect(page.locator('#quiz')).toBeHidden();
+});
+
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {
   await openHouse(page);
   const day = await page.evaluate(() => window.house.board.jobs.map(j => j.id));

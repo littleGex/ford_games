@@ -452,5 +452,35 @@ for (const season of ['spring', 'summer', 'autumn', 'winter']) {
   s2.setDesksSwapped(false); s2.setAssignments({});
 }
 
+// the lessons at school: six questions, four different answers each with the right one among them; sums that
+// add up (no negatives, sharing out comes out even), and no flag twice in a lesson. Every flag draws.
+{
+  const { lessonQuestions, FLAGS, drawFlag } = await import('../../house/js/lessons.js');
+  const calc = t => { const m = /^(\d+) ([+−×÷]) (\d+) = \?$/.exec(t); if (!m) return NaN; const [a, op, b] = [+m[1], m[2], +m[3]]; return op === '+' ? a + b : op === '−' ? a - b : op === '×' ? a * b : a / b; };
+  let bad = null;
+  for (let n = 0; n < 300 && !bad; n++) {
+    for (const subject of ['maths', 'flags']) {
+      const qs = lessonQuestions(subject);
+      if (qs.length !== 6) bad = `${subject}: ${qs.length} questions`;
+      for (const q of qs) {
+        const ids = q.answers.map(a => a.id);
+        if (q.answers.length !== 4 || new Set(ids).size !== 4 || !ids.includes(q.right)) bad = `${subject}: answers ${ids} for ${q.right}`;
+        if (subject === 'maths') {
+          const want = calc(q.text);
+          if (String(want) !== q.right || !Number.isInteger(want) || want < 0 || ids.some(a => +a < 0)) bad = `maths: ${q.text} -> ${q.right} (${ids})`;
+        }
+      }
+      if (subject === 'flags' && new Set(qs.map(q => q.right)).size !== 6) bad = `flags: a flag twice in a lesson (${qs.map(q => q.right)})`;
+      if (subject === 'maths' && new Set(qs.map(q => q.text)).size !== 6) bad = 'maths: the same sum twice';
+    }
+  }
+  check(!bad, `lessons: ${bad}`);
+  check(new Set(FLAGS.map(f => f.id)).size === FLAGS.length && FLAGS.length >= 16, 'flags: unique ids');
+  const g = { fillRect() {}, beginPath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {} };
+  let drew = 0;
+  for (const f of FLAGS) { try { drawFlag(g, f); drew++; } catch (e) { check(false, `flag ${f.id} doesn't draw: ${e.message}`); } }
+  check(drew === FLAGS.length, 'every flag draws');
+}
+
 console.log(fail.length ? 'PROBLEMS:\n- ' + fail.join('\n- ') : 'planner rules hold over 120 days for 4 characters x 4 seeds');
 process.exitCode = fail.length ? 1 : 0;

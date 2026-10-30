@@ -262,6 +262,14 @@ function doStep(job) {
     frame();
     return job.steps[job.i] !== s || 'sorting never finished';
   }
+  if (s.kind === 'quiz') {   // a lesson card at school: one wrong answer first on the first question, then all right
+    if (!S.quiz) return 'the lesson card never opened';
+    const q = G.quiz.question(), wrong = q.answers.find(a => a.id !== q.right);
+    if (G.quiz.answer(wrong.id)) return 'a wrong answer counted as right';
+    for (let k = 0; k < 20 && S.quiz; k++) G.quiz.answer(G.quiz.right());
+    frame();
+    return job.steps[job.i] !== s || 'the lesson card never finished';
+  }
   if (s.kind === 'choose') {   // the laptop close-up: pick tile number `laptopPick` (1 = first)
     if (!S.laptop) return 'the laptop never opened';
     G.laptop.choose(Math.min(laptopPick, G.laptop.options().length));
@@ -1243,6 +1251,7 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
   if (roomAt(142, 3, 0).area !== "P's classroom" || roomAt(150, 10, 0).name !== 'Halle') errors.push(`school: room names ${roomAt(142, 3, 0).area}, ${roomAt(150, 10, 0).name}`);
   for (const late of [false, true]) {
     const label = late ? 'a day at school (late for maths)' : 'a day at school';
+    G.quizDelay = 0;   // (the lesson card moves on to the next question at once)
     G.missions.start('school', 'girl');
     if (G.player.group.position.x < 140) errors.push(`${label}: didn't start at the school`);
     if (late) { while (G.missions.minutes() < 8 * 60 + 20) frame(); }   // dawdling on the stairs
@@ -1252,8 +1261,10 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
     const r = G.missions.best('school', 'girl');
     if (!late && (!r || r.stars !== 3)) errors.push(`${label}: played well it only got ${r && r.stars} stars`);
     if (G.world.schoolCoat.visible) errors.push(`${label}: P's coat is still on the hook after home time`);
-    for (const k of ['maths', 'circle', 'snack', 'reading', 'group', 'home']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
-    if (late && S.mission.doneAt.maths - 40 <= 8 * 60 + 5) errors.push(`${label}: wasn't late for maths after all`);
+    for (const k of ['maths', 'circle', 'snack', 'reading', 'flags', 'home']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
+    const sc = S.mission.scores || {};
+    if (!sc.maths || sc.maths.right !== 5 || sc.maths.of !== 6 || !sc.flags || sc.flags.right !== 5) errors.push(`${label}: lesson scores ${JSON.stringify(sc)}, want 5 of 6 each (one wrong first try)`);
+    if (late && S.mission.doneAt.maths - 25 <= 8 * 60 + 5) errors.push(`${label}: wasn't late for maths after all`);
     console.log(`${label}: home time at ${Math.floor(G.missions.minutes() / 60)}:${String(Math.floor(G.missions.minutes() % 60)).padStart(2, '0')}`);
     G.missions.end();
   }
