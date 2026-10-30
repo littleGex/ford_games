@@ -574,7 +574,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(5);   // the school run, work from home, the office, 3D printing, bedtime
+  await expect(page.locator('.mission')).toHaveCount(6);   // the school run, a day at school, work from home, the office, 3D printing, bedtime
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
@@ -902,6 +902,30 @@ test('the 3D printing mission: pick a design on the laptop close-up', async ({ p
   await page.keyboard.press('2');   // blue
   await expect(page.locator('#taskList')).toContainText('Collect the delivery');
   expect(await page.evaluate(() => window.house.S.mission.choices)).toEqual({ design: 'rocket', filament: 'blue' });
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
+test('a day at school: P starts at the top of the school stairs, goes in and hangs up her coat', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await expect(page.locator('[data-mission="school"][data-kid="girl"]')).toHaveText('P');
+  await page.locator('[data-mission="school"][data-kid="girl"]').click();
+  await expect(page.locator('#home')).toBeHidden();
+  await expect(page.locator('#dayLabel')).toHaveText('A day at school · 7:45');
+  await expect(page.locator('#roomName')).toHaveText('Treppenhaus');
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  await expect(page.locator('#taskList')).toContainText('Go in');
+  // through the glass doors, then to the coat hooks in the hall
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.glassDoors; window.house.player.group.position.set(x, 0, z); });
+  await expect(page.locator('#actBtn')).toHaveText('Go through the glass doors into the school');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#taskList')).toContainText('Hang up your coat');
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.hook; window.house.player.group.position.set(x, 0, z); });
+  await expect(page.locator('#roomName')).toHaveText('Halle');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#taskList')).toContainText('Maths at 8:00');
+  expect(await page.evaluate(() => window.house.world.schoolCoat.visible)).toBe(true);
   await page.evaluate(() => window.house.missions.end());
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });

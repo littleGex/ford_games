@@ -10,6 +10,12 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **a day at school**, a new mission for P: her school's lesson floor, from its floor plan and
+  photos: her classroom with the sunflowers, the hall with the coat hooks, the bench-circle room and its
+  reading room, the group room and the stairwell. Coat on the hook, then maths, a story in the circle, the
+  break, reading and group work, each when the gong goes (#65).
+
 ## [4.17.0] - 2026-10-25
 
 ### Added

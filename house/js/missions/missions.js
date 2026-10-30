@@ -28,9 +28,10 @@ import { resetItems } from '../items.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
-import { ring, alarm } from '../core/audio.js';
+import { ring, alarm, schoolGong } from '../core/audio.js';
 import { OFFICE } from '../world/office.js';
 import { MUM } from '../world/mumoffice.js';
+import { SCHOOL } from '../world/school.js';
 import { BED, SEARCH, NAMES as KID } from '../systems/bedtime.js';
 import { STAIRS } from '../systems/levels.js';
 
@@ -85,6 +86,49 @@ const snackJob = w => ({ key: 'snack', optional: true, title: 'Snack (whenever y
   { kind: 'use', ...BREAKS[place(w)].fridge, label: 'Grab a snack from the fridge' }] });
 const loJob = (w = 'dad') => ({ key: 'loo', optional: true, title: 'Bathroom (whenever you need)', steps: [
   { kind: 'use', ...BREAKS[place(w)].loo, label: 'Use the bathroom' }] });
+
+// --- the day at school: the lessons in order (at: when it starts, minutes since midnight). The clock runs at
+// SCHOOL_SPM seconds a minute, so walking across the floor takes a few minutes and a lesson sit of `dur`
+// seconds lasts dur / SCHOOL_SPM minutes (maths: 25). A short morning, so it plays in about four minutes.
+const SCHOOL_SPM = 1.2;
+const hhmm = (h, m) => hm(h) + m;   // 8, 40 -> 8:40
+const SCHOOL_LESSONS = [
+  { key: 'maths', at: hhmm(8, 0), gong: 'Maths starts at 8:00', title: 'Maths at 8:00', dur: 30, what: 'Doing sums',
+    step: () => ({ ...SCHOOL.desk, label: 'Sit at your desk for maths' }) },
+  { key: 'circle', at: hhmm(8, 40), gong: 'Story time in the bench circle at 8:40', title: 'Story circle at 8:40', dur: 24, what: 'Listening to the story',
+    step: () => ({ ...SCHOOL.circle, label: 'Sit on a bench in the circle for the story' }) },
+  { key: 'break', at: hhmm(9, 10), gong: 'Break time!',
+    jobs: () => [
+      { key: 'snack', title: 'Break: your snack', steps: [
+        { kind: 'use', at: SCHOOL.sink, notBefore: hhmm(9, 5), label: 'Wash your hands at the basin' },
+        { kind: 'sit', ...SCHOOL.snack, dur: 9, what: 'Eating your snack', label: 'Eat your snack at your desk' }] },
+      { key: 'loo', optional: true, title: 'Toilet (whenever you need)', steps: [{ kind: 'use', at: SCHOOL.toilet, label: 'Go to the toilet' }] },
+    ] },
+  { key: 'reading', at: hhmm(9, 35), gong: 'Reading time at 9:35', title: 'Reading at 9:35', dur: 18, what: 'Reading your book', first: 'books',
+    step: () => ({ ...SCHOOL.cushions, label: 'Curl up on the cushions and read' }) },
+  { key: 'group', at: hhmm(10, 5), gong: 'Group work at 10:05', title: 'Group work at 10:05', dur: 24, what: 'Working with your group',
+    step: () => ({ ...SCHOOL.groupTable, label: 'Sit at the round table in the group room' }) },
+];
+
+/** A lesson as a job: due when it starts; you can sit down from five minutes before. */
+function lessonJob(l) {
+  const steps = [];
+  if (l.first === 'books') steps.push({ kind: 'use', at: SCHOOL.books, notBefore: l.at - 5, label: 'Choose a book from the shelf', onDone: c => c.hud.toast('A good one!') });
+  steps.push({ kind: 'sit', ...l.step(), notBefore: l.at - 5, dur: l.dur, what: l.what });
+  return { key: l.key, due: l.at, title: l.title, steps };
+}
+
+/** Three stars: on time for every lesson (sat down by five past), your snack eaten, down the stairs by 11:00. */
+function schoolResult(mission, arrived) {
+  const lessons = SCHOOL_LESSONS.filter(l => l.dur);
+  const onTime = lessons.filter(l => mission.doneAt[l.key] !== undefined && mission.doneAt[l.key] - l.dur / SCHOOL_SPM <= l.at + 5);
+  const checks = [onTime.length === lessons.length, mission.doneAt.snack !== undefined, arrived <= hhmm(11, 0)];
+  const stars = Math.max(1, checks.filter(Boolean).length);
+  return {
+    stars, title: stars === 3 ? 'A great day at school!' : onTime.length < lessons.length ? 'Late for a lesson!' : 'Good day!',
+    stats: `On time for ${onTime.length} of ${lessons.length} lessons. ${mission.doneAt.snack !== undefined ? 'Snack eaten.' : 'No snack!'} Home time at ${clockText(arrived)}.`,
+  };
+}
 
 /** The phone rings once with an urgent call to take at `desk` ('dad', 'mum' or 'office') within 20 minutes. */
 function phoneRings(c, mission, minutes, desk) {
@@ -467,6 +511,37 @@ export const MISSIONS = {
     },
   },
 
+  // A day at P's school (#65): up the stairs to the lesson floor, coat on the hook, then the morning's lessons in
+  // order, each when the gong goes: maths at her desk, a story in the bench circle, a break (wash your hands,
+  // your snack, the toilet), reading in the reading room, group work at the round table, then home time.
+  school: {
+    title: 'A day at school', who: ['girl'],
+    clock: { start: hm(7.75), end: hm(11.25), secondsPerMinute: SCHOOL_SPM },   // 7:45 to 11:15 in about four minutes
+    spot: who => ({ name: NAMES[who], level: 0, start: SCHOOL.arrive, facing: -Math.PI / 2 }),
+    intro: 'Up the stairs to your classroom: maths starts at 8:00',
+    setup(c) { c.world.schoolCoat.visible = false; },
+    jobs: () => [
+      { title: 'Go in', steps: [{ kind: 'use', at: SCHOOL.glassDoors, label: 'Go through the glass doors into the school' }] },
+      { key: 'coat', title: 'Hang up your coat', steps: [{ kind: 'use', at: SCHOOL.hook, label: 'Hang your coat on your hook', onDone: c => { c.world.schoolCoat.visible = true; } }] },
+      ...SCHOOL_LESSONS.flatMap(l => (l.key === 'break' ? [l.jobs()] : [lessonJob(l)])),
+      { key: 'home', title: 'Home time (from 10:40)', steps: [
+        { kind: 'use', at: SCHOOL.hook, notBefore: hm(10 + 40 / 60), label: 'Get your coat from your hook', onDone: c => { c.world.schoolCoat.visible = false; } },
+        { kind: 'use', at: SCHOOL.stairsDown, label: 'Go down the stairs: home time!' }] },
+    ],
+    onOptional(c, mission, job) { (mission.breaks ||= {})[job.key] = (mission.breaks[job.key] || 0) + 1; },
+    update(c, mission, minutes) {
+      // the gong five minutes before each lesson (and at the start of the break)
+      for (const l of SCHOOL_LESSONS) {
+        if ((mission.gong ||= {})[l.key] || minutes < l.at - 5) continue;
+        mission.gong[l.key] = true;
+        if (minutes > l.at + 10) continue;   // (long gone: no gong)
+        schoolGong();
+        c.hud.toast(`Ding, ding, dong! ${l.gong}`);
+      }
+    },
+    result: (mission, arrived) => schoolResult(mission, arrived),
+  },
+
   print3d: {
     title: '3D printing', who: ['dad'], cover: true,   // Dad's printer; in a family without Dad, Mum prints
     spot: who => ({ name: nameOf(who || 'dad'), level: 1, start: [4.2, 1.6], facing: -Math.PI / 2 }),
@@ -686,5 +761,7 @@ export function createMissions(ctx) {
     /** The best result for a mission and player: { stars, minutes } (the school run), { made: [...] } (3D printing), or undefined. */
     best: (id, who) => BEST[id] && BEST[id][who],
     get active() { return S.mission; },
+    /** Where things are at P's school (for tests and the camera). */
+    schoolSpots: SCHOOL,
   };
 }

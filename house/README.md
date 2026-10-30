@@ -99,6 +99,13 @@ with the day.
   wardrobe, pack your school bag at your desk, put it in the basket of the bike on the terrace and cycle
   out of the back gate (you're faster on the bike). The school clock starts at 7:30 and the bell rings at
   8:00: before 7:50 is three stars, before the bell two, late one.
+- **A day at school** (P): her school's lesson floor (`js/world/school.js`, built from the school's floor plan
+  and photos, without its name, room numbers or anyone's names). Up the stairs and through the glass doors,
+  coat on her hook in the hall, then the morning's lessons in order, each when the gong goes: maths at her
+  desk (8:00), a story in the bench circle (8:40), the break (wash your hands, a snack at your desk, the
+  toilet), reading on the cushions in the reading room (9:35) and group work at the round table (10:05). Home
+  time from 10:40. Three stars: on time for every lesson, the snack eaten, down the stairs by 11:00. Dude goes
+  to a different school (to come); the playground waits for photos of the outside.
 - **Work from home** (Mum or Dad): the day runs from 7:00 to 17:00 (five minutes). Get up, shower, get
   dressed and have breakfast, then the working day puts several things on the list at once, to do in any
   order: the team meeting at 9:00 and the project meeting at 14:00 at your desk (Dad's in the dressing

@@ -84,3 +84,16 @@ export const TRICK_OR_TREATERS = [
   { scale: 0.7, skin: '#f1d1ba', pants: '#3a3d42', shoes: '#2b2d31', brow: '#a88550', blush: true, topMat: M('#6aa84f'), hair: shortHair('#d9b36a'), costume: 'vampire' },
   { scale: 0.76, skin: '#8d5a3c', pants: '#24272e', shoes: '#f08a24', brow: '#1a1210', blush: true, topMat: M('#c4477a'), hair: longHair('#1a1210'), costume: 'cat' },
 ];
+
+// At school (world/school.js): P's teacher and some made-up classmates
+export const SCHOOL_PEOPLE = {
+  teacher: { scale: 0.97, skin: '#f1d1ba', pants: '#3a4a6a', shoes: '#4a3a2c', brow: '#7d5a3c', blush: true, topMat: M('#c75b4a'), hair: longHair('#7d5a3c') },
+  kids: [
+    { scale: 0.74, skin: '#e8c0a0', pants: '#2a2d35', shoes: '#c43b3b', brow: '#5e3f27', blush: true, topMat: M('#3b7fc4'), hair: shortHair('#5e3f27') },
+    { scale: 0.76, skin: '#c99a78', pants: '#1c1e25', shoes: '#f2f2f2', brow: '#2a1c14', blush: true, topMat: M('#e0b23a'), hair: longHair('#2e211a') },
+    { scale: 0.72, skin: '#f1d1ba', pants: '#3a3d42', shoes: '#2b2d31', brow: '#a88550', blush: true, topMat: M('#6aa84f'), hair: shortHair('#d9b36a') },
+    { scale: 0.75, skin: '#8d5a3c', pants: '#24272e', shoes: '#f08a24', brow: '#1a1210', blush: true, topMat: M('#c4477a'), hair: longHair('#1a1210') },
+    { scale: 0.73, skin: '#f5d6c1', pants: '#4a6a9c', shoes: '#f2eef2', brow: '#9b7452', blush: true, topMat: M('#8e5bd6'), hair: longHair('#c9a660') },
+    { scale: 0.77, skin: '#e0b090', pants: '#2c3548', shoes: '#151515', brow: '#3a2a1c', blush: true, topMat: M('#e86a3a'), hair: shortHair('#3a2a1c') },
+  ],
+};

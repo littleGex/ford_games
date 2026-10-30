@@ -76,7 +76,23 @@ for (const [what, x, z] of [['the zebra crossing', 97.5, 1.8], ['the turnstiles'
   if (!mumCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office: can't walk to ${what} from the car park`);
 for (const [what, x, z] of [["Mum's desk", 100.1, 13.3], ['the meeting room', 101.6, 18.3], ['the kitchen fridge', 103.0, 15.55], ['the kitchen sink', 103.0, 12.9], ['the WC', 105.0, 19.4], ['the lifts upstairs', 109.0, 16.9], ['the second office', 108.0, 10.0]])
   if (!mumFloorCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office floor: can't walk to ${what}`);
-const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
+// P's school, the lesson floor (world/school.js): from the top of the stairs to every room she goes into
+const SCHOOL_GRID = { X0: 139.5, Z0: -0.5, NX: Math.round(32 / RES), NZ: Math.round(21 / RES) };
+const schoolCells = walkable(0, 169.2, 13.3, SCHOOL_GRID);
+{
+  const { SCHOOL } = await import(new URL('../../house/js/world/school.js', import.meta.url));
+  const spots = { 'the glass doors': SCHOOL.glassDoors, 'her coat hook': SCHOOL.hook, 'her desk': SCHOOL.desk.at, 'the basin': SCHOOL.sink,
+    'the bench circle': SCHOOL.circle.at, 'the book shelves': SCHOOL.books, 'the cushions': SCHOOL.cushions.at, 'the round table': SCHOOL.groupTable.at,
+    'the toilets': SCHOOL.toilet, 'the stairs down': SCHOOL.stairsDown, 'the hall table': SCHOOL.hallTable.at };
+  for (const [what, [x, z]] of Object.entries(spots))
+    if (!schoolCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`school: can't walk to ${what} (${x}, ${z})`);
+  // every doorway on the lesson floor can be walked through (rooms P doesn't use too)
+  for (const [room, x, z] of [['P\'s classroom', 147.8, 6.4], ['the next classroom', 155.8, 6.4], ['the classroom on the right', 158.0, 6.4], ['the group room', 146.6, 8.9],
+    ['the bench-circle room', 148.1, 13.9], ['the reading room', 150.75, 17.3], ['the bottom-middle classroom', 156.1, 13.9], ['the bottom-right classroom', 158.3, 13.9],
+    ['the boys\' toilets', 159.4, 7.8], ['the girls\' toilets', 160.5, 11.2], ['the support room', 169.05, 10.4]])
+    if (!schoolCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.15)) errors.push(`school: can't get into ${room} (${x}, ${z})`);
+}
+const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells, schoolCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
 // every room in the office can be reached from the bike rack
 for (const [room, x, z] of [['open plan', 42.6, 3.0], ["boss's office", 41.5, 8.4], ['meeting room', 41.9, 12.0], ["Dad's room", 44.0, 8.9], ['kitchen', 44.5, 10.9], ['bathroom', 44.5, 13.0], ['assembly point', 43.1, -2.4]])
   if (!officeCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`office: can't walk to the ${room} (${x}, ${z})`);
@@ -1218,6 +1234,29 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
   console.log('who does what: swapped desks for work and working from home; P fixes her bike, Dude feeds the dragon');
+}
+
+// --- a day at school (#65), as P: up the stairs, coat on the hook, each lesson when the gong goes, the break,
+// home time. Played well it's three stars; then once late for maths (fewer stars)
+{
+  const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
+  if (roomAt(142, 3, 0).area !== "P's classroom" || roomAt(150, 10, 0).name !== 'Halle') errors.push(`school: room names ${roomAt(142, 3, 0).area}, ${roomAt(150, 10, 0).name}`);
+  for (const late of [false, true]) {
+    const label = late ? 'a day at school (late for maths)' : 'a day at school';
+    G.missions.start('school', 'girl');
+    if (G.player.group.position.x < 140) errors.push(`${label}: didn't start at the school`);
+    if (late) { while (G.missions.minutes() < 8 * 60 + 20) frame(); }   // dawdling on the stairs
+    const seen = new Set();
+    playWorkDay(label, seen);
+    if (!S.mission.done) { errors.push(`${label}: never finished (${[...seen]})`); G.missions.end(); continue; }
+    const r = G.missions.best('school', 'girl');
+    if (!late && (!r || r.stars !== 3)) errors.push(`${label}: played well it only got ${r && r.stars} stars`);
+    if (G.world.schoolCoat.visible) errors.push(`${label}: P's coat is still on the hook after home time`);
+    for (const k of ['maths', 'circle', 'snack', 'reading', 'group', 'home']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
+    if (late && S.mission.doneAt.maths - 40 <= 8 * 60 + 5) errors.push(`${label}: wasn't late for maths after all`);
+    console.log(`${label}: home time at ${Math.floor(G.missions.minutes() / 60)}:${String(Math.floor(G.missions.minutes() % 60)).padStart(2, '0')}`);
+    G.missions.end();
+  }
 }
 
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);
