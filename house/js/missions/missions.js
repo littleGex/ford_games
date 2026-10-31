@@ -91,21 +91,21 @@ const loJob = (w = 'dad') => ({ key: 'loo', optional: true, title: 'Bathroom (wh
 // SCHOOL_SPM seconds a minute, so walking across the floor takes a few minutes and a lesson sit of `dur`
 // seconds lasts dur / SCHOOL_SPM minutes. Maths and geography are lesson cards instead (quiz: six questions,
 // ui/quiz.js): the clock stops while the card is open, then moves on by the lesson's `minutes`.
-const SCHOOL_SPM = 1.2;
+const SCHOOL_SPM = 2;
 const hhmm = (h, m) => hm(h) + m;   // 8, 40 -> 8:40
 const SCHOOL_LESSONS = [
   { key: 'maths', at: hhmm(8, 0), gong: 'Maths starts at 8:00', title: 'Maths at 8:00', quiz: 'maths', minutes: 25,
     step: () => ({ at: SCHOOL.desk.at, label: 'Sit at your desk for maths: six sums' }) },
-  { key: 'circle', at: hhmm(8, 40), gong: 'Story time in the bench circle at 8:40', title: 'Story circle at 8:40', dur: 24, what: 'Listening to the story',
+  { key: 'circle', at: hhmm(8, 40), gong: 'Story time in the bench circle at 8:40', title: 'Story circle at 8:40', dur: 30, what: 'Listening to the story',
     step: () => ({ ...SCHOOL.circle, label: 'Sit on a bench in the circle for the story' }) },
   { key: 'break', at: hhmm(9, 10), gong: 'Break time!',
     jobs: () => [
       { key: 'snack', title: 'Break: your snack', steps: [
         { kind: 'use', at: SCHOOL.sink, notBefore: hhmm(9, 5), label: 'Wash your hands at the basin' },
-        { kind: 'sit', ...SCHOOL.snack, dur: 9, what: 'Eating your snack', label: 'Eat your snack at your desk' }] },
+        { kind: 'sit', ...SCHOOL.snack, dur: 12, what: 'Eating your snack', label: 'Eat your snack at your desk' }] },
       { key: 'loo', optional: true, title: 'Toilet (whenever you need)', steps: [{ kind: 'use', at: SCHOOL.toilet, label: 'Go to the toilet' }] },
     ] },
-  { key: 'reading', at: hhmm(9, 35), gong: 'Reading time at 9:35', title: 'Reading at 9:35', dur: 18, what: 'Reading your book', first: 'books',
+  { key: 'reading', at: hhmm(9, 35), gong: 'Reading time at 9:35', title: 'Reading at 9:35', dur: 30, what: 'Reading your book', first: 'books',
     step: () => ({ ...SCHOOL.cushions, label: 'Curl up on the cushions and read' }) },
   { key: 'flags', at: hhmm(10, 5), gong: 'Geography at 10:05: flags!', title: 'Geography at 10:05', quiz: 'flags', minutes: 20,
     step: () => ({ at: SCHOOL.groupTable.at, label: 'Sit at the round table in the group room: flags of the world' }) },
@@ -519,7 +519,7 @@ export const MISSIONS = {
   // hands, your snack, the toilet), reading in the reading room, geography at the round table (flags), home time.
   school: {
     title: 'A day at school', who: ['girl'],
-    clock: { start: hm(7.75), end: hm(11.25), secondsPerMinute: SCHOOL_SPM },   // 7:45 to 11:15 in about four minutes
+    clock: { start: hm(7.75), end: hm(11.25), secondsPerMinute: SCHOOL_SPM },   // 7:45 to 11:15 in about five minutes
     spot: who => ({ name: NAMES[who], level: 0, start: SCHOOL.arrive, facing: -Math.PI / 2 }),
     intro: 'Up the stairs to your classroom: maths starts at 8:00',
     setup(c) { c.world.schoolCoat.visible = false; },

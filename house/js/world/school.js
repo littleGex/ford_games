@@ -157,7 +157,7 @@ export function buildSchool() {
   wall(X(W), 17.0, X(31.0), 17.2);
 
   // inside walls: the classrooms along the top (doors into the hall), the group room, the bottom row
-  run('x', X(0), X(W), 6.75, 6.9, [[X(7.3), X(8.3), 'door'], [X(15.3), X(16.3), 'door'], [X(17.5), X(18.5), 'door']]);
+  run('x', X(0), X(W), 6.75, 6.9, [[X(7.2), X(8.35), 'door'], [X(15.3), X(16.3), 'door'], [X(17.5), X(18.5), 'door']]);
   wall(X(8.75), 0, X(8.9), 6.75); wall(X(17.35), 0, X(17.5), 6.75);
   run('z', 6.9, 13.3, X(6.95), X(7.1), [[8.4, 9.4, 'door']]);
   run('x', X(0), X(W), 13.3, 13.45, [[X(7.6), X(8.6), 'door'], [X(15.6), X(16.6), 'door'], [X(17.8), X(18.9), 'door']]);
@@ -208,21 +208,21 @@ export function buildSchool() {
   railing(X(26.75), 13.86, X(27.95), 13.92); railing(X(26.76), 13.86, X(26.82), 16.9);   // round the landing (open at the top of the steps)
 
   // --- the hall: brick pillars, coat hooks, pinboards with drawings, the round table, the clock
-  [[7.1, 7.0], [7.1, 12.75], [10.0, 13.05], [14.6, 13.05], [18.4, 6.95], [14.7, 6.95]].forEach(([x, z]) => {
+  [[6.75, 7.0], [7.1, 12.75], [10.0, 13.05], [14.6, 13.05], [18.55, 6.95], [14.7, 6.95]].forEach(([x, z]) => {
     const [x1, z1] = [X(x), z], s = 0.42;
     box(x1, z1, x1 + s, z1 + 0.25, WH, 0, brickMat(s, WH)); solid(x1, z1, x1 + s, z1 + 0.25);
   });
-  const hooks = (x, z1, z2) => {
-    box(x, z1, x + 0.04, z2, 0.03, 1.02, mat('#4f6a3a'), false);
-    for (let z = z1 + 0.15; z < z2; z += 0.3) box(x + 0.04, z - 0.01, x + 0.09, z + 0.01, 0.05, 0.98, mat('#4f6a3a'), false);
+  const hooks = (x, z1, z2, face = 1) => {
+    box(x, z1, x + face * 0.04, z2, 0.03, 1.02, mat('#4f6a3a'), false);
+    for (let z = z1 + 0.15; z < z2; z += 0.3) box(x + face * 0.04, z - 0.01, x + face * 0.09, z + 0.01, 0.05, 0.98, mat('#4f6a3a'), false);
   };
   hooks(X(7.1), 9.5, 12.5);
-  hooks(X(18.95), 11.9, 13.2);
+  hooks(X(18.95), 10.2, 11.4, -1);
   const coats = [['#e86a8a', 11.2], ['#2b2d31', 11.8], ['#7aa0c4', 12.2]];
   coats.forEach(([c, z]) => box(X(7.15), z - 0.1, X(7.3), z + 0.1, 0.5, 0.52, mat(c), false));
   pinboard(X(9.0), X(11.6), 13.3, true, -1, 0.75, 2);
-  pinboard(X(15.0), X(17.5), 13.3, true, -1, 0.75, 5);
-  pinboard(X(15.5), X(18.6), 8.15, true, -1, 0.75, 7);
+  pinboard(X(12.0), X(14.4), 13.3, true, -1, 0.75, 5);
+  pinboard(8.5, 10.1, X(18.95), false, -1, 0.75, 7);
   cyl(X(13.0), 11.2, 0.5, 0.62, '#eef0f2', 0, true);                                     // the round table
   [[0.75, 0], [-0.75, 0], [0, 0.75]].forEach(([dx, dz]) => kidChair(X(13.0) + dx, 11.2 + dz, Math.atan2(-dx, -dz)));
   box(X(10.95), 13.24, X(11.25), 13.27, 0.3, 1.0, mat('#f4f4f4'), false);               // the clock
@@ -261,7 +261,7 @@ export function buildSchool() {
   table(X(0.1), 7.2, X(0.75), 12.6, 0.62, '#f2f2f2');                                     // desks under the windows
   box(X(6.9), 10.8, X(6.95), 12.4, 0.6, 0.75, mat('#f6f7f8'), false);                    // whiteboard
   box(X(5.2), 7.0, X(5.8), 7.2, 0.25, 0.65, mat('#f4f4f4'), false); solid(X(5.2), 6.95, X(5.8), 7.25);   // washbasin
-  fbox(X(5.9), 7.0, X(6.85), 7.5, 0.85, '#c9cfc2');                                       // cupboard
+  fbox(X(5.9), 7.0, X(6.7), 7.5, 0.85, '#c9cfc2');                                        // cupboard
 
   // --- the bench-circle classroom (bottom left): benches round two little white tables, the blackboard and
   // cupboards, shelves of boxes, kites hanging from the ceiling, a table alcove by the window
@@ -270,7 +270,7 @@ export function buildSchool() {
   fbox(X(4.1), 16.4, X(5.3), 17.0, 0.45, '#f4f4f4');
   box(X(4.5), 16.6, X(4.8), 16.8, 0.15, 0.45, mat('#b98c56'), false);                      // the story box
   blackboard(X(8.6), X(11.6), 13.45, true, 1);
-  fbox(X(8.4), 13.5, X(12.0), 13.95, 0.85, '#d9b98a');
+  fbox(X(8.7), 13.5, X(12.0), 13.95, 0.85, '#d9b98a');
   shelves(X(12.6), 13.5, X(13.1), 16.6, 1.3);
   deskGroup(X(1.6), 19.0, false);
   [[1.2, 19.55], [2.0, 19.55]].forEach(([x, z]) => kidChair(X(x), z, Math.PI));

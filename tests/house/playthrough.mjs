@@ -97,6 +97,10 @@ const schoolCells = walkable(0, 169.2, 13.3, SCHOOL_GRID);
     ['the bench-circle room', 148.1, 13.9], ['the reading room', 150.75, 17.3], ['the bottom-middle classroom', 156.1, 13.9], ['the bottom-right classroom', 158.3, 13.9],
     ['the boys\' toilets', 159.4, 7.8], ['the girls\' toilets', 160.5, 11.2], ['the support room', 169.05, 10.4]])
     if (!schoolCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.15)) errors.push(`school: can't get into ${room} (${x}, ${z})`);
+  // the doors she uses most: room to walk straight through, nothing to squeeze past
+  for (const [room, x1, x2, z1, z2] of [['P\'s classroom', 147.5, 148.05, 6.3, 7.6], ['the bench-circle room', 147.85, 148.35, 12.9, 14.2]])
+    for (let x = x1; x <= x2; x += 0.05) for (let z = z1; z <= z2; z += 0.05)
+      if (blocked(x, z, 0)) { errors.push(`school: something in the way of the door to ${room} (${x.toFixed(2)}, ${z.toFixed(2)})`); x = x2 + 1; break; }
 }
 const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells, schoolCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
 // every room in the office can be reached from the bike rack
@@ -1268,6 +1272,9 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
     if (!late && (!r || r.stars !== 3)) errors.push(`${label}: played well it only got ${r && r.stars} stars`);
     if (G.world.schoolCoat.visible) errors.push(`${label}: P's coat is still on the hook after home time`);
     for (const k of ['maths', 'circle', 'snack', 'reading', 'flags', 'home']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
+    // played well she's sitting down at least four minutes before she'd be late (five past): room for someone slower than this test
+    if (!late) for (const [k, at, length] of [['maths', 480, 25], ['circle', 520, 15], ['reading', 575, 15], ['flags', 605, 20]])
+      if (S.mission.doneAt[k] - length > at + 1) errors.push(`${label}: ${k} started at minute ${S.mission.doneAt[k] - length}, too near the late mark ${at + 5}`);
     const sc = S.mission.scores || {};
     if (!sc.maths || sc.maths.right !== 5 || sc.maths.of !== 6 || !sc.flags || sc.flags.right !== 5) errors.push(`${label}: lesson scores ${JSON.stringify(sc)}, want 5 of 6 each (one wrong first try)`);
     if (late && S.mission.doneAt.maths - 25 <= 8 * 60 + 5) errors.push(`${label}: wasn't late for maths after all`);
