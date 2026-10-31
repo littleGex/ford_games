@@ -1,8 +1,13 @@
 const { test, expect } = require('@playwright/test');
 
+// The game goes by the real date (holidays.js), so every test runs on the same ordinary day: on the real
+// 31 October or in December it would add that day's jobs and decorations. ?date= still overrides this.
+const NOW = new Date(2026, 9, 15, 12);
+
 // The first time the game opens on a device it shows the family setup over the home screen. Most tests aren't
 // about that, so the setup counts as done before the page loads; the setup's own tests switch this off.
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(NOW);
   await page.addInitScript(() => {
     try { if (!sessionStorage.getItem('fordTest.firstVisit')) localStorage.setItem('fordHouse.setup.v1', 'done'); } catch (e) { /* no storage */ }
   });
@@ -333,6 +338,7 @@ test('names, jobs on or off, and a link that copies them to another device', asy
   // another device: it asks first, then the names and the switched-off dragon are there
   const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
   const tablet = await other.newPage();
+  await tablet.clock.setFixedTime(NOW);
   await tablet.goto(link.replace(/^https?:\/\/[^/]+/, ''));
   await expect(tablet.locator('#shareImport')).toBeVisible();
   await expect(tablet.locator('#shareImportList')).toContainText('P → Pia');
@@ -520,6 +526,7 @@ test('the first visit with a game token: the family comes from the family server
 test('a share link on a first visit: it asks about the link, not the setup', async ({ page, browser }) => {
   const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
   const phone = await other.newPage();
+  await phone.clock.setFixedTime(NOW);
   await phone.goto('/house/');
   await phone.locator('#setupFords').click();
   const link = await phone.evaluate(() => window.house.settingsCard.linkUrl());
@@ -779,7 +786,7 @@ test('looks and birthdays: change how P looks, give her a birthday, and it is ke
   await expect(page.locator('#avatarAge')).toHaveText(/No birthday yet · P plays as a child/);
   await page.locator('.avatar-chip', { hasText: 'Ponytail' }).click();
   await page.locator('.avatar-swatch[aria-label="Hair colour: #b8402a"]').click();
-  const year = new Date().getFullYear() - 14;
+  const year = NOW.getFullYear() - 14;
   await page.locator('#avatarBirthday').fill(`${year}-01-01`);
   await expect(page.locator('#avatarAge')).toHaveText(/^14 years old · a teenager/);
   await page.locator('#avatarDone').click();
@@ -795,7 +802,7 @@ test('looks and birthdays: change how P looks, give her a birthday, and it is ke
 });
 
 test('the family server: connect with the game token, and the birthdays come in (a party if one is today)', async ({ page }) => {
-  const today = new Date(), md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const today = NOW, md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   let auth = null;
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization', 'Access-Control-Allow-Methods': 'GET' };
   await page.route('**/v1/game/family', route => {

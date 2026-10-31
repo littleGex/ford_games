@@ -16,6 +16,12 @@ globalThis.innerWidth = 390; globalThis.innerHeight = 844; globalThis.devicePixe
 globalThis.addEventListener = (t, f) => { (listeners[t] ||= []).push(f); };
 globalThis.matchMedia = () => ({ matches: false });
 globalThis.location = { search: '?season=autumn' };   // the same season whatever month the test runs in (snow is played on the extra day)
+// the same day whenever the test runs: on the real 31 October or in December, holidays.js would add that day's jobs
+const RealDate = Date, shift = new RealDate(2026, 9, 15, 12) - RealDate.now();
+globalThis.Date = class extends RealDate {
+  constructor(...args) { if (args.length) super(...args); else super(RealDate.now() + shift); }
+  static now() { return RealDate.now() + shift; }
+};
 globalThis.document = {
   addEventListener() {}, querySelector: () => null,
   getElementById: () => el(), querySelectorAll: () => [ { ...el(), dataset: { c: 'dad' } }, { ...el(), dataset: { c: 'girl' } } ],
