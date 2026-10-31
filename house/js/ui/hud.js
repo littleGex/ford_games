@@ -79,10 +79,10 @@ export function createHud() {
       }
     },
     setRoom(room) {
-      const key = `${room.level || 0}:${room.name}`;
+      const key = `${room.level || 0}:${room.name}:${room.area}`;   // (several classrooms share a name)
       if (key === lastRoom) return;
       lastRoom = key; el.roomName.textContent = room.name; el.roomArea.textContent = room.area;
-      el.floorName.textContent = FLOOR_NAMES[room.level || 0];
+      el.floorName.textContent = room.floor || FLOOR_NAMES[room.level || 0];   // (the school's lesson floor is upstairs)
     },
     setAction(label) {
       if (label === lastAction) return;

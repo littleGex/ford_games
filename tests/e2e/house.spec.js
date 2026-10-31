@@ -1,8 +1,13 @@
 const { test, expect } = require('@playwright/test');
 
+// The game goes by the real date (holidays.js), so every test runs on the same ordinary day: on the real
+// 31 October or in December it would add that day's jobs and decorations. ?date= still overrides this.
+const NOW = new Date(2026, 9, 15, 12);
+
 // The first time the game opens on a device it shows the family setup over the home screen. Most tests aren't
 // about that, so the setup counts as done before the page loads; the setup's own tests switch this off.
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(NOW);
   await page.addInitScript(() => {
     try { if (!sessionStorage.getItem('fordTest.firstVisit')) localStorage.setItem('fordHouse.setup.v1', 'done'); } catch (e) { /* no storage */ }
   });
@@ -333,6 +338,7 @@ test('names, jobs on or off, and a link that copies them to another device', asy
   // another device: it asks first, then the names and the switched-off dragon are there
   const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
   const tablet = await other.newPage();
+  await tablet.clock.setFixedTime(NOW);
   await tablet.goto(link.replace(/^https?:\/\/[^/]+/, ''));
   await expect(tablet.locator('#shareImport')).toBeVisible();
   await expect(tablet.locator('#shareImportList')).toContainText('P → Pia');
@@ -520,6 +526,7 @@ test('the first visit with a game token: the family comes from the family server
 test('a share link on a first visit: it asks about the link, not the setup', async ({ page, browser }) => {
   const other = await browser.newContext({ baseURL: 'http://localhost:8080' });
   const phone = await other.newPage();
+  await phone.clock.setFixedTime(NOW);
   await phone.goto('/house/');
   await phone.locator('#setupFords').click();
   const link = await phone.evaluate(() => window.house.settingsCard.linkUrl());
@@ -574,7 +581,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(5);   // the school run, work from home, the office, 3D printing, bedtime
+  await expect(page.locator('.mission')).toHaveCount(6);   // the school run, a day at school, work from home, the office, 3D printing, bedtime
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
@@ -779,7 +786,7 @@ test('looks and birthdays: change how P looks, give her a birthday, and it is ke
   await expect(page.locator('#avatarAge')).toHaveText(/No birthday yet · P plays as a child/);
   await page.locator('.avatar-chip', { hasText: 'Ponytail' }).click();
   await page.locator('.avatar-swatch[aria-label="Hair colour: #b8402a"]').click();
-  const year = new Date().getFullYear() - 14;
+  const year = NOW.getFullYear() - 14;
   await page.locator('#avatarBirthday').fill(`${year}-01-01`);
   await expect(page.locator('#avatarAge')).toHaveText(/^14 years old · a teenager/);
   await page.locator('#avatarDone').click();
@@ -795,7 +802,7 @@ test('looks and birthdays: change how P looks, give her a birthday, and it is ke
 });
 
 test('the family server: connect with the game token, and the birthdays come in (a party if one is today)', async ({ page }) => {
-  const today = new Date(), md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const today = NOW, md = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   let auth = null;
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization', 'Access-Control-Allow-Methods': 'GET' };
   await page.route('**/v1/game/family', route => {
@@ -904,6 +911,94 @@ test('the 3D printing mission: pick a design on the laptop close-up', async ({ p
   expect(await page.evaluate(() => window.house.S.mission.choices)).toEqual({ design: 'rocket', filament: 'blue' });
   await page.evaluate(() => window.house.missions.end());
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
+test('a day at school: P starts at the top of the school stairs, goes in and hangs up her coat', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await expect(page.locator('[data-mission="school"][data-kid="girl"]')).toHaveText('P');
+  await page.locator('[data-mission="school"][data-kid="girl"]').click();
+  await expect(page.locator('#home')).toBeHidden();
+  await expect(page.locator('#dayLabel')).toHaveText('A day at school · 7:45');
+  await expect(page.locator('#roomName')).toHaveText('Treppenhaus');
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  await expect(page.locator('#taskList')).toContainText('Go in');
+  // through the glass doors, then to the coat hooks in the hall
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.glassDoors; window.house.player.group.position.set(x, 0, z); });
+  await expect(page.locator('#actBtn')).toHaveText('Go through the glass doors into the school');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#taskList')).toContainText('Hang up your coat');
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.hook; window.house.player.group.position.set(x, 0, z); });
+  await expect(page.locator('#roomName')).toHaveText('Halle');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#taskList')).toContainText('Maths at 8:00');
+  expect(await page.evaluate(() => window.house.world.schoolCoat.visible)).toBe(true);
+  await page.evaluate(() => window.house.missions.end());
+  await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+});
+
+test('a day at school: the maths lesson is a card of six sums (a wrong one turns red), and the clock waits', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="school"][data-kid="girl"]').click();
+  // skip ahead to 7:56: through the door, coat on the hook, at the desk
+  await page.evaluate(() => { const m = window.house.missions.active; m.t = 11 * m.clock.secondsPerMinute; });
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.glassDoors; window.house.player.group.position.set(x, 0, z); });
+  await page.locator('#actBtn').click();
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.hook; window.house.player.group.position.set(x, 0, z); });
+  await page.locator('#actBtn').click();
+  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.desk.at; window.house.player.group.position.set(x, 0, z); });
+  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk for maths: six sums');
+  await page.locator('#actBtn').click();
+  await expect(page.locator('#quiz')).toBeVisible();
+  await expect(page.locator('#quizSubject')).toContainText('Maths');
+  await expect(page.locator('#quizCount')).toHaveText('1 of 6');
+  await expect(page.locator('#quizText')).toHaveText(/^\d+ [+−×÷] \d+ = \?$/);
+  await expect(page.locator('.quiz-answer')).toHaveCount(4);
+  const before = await page.evaluate(() => window.house.missions.minutes());
+  // a wrong answer: red, and "try another"
+  const right = await page.evaluate(() => window.house.quiz.right());
+  const wrong = page.locator(`.quiz-answer:not([data-answer="${right}"])`).first();
+  await wrong.click();
+  await expect(wrong).toHaveClass(/wrong/);
+  await expect(page.locator('#quizSaid')).toHaveText('Not quite: try another one');
+  // then each right answer by its number key
+  for (let i = 1; i <= 6; i++) {
+    await expect(page.locator('#quizCount')).toHaveText(`${i} of 6`);
+    const id = await page.evaluate(() => window.house.quiz.right());
+    const n = await page.locator('.quiz-answer').evaluateAll((bs, want) => bs.findIndex(b => b.dataset.answer === want) + 1, id);
+    await page.keyboard.press(String(n));
+  }
+  await expect(page.locator('#quiz')).toBeHidden();
+  expect(await page.evaluate(() => window.house.missions.active.scores.maths)).toEqual({ right: 5, of: 6 });
+  // the clock waited while the card was open, then moved on by the lesson (25 minutes)
+  const after = await page.evaluate(() => window.house.missions.minutes());
+  expect(after - before).toBeGreaterThanOrEqual(25);
+  expect(after - before).toBeLessThan(28);
+  await expect(page.locator('#taskList')).toContainText('Story circle at 8:40');
+  await page.evaluate(() => window.house.missions.end());
+});
+
+test('a day at school: the flags lesson shows drawn flags', async ({ page }) => {
+  await openHouse(page);
+  await page.evaluate(() => {
+    const h = window.house, job = h.board.add({ id: 'flagsTest', title: 'Flags', steps: [{ kind: 'quiz', quiz: 'flags', at: [0, 0], label: 'Flags' }] });
+    h.quiz.open(job, job.steps[0]);
+  });
+  await expect(page.locator('#quizSubject')).toContainText('Geography: flags');
+  for (let i = 0; i < 6; i++) {
+    const q = await page.evaluate(() => window.house.quiz.question());
+    if (q.kind === 'whichCountry') {
+      await expect(page.locator('#quizPic')).toBeVisible();
+      expect(await page.locator('#quizPic').getAttribute('src')).toMatch(/^data:image\/png/);
+    } else {
+      await expect(page.locator('#quizPic')).toBeHidden();
+      await expect(page.locator('.quiz-answer img')).toHaveCount(4);
+    }
+    await page.locator(`.quiz-answer[data-answer="${q.right}"]`).click();
+    await page.waitForTimeout(800);
+  }
+  await expect(page.locator('#quiz')).toBeHidden();
 });
 
 test('the school run mission starts from the home screen and goes back to the day', async ({ page }) => {

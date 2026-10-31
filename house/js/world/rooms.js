@@ -41,6 +41,26 @@ ROOMS.push(
   { name: 'WC', area: 'office bathroom', r: [O + 3.05, 12.2, O + 6.2, 13.7] },
   { name: 'Büro', area: 'outside the office', r: [O - 14, -8, O + 15.2, 22] },
 );
+// P's school, the lesson floor (world/school.js, from x 140)
+const SC = 140;
+ROOMS.push(
+  { name: 'Klassenzimmer', get area() { return `${possessive('girl')} classroom`; }, r: [SC, 0, SC + 8.75, 6.75] },
+  { name: 'Klassenzimmer', area: 'a classroom', r: [SC + 8.9, 0, SC + 26.5, 6.75] },
+  { name: 'Gruppenraum', area: 'the group room', r: [SC, 6.9, SC + 6.95, 13.3] },
+  { name: 'Leseraum', area: 'the reading room', r: [SC + 9.25, 16.9, SC + 13.15, 20] },
+  { name: 'Klassenzimmer', area: 'the bench circle', r: [SC, 13.45, SC + 13.15, 20] },
+  { name: 'Klassenzimmer', area: 'a classroom', r: [SC + 13.3, 13.45, SC + 26.5, 20] },
+  { name: 'WC Jungen', area: "boys' toilets", r: [SC + 19.1, 6.9, SC + 26.4, 8.65] },
+  { name: 'WC Mädchen', area: "girls' toilets", r: [SC + 19.1, 8.8, SC + 23.8, 11.5] },
+  { name: 'Abstellraum', area: 'store room', r: [SC + 23.9, 8.8, SC + 25.6, 11.5] },
+  { name: 'Putzraum', area: 'cleaning cupboard', r: [SC + 25.7, 8.8, SC + 27.6, 11.5] },
+  { name: 'Förderraum', area: 'support room: shoes off!', r: [SC + 27.7, 7.4, SC + 30.8, 10.7] },
+  { name: 'Treppenhaus', area: 'the stairs', r: [SC + 26.5, 10.85, SC + 30.8, 17.0] },
+  { name: 'Flur', area: 'to the stairs', r: [SC + 19.0, 11.65, SC + 26.5, 13.3] },
+  { name: 'Halle', get area() { return `${possessive('girl')} school`; }, r: [SC + 7.1, 6.9, SC + 19.0, 13.3] },
+  { name: 'Schule', get area() { return `${possessive('girl')} school`; }, r: [SC - 3, -3, SC + 34, 23] },
+);
+ROOMS.filter(r => r.r[0] >= SC - 3).forEach(r => { r.floor = 'Obergeschoss'; });   // the lesson floor is upstairs
 // Mum's office site (world/mumoffice.js, from x 80): the ground floor and outside, and her office floor upstairs
 const MO = 80;
 ROOMS.push(

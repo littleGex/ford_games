@@ -37,6 +37,22 @@ export function bell() {
   } catch (e) { /* ignore */ }
 }
 
+/** The school gong at the start and end of a lesson: three slow, soft notes going down. */
+export function schoolGong() {
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    [784, 659, 523].forEach((f, i) => {
+      const t = i * 0.55, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, now + t);
+      g.gain.exponentialRampToValueAtTime(0.16, now + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + t + 1.4);
+      o.connect(g); g.connect(ctx.destination); o.start(now + t); o.stop(now + t + 1.45);
+    });
+  } catch (e) { /* ignore */ }
+}
+
 /** A short buzz: the hedge trimmer snipping through a bush. */
 export function buzz() {
   if (!ctx) return;

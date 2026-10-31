@@ -16,6 +16,12 @@ globalThis.innerWidth = 390; globalThis.innerHeight = 844; globalThis.devicePixe
 globalThis.addEventListener = (t, f) => { (listeners[t] ||= []).push(f); };
 globalThis.matchMedia = () => ({ matches: false });
 globalThis.location = { search: '?season=autumn' };   // the same season whatever month the test runs in (snow is played on the extra day)
+// the same day whenever the test runs: on the real 31 October or in December, holidays.js would add that day's jobs
+const RealDate = Date, shift = new RealDate(2026, 9, 15, 12) - RealDate.now();
+globalThis.Date = class extends RealDate {
+  constructor(...args) { if (args.length) super(...args); else super(RealDate.now() + shift); }
+  static now() { return RealDate.now() + shift; }
+};
 globalThis.document = {
   addEventListener() {}, querySelector: () => null,
   getElementById: () => el(), querySelectorAll: () => [ { ...el(), dataset: { c: 'dad' } }, { ...el(), dataset: { c: 'girl' } } ],
@@ -76,7 +82,27 @@ for (const [what, x, z] of [['the zebra crossing', 97.5, 1.8], ['the turnstiles'
   if (!mumCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office: can't walk to ${what} from the car park`);
 for (const [what, x, z] of [["Mum's desk", 100.1, 13.3], ['the meeting room', 101.6, 18.3], ['the kitchen fridge', 103.0, 15.55], ['the kitchen sink', 103.0, 12.9], ['the WC', 105.0, 19.4], ['the lifts upstairs', 109.0, 16.9], ['the second office', 108.0, 10.0]])
   if (!mumFloorCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office floor: can't walk to ${what}`);
-const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
+// P's school, the lesson floor (world/school.js): from the top of the stairs to every room she goes into
+const SCHOOL_GRID = { X0: 139.5, Z0: -0.5, NX: Math.round(32 / RES), NZ: Math.round(21 / RES) };
+const schoolCells = walkable(0, 169.2, 13.3, SCHOOL_GRID);
+{
+  const { SCHOOL } = await import(new URL('../../house/js/world/school.js', import.meta.url));
+  const spots = { 'the glass doors': SCHOOL.glassDoors, 'her coat hook': SCHOOL.hook, 'her desk': SCHOOL.desk.at, 'the basin': SCHOOL.sink,
+    'the bench circle': SCHOOL.circle.at, 'the book shelves': SCHOOL.books, 'the cushions': SCHOOL.cushions.at, 'the round table': SCHOOL.groupTable.at,
+    'the toilets': SCHOOL.toilet, 'the stairs down': SCHOOL.stairsDown, 'the hall table': SCHOOL.hallTable.at };
+  for (const [what, [x, z]] of Object.entries(spots))
+    if (!schoolCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`school: can't walk to ${what} (${x}, ${z})`);
+  // every doorway on the lesson floor can be walked through (rooms P doesn't use too)
+  for (const [room, x, z] of [['P\'s classroom', 147.8, 6.4], ['the next classroom', 155.8, 6.4], ['the classroom on the right', 158.0, 6.4], ['the group room', 146.6, 8.9],
+    ['the bench-circle room', 148.1, 13.9], ['the reading room', 150.75, 17.3], ['the bottom-middle classroom', 156.1, 13.9], ['the bottom-right classroom', 158.3, 13.9],
+    ['the boys\' toilets', 159.4, 7.8], ['the girls\' toilets', 160.5, 11.2], ['the support room', 169.05, 10.4]])
+    if (!schoolCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.15)) errors.push(`school: can't get into ${room} (${x}, ${z})`);
+  // the doors she uses most: room to walk straight through, nothing to squeeze past
+  for (const [room, x1, x2, z1, z2] of [['P\'s classroom', 147.5, 148.05, 6.3, 7.6], ['the bench-circle room', 147.85, 148.35, 12.9, 14.2]])
+    for (let x = x1; x <= x2; x += 0.05) for (let z = z1; z <= z2; z += 0.05)
+      if (blocked(x, z, 0)) { errors.push(`school: something in the way of the door to ${room} (${x.toFixed(2)}, ${z.toFixed(2)})`); x = x2 + 1; break; }
+}
+const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells, schoolCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
 // every room in the office can be reached from the bike rack
 for (const [room, x, z] of [['open plan', 42.6, 3.0], ["boss's office", 41.5, 8.4], ['meeting room', 41.9, 12.0], ["Dad's room", 44.0, 8.9], ['kitchen', 44.5, 10.9], ['bathroom', 44.5, 13.0], ['assembly point', 43.1, -2.4]])
   if (!officeCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`office: can't walk to the ${room} (${x}, ${z})`);
@@ -245,6 +271,14 @@ function doStep(job) {
     for (let k = 0; k < 30 && S.sorting; k++) G.sorting.choose(G.sorting.answer());
     frame();
     return job.steps[job.i] !== s || 'sorting never finished';
+  }
+  if (s.kind === 'quiz') {   // a lesson card at school: one wrong answer first on the first question, then all right
+    if (!S.quiz) return 'the lesson card never opened';
+    const q = G.quiz.question(), wrong = q.answers.find(a => a.id !== q.right);
+    if (G.quiz.answer(wrong.id)) return 'a wrong answer counted as right';
+    for (let k = 0; k < 20 && S.quiz; k++) G.quiz.answer(G.quiz.right());
+    frame();
+    return job.steps[job.i] !== s || 'the lesson card never finished';
   }
   if (s.kind === 'choose') {   // the laptop close-up: pick tile number `laptopPick` (1 = first)
     if (!S.laptop) return 'the laptop never opened';
@@ -1218,6 +1252,35 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
   console.log('who does what: swapped desks for work and working from home; P fixes her bike, Dude feeds the dragon');
+}
+
+// --- a day at school (#65), as P: up the stairs, coat on the hook, each lesson when the gong goes, the break,
+// home time. Played well it's three stars; then once late for maths (fewer stars)
+{
+  const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
+  if (roomAt(142, 3, 0).area !== "P's classroom" || roomAt(150, 10, 0).name !== 'Halle') errors.push(`school: room names ${roomAt(142, 3, 0).area}, ${roomAt(150, 10, 0).name}`);
+  for (const late of [false, true]) {
+    const label = late ? 'a day at school (late for maths)' : 'a day at school';
+    G.quizDelay = 0;   // (the lesson card moves on to the next question at once)
+    G.missions.start('school', 'girl');
+    if (G.player.group.position.x < 140) errors.push(`${label}: didn't start at the school`);
+    if (late) { while (G.missions.minutes() < 8 * 60 + 20) frame(); }   // dawdling on the stairs
+    const seen = new Set();
+    playWorkDay(label, seen);
+    if (!S.mission.done) { errors.push(`${label}: never finished (${[...seen]})`); G.missions.end(); continue; }
+    const r = G.missions.best('school', 'girl');
+    if (!late && (!r || r.stars !== 3)) errors.push(`${label}: played well it only got ${r && r.stars} stars`);
+    if (G.world.schoolCoat.visible) errors.push(`${label}: P's coat is still on the hook after home time`);
+    for (const k of ['maths', 'circle', 'snack', 'reading', 'flags', 'home']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
+    // played well she's sitting down at least four minutes before she'd be late (five past): room for someone slower than this test
+    if (!late) for (const [k, at, length] of [['maths', 480, 25], ['circle', 520, 15], ['reading', 575, 15], ['flags', 605, 20]])
+      if (S.mission.doneAt[k] - length > at + 1) errors.push(`${label}: ${k} started at minute ${S.mission.doneAt[k] - length}, too near the late mark ${at + 5}`);
+    const sc = S.mission.scores || {};
+    if (!sc.maths || sc.maths.right !== 5 || sc.maths.of !== 6 || !sc.flags || sc.flags.right !== 5) errors.push(`${label}: lesson scores ${JSON.stringify(sc)}, want 5 of 6 each (one wrong first try)`);
+    if (late && S.mission.doneAt.maths - 25 <= 8 * 60 + 5) errors.push(`${label}: wasn't late for maths after all`);
+    console.log(`${label}: home time at ${Math.floor(G.missions.minutes() / 60)}:${String(Math.floor(G.missions.minutes() % 60)).padStart(2, '0')}`);
+    G.missions.end();
+  }
 }
 
 console.log('every job played:', pool.every(id => played.has(id) || missing.includes(id)), `(${pool.length} jobs)`);

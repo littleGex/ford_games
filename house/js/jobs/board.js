@@ -8,6 +8,7 @@
 //   sit    sit or stand at a spot for `dur` seconds (handled by systems/sitting.js)
 //   sort   sort the washing by colour on a little card (ui/sorting.js)
 //   choose pick from tiles on the laptop close-up (ui/laptop.js), choose: 'design' | 'filament'
+//   quiz   a lesson card at school (ui/quiz.js), quiz: 'maths' | 'flags'; minutes: the lesson's length
 //   wipe   wipe a window by moving the stick in circles (systems/wiping.js); dirt: which window
 //   mow / hoover / rake / shovel / trim / charge / wait   progress handled by their own systems; no button, no marker
 //   can(ctx)  optional: the step only shows while this is true
@@ -76,7 +77,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (S.mission && S.mission.drill && !s.drill) return false;   // a fire drill: nothing else until the all-clear
     if (s.notBefore && !(S.mission && S.mission.clock && S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute >= s.notBefore)) return false;   // a mission step that isn't open yet (lunch from 12:00)
     if (s.kind === 'sit') return !S.sitting;
-    if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe') return true;
+    if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe' || s.kind === 'quiz') return true;
     if (s.kind === 'choose') return !S.carrying;
     if (s.kind === 'pick') return !S.carrying;
     if (s.kind === 'drop') return S.carrying === s.item;
@@ -181,6 +182,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (s.kind === 'sit') { ctx.sitting.sitDown(job, s); return; }
     if (s.kind === 'sort') { ctx.sorting.open(job, s); return; }
     if (s.kind === 'choose') { ctx.laptop.open(job, s); return; }
+    if (s.kind === 'quiz') { ctx.quiz.open(job, s); return; }
     if (s.kind === 'wipe') { ctx.wiping.start(job, s); return; }
     if (s.kind === 'pick') S.carrying = s.item;
     if (s.kind === 'drop') { place(s); S.carrying = null; }
