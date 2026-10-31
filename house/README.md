@@ -104,7 +104,9 @@ with the day.
   coat on her hook in the hall, then the morning's lessons in order, each when the gong goes: maths at her
   desk (8:00), a story in the bench circle (8:40), the break (wash your hands, a snack at your desk, the
   toilet), reading on the cushions in the reading room (9:35) and geography at the round table (10:05). Home
-  time from 10:40. Three stars: on time for every lesson, the snack eaten, down the stairs by 11:00.
+  time from 10:40. Three stars: on time for every lesson (sitting down by five past), the snack eaten, down the
+  stairs by 11:00. The clock runs at 2 seconds a game minute, so a morning takes about five minutes plus the
+  lesson cards (`SCHOOL_SPM` in `missions.js`).
   Maths and geography are **lesson cards** (`js/ui/quiz.js`, questions in `js/lessons.js`): six questions,
   four answers each. Maths: adding and taking away up to 100, the times tables, sharing out. Geography:
   flags, drawn on a canvas (a flag and four countries, or a country and four flags). A wrong answer turns

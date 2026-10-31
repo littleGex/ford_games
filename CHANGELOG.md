@@ -10,6 +10,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.18.0] - 2026-10-31
+
 ### Added
 - Ford House: **a day at school**, a new mission for P: her school's lesson floor, from its floor plan and
   photos: her classroom with the sunflowers, the hall with the coat hooks, the bench-circle room and its
@@ -20,6 +22,10 @@ pull request; at release time that section becomes the new version (see "Releasi
   on the results card; the clock waits while you think (#65).
 - **Home Screen icons:** every game and the Game Zone page now has its own icon when saved to a phone's
   Home Screen, on iPhone and Android, and the Game Zone page can be installed too (#142).
+
+### Fixed
+- Ford House: the tests went by the real date, so they failed on 31 October and from December to 5 January,
+  when that day's jobs and decorations were added. They now run on a fixed ordinary date.
 
 ## [4.17.0] - 2026-10-25
 
@@ -436,7 +442,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.17.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.18.0...HEAD
+[4.18.0]: https://github.com/littleGex/ford_games/compare/v4.17.0...v4.18.0
 [4.17.0]: https://github.com/littleGex/ford_games/compare/v4.16.0...v4.17.0
 [4.16.0]: https://github.com/littleGex/ford_games/compare/v4.15.0...v4.16.0
 [4.15.0]: https://github.com/littleGex/ford_games/compare/v4.14.0...v4.15.0
