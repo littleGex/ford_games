@@ -1,8 +1,11 @@
-const CACHE_NAME = 'wordle-cache-v1';
+const CACHE_NAME = 'wordle-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {

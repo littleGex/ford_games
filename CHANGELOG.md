@@ -18,6 +18,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 - Ford House: **lesson cards** at school: maths is six sums (adding, taking away, times tables, sharing out)
   and geography is six flag questions (which country, or which flag), four answers each. Your score shows
   on the results card; the clock waits while you think (#65).
+- **Home Screen icons:** every game and the Game Zone page now has its own icon when saved to a phone's
+  Home Screen, on iPhone and Android, and the Game Zone page can be installed too (#142).
 
 ## [4.17.0] - 2026-10-25
 

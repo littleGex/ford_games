@@ -1,10 +1,13 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'solitaire-cache-v1';
+const CACHE_NAME = 'solitaire-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './klondike.js'
 ];
 

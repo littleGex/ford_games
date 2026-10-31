@@ -1,8 +1,11 @@
-const CACHE_NAME = 'soccer5v5-cache-v13';
+const CACHE_NAME = 'soccer5v5-cache-v14';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
