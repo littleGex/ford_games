@@ -4,6 +4,7 @@ export const S = {
   wiping: null,          // wiping a window: { job, step, ... } (systems/wiping.js)
   sorting: false,
   laptop: false,   // the laptop close-up is open (3D printing)
+  quiz: false,            // a lesson card is open at school (ui/quiz.js)
   calendar: false,        // the Advent calendars are open up close (ui/advent.js)
   settings: false,        // the jobs and sharing card, or the card about settings from a link (ui/settings.js)
   mission: null,          // a mission in progress: { id, who, clock, t, done } (missions/missions.js)

@@ -56,6 +56,8 @@
       <ul class="missions">
         <li class="mission" id="missionSchoolRun"><span class="mission-icon" aria-hidden="true">🚲</span><span><b>The school run</b><small>Get up, breakfast, dressed, bag packed, then cycle to school before the bell at 8:00</small><small class="mission-best" data-best="schoolRun"></small></span>
           <span class="mission-play" role="group" aria-label="Play the school run as"><button data-mission="schoolRun" data-kid="girl" data-name="girl">P</button><button data-mission="schoolRun" data-kid="boy" data-name="boy">Dude</button></span></li>
+        <li class="mission" id="missionSchool"><span class="mission-icon" aria-hidden="true">🏫</span><span><b>A day at school</b><small><span data-name="girl">P</span>'s morning from 7:45: coat on the hook, then maths, a story in the circle, the break, reading and group work, each when the gong goes</small><small class="mission-best" data-best="school"></small></span>
+          <span class="mission-play" role="group" aria-label="Play a day at school as"><button data-mission="school" data-kid="girl" data-name="girl">P</button></span></li>
         <li class="mission" id="missionWfh"><span class="mission-icon" aria-hidden="true">💻</span><span><b>Work from home</b><small><span data-name="mum">Mum</span> or <span data-name="dad">Dad</span>, 7:00 to 17:00: up, showered, dressed, breakfast, then meetings, emails, work, lunch and coffee your way, and watch out for the phone</small><small class="mission-best" data-best="wfh"></small></span>
           <span class="mission-play" role="group" aria-label="Play work from home as"><button data-mission="wfh" data-kid="dad" data-name="dad">Dad</button><button data-mission="wfh" data-kid="mum" data-name="mum">Mum</button></span></li>
         <li class="mission" id="missionOffice"><span class="mission-icon" aria-hidden="true">🏢</span><span><b>Work at the office</b><small><span data-name="dad">Dad</span> cycles: clock in, meet the boss, work, lunch, the team meeting, maybe a fire drill, home by 17:30. <span data-name="mum">Mum</span> drives: zebra crossing, turnstiles, clock in, lift up to her floor, meetings, lunch, a fire drill, home by 17:30</small><small class="mission-best" data-best="office officeMum"></small></span>
@@ -233,6 +235,16 @@
     </div>
   </div>
 
+  <div class="quiz" id="quiz" role="dialog" aria-modal="true" aria-labelledby="quizText" hidden>
+    <div class="quiz-card">
+      <p class="quiz-head"><b id="quizSubject">Maths</b><span id="quizCount">1 of 6</span></p>
+      <img class="quiz-pic" id="quizPic" alt="" hidden>
+      <h1 id="quizText">7 × 8 = ?</h1>
+      <div class="quiz-answers" id="quizAnswers"></div>
+      <p class="quiz-said" id="quizSaid" aria-live="polite"></p>
+      <button class="linkbtn" id="quizLater">Not now</button>
+    </div>
+  </div>
   <div class="laptop" id="laptop" role="dialog" aria-modal="true" aria-labelledby="laptopTitle" hidden>
     <div class="laptop-body">
       <div class="laptop-screen">

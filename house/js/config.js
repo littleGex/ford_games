@@ -10,7 +10,8 @@ export const BOUNDS = [
   { x1: -2.25, x2: 5.5, z1: -17.3, z2: 13.4,      // Erdgeschoss and the gardens,
     more: [{ x1: -6.05, x2: 11.45, z1: 9.3, z2: 13.4 },        // ...and along the front of the row, to the neighbours' doors
            { x1: 38.7, x2: 54.5, z1: -3.6, z2: 16.8 },        // Dad's office (world/office.js), its courtyard and pavement
-           { x1: 70, x2: 120, z1: -9, z2: 22.5 }] },         // Mum's office site (world/mumoffice.js)
+           { x1: 70, x2: 120, z1: -9, z2: 22.5 },            // Mum's office site (world/mumoffice.js)
+           { x1: 140, x2: 170.8, z1: 0, z2: 20 }] },         // P's school, the lesson floor (world/school.js)
   { x1: 0, x2: 5.64, z1: 0, z2: 8.88,            // Obergeschoss (inside the house)
     more: [{ x1: 98, x2: 110, z1: 4.6, z2: 21.6 }] },   // ...and Mum's office floor (world/mumoffice.js)
   { x1: 0, x2: 5.64, z1: 1.1, z2: 7.78 },        // Dachgeschoss (between the knee walls)
