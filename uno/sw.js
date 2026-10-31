@@ -1,8 +1,11 @@
-const CACHE_NAME = 'uno-cache-v3';
+const CACHE_NAME = 'uno-cache-v4';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {

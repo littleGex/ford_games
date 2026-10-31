@@ -1,10 +1,13 @@
-const CACHE_NAME = 'dice-cache-v2';
+const CACHE_NAME = 'dice-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './script.js',
-  './manifest.json'
+  './manifest.json',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {

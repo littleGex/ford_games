@@ -23,6 +23,9 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
 ```
 .
 ├── index.html          # home page — links to each game
+├── manifest.json       # the home page on a phone's Home Screen
+├── icons/              # its icons (each game has its own icons/ too)
+├── tools/              # make-icons.mjs draws the Home Screen icons
 ├── dice/
 │   ├── index.html
 │   ├── script.js
@@ -205,6 +208,14 @@ Ford House also has a play-through test in `tests/house/` that runs in plain Nod
 ## Local development
 
 No build step — just open `index.html` in a browser, or serve the folder with any static file server (`npm run serve` uses the same `serve` package the tests use).
+
+## Home Screen icons
+
+Every game and the home page has an `icons/` folder for saving it to a phone's Home Screen:
+`apple-touch-icon.png` for iOS (linked from `index.html`) and `icon-192.png` and `icon-512.png` for Android
+(listed in `manifest.json`). They're drawn by `tools/make-icons.mjs`: change a symbol there, run
+`npm run icons`, commit the PNGs and bump that game's `CACHE_NAME` in `sw.js`. iOS keeps the old icon until the
+tile is deleted and saved again.
 
 ## Hosting
 

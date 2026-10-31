@@ -1,10 +1,13 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'battleships-cache-v2';
+const CACHE_NAME = 'battleships-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
+  './icons/apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   './css/battleships.css',
   './js/main.js',
   './js/rules.js',
