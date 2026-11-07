@@ -1,6 +1,8 @@
 // P's school: the lesson floor, from the school's fire-escape plan and photos (#65). Like the offices it's a
 // place of its own away from the house (from x = SCHOOL.x), only seen on the day-at-school mission. The plan has
-// no measurements: about 50 px on the plan to a metre, so a classroom is about 8.8 by 6.8 m.
+// no measurements: about 50 px on the plan to a metre, so a classroom is about 8.8 by 6.8 m. It's the first
+// floor of P's building, at the back of the school yard (built on floor 1, like Mum's office floor); the
+// grounds, the yard and the ground floor of her building are in world/schoolyard.js.
 //
 // Along the top: three classrooms, P's (with the sunflowers in the windows) on the left. In the middle: the hall
 // with brick pillars, coat hooks and pinboards, and the stairs down at the top of it; left of the hall the group
@@ -10,9 +12,9 @@
 //
 // Nothing here names the real school: no name, no room numbers, nobody's name on the walls.
 import * as THREE from 'three';
-import { WALL_HEIGHT as WH } from '../config.js';
+import { WALL_HEIGHT as WH, LEVEL_HEIGHT } from '../config.js';
 import { TEX } from '../core/textures.js';
-import { M, add, box, brickMat, castShadows, cyl, fbox, floor, group, mat, put, run, solid, wall } from '../core/build.js';
+import { M, add, box, brickMat, castShadows, cyl, fbox, floor, group, mat, put, run, setBuildTarget, solid, wall } from '../core/build.js';
 import { makeCharacter } from '../characters/character.js';
 import { SCHOOL_PEOPLE } from '../characters/family.js';
 import { seated } from './office.js';
@@ -21,11 +23,12 @@ export const SX = 140;   // the school's left wall, in world x
 const X = x => SX + x;
 const W = 26.5, D = 20;  // the main block; the stairwell sticks out on the right (to x 30.8)
 
-// Where things are, in world coordinates [x, z] (seats: [x, y, z, facing])
+// Where things are, in world coordinates [x, z] (seats: [x, y, z, facing]). The lesson floor (from `top` to
+// `water`) is floor 1; the rest is outside, on the ground.
 export const SCHOOL = {
   x: SX, w: W + 4.3, d: D,
-  arrive: [X(29.2), 13.3],                                         // at the top of the stairs
-  stairsDown: [X(28.6), 13.4],                                     // going home: down the stairs
+  top: [X(29.3), 12.2],                                            // arriving at the top of the stairs
+  stairsDown: [X(28.6), 13.6],                                     // the top of the stairs: going down
   glassDoors: [X(26.9), 12.5],                                     // the glass double doors into the corridor
   hook: [X(7.6), 10.4],                                            // P's coat hook, on the hall wall
   classDoor: [X(7.8), 7.2],                                        // just inside P's classroom
@@ -40,6 +43,21 @@ export const SCHOOL = {
   hallTable: { at: [X(13.0), 12.3], seat: [X(13.0), 0.45, 11.85, Math.PI] },
   toilet: [X(20.5), 11.9],                                         // outside the girls' toilets
   water: [X(6.5), 6.2],
+  // outside, on the ground (world/schoolyard.js)
+  start: [X(36.1), 55.2],                                          // on the cycle path, by the main gate
+  bikeAt: [X(35.8), 54.2],                                         // P's bike, next to her
+  bikeStands: [X(-7.0), 58.2],                                     // the bike stands under the trees
+  bikePlace: [X(-7.0), 0, 59.0],
+  door: [X(29.0), 18.0],                                           // the door of P's building, from the yard
+  stairsUp: [X(27.6), 14.7],                                       // the foot of the stairs, inside it
+  foot: [X(29.0), 15.9],                                           // arriving at the foot of the stairs
+  yard: [X(22.6), 24.2],                                           // out in the yard, by the door
+  gateOut: [X(34.2), 50.0],                                        // the main gate, riding out
+  gatePlace: [X(35.8), 0, 49.0],
+  tower: { at: [X(-6.5), 16.8], seat: [X(-6.5), 0, 16.55, Math.PI] },    // the climbing tower in the playground
+  sandpit: { at: [X(3.6), 38.6], seat: [X(3.6), 0, 38.2, Math.PI] },     // the log huts in the sandpit
+  pingPong: { at: [X(10.4), 26.0], seat: [X(10.4), 0, 26.1, 0] },        // the table-tennis table
+  hopscotch: { at: [X(18.3), 30.6], seat: [X(18.3), 0, 31.0, 0] },       // the hopscotch squares on the paving
 };
 
 const CARPET = '#7d7166', WOOD = '#e2c690', FRAME = '#26346a';
@@ -63,7 +81,7 @@ function table(x1, z1, x2, z2, h = 0.62, top = WOOD) {
 }
 
 /** A group of four desks pushed together (x, z: the middle), with two chairs on each long side. */
-function deskGroup(x, z, chairs = true) {
+export function deskGroup(x, z, chairs = true) {
   table(x - 0.8, z - 0.65, x + 0.8, z + 0.65);
   if (!chairs) return;
   [-0.4, 0.4].forEach(dx => { kidChair(x + dx, z - 0.95, 0); kidChair(x + dx, z + 0.95, Math.PI); });
@@ -127,7 +145,7 @@ function bench(x1, z1, x2, z2) {
 }
 
 /** A plain classroom (the ones P doesn't go into): desk groups, the teacher's desk and a board. */
-function classroom(x1, z1, x2, z2, boardOn) {
+export function classroom(x1, z1, x2, z2, boardOn) {
   const cx = (x1 + x2) / 2, cz = (z1 + z2) / 2;
   deskGroup(cx - 1.8, cz - 1.0); deskGroup(cx + 1.4, cz - 1.0); deskGroup(cx - 1.8, cz + 1.6); deskGroup(cx + 1.4, cz + 1.6);
   if (boardOn === 'east') blackboard(cz - 1.3, cz + 1.3, x2, false, -1);
@@ -135,9 +153,14 @@ function classroom(x1, z1, x2, z2, boardOn) {
   table(x2 - 1.8, z1 + 0.4, x2 - 0.5, z1 + 1.05, 0.72, '#d9b98a');
 }
 
-export function buildSchool() {
+export function buildSchool(scene) {
+  const up = new THREE.Group();
+  up.position.y = LEVEL_HEIGHT; up.visible = false;
+  scene.add(up);
+  setBuildTarget(up, 1);
   // the floors: carpet in the classrooms and the hall, grey tiles in the toilets, red tiles in the stairwell
-  floor(X(-3), -3, X(W + 8), D + 3, TEX.grass, 2, -0.005);                  // the school grounds (photos to come)
+  box(X(-0.2), -0.2, X(W + 0.2), D + 0.2, 0.18, -0.19, mat('#d9d6cf'), false);         // the slab
+  box(X(W), 7.2, X(31.0), 17.2, 0.18, -0.19, mat('#d9d6cf'), false);
   floor(X(0), 0, X(W), D, TEX.tile, 0.5, 0.02).material.color.set(CARPET);
   floor(X(19.1), 6.9, X(26.4), 11.5, TEX.greytile, 1.2, 0.025);
   floor(X(26.5), 7.4, X(30.8), 17.0, TEX.redtile, 0.6, 0.026);
@@ -308,5 +331,6 @@ export function buildSchool() {
   const coat = group(X(7.22), 0.52, 10.4); coat.visible = false;
   add(coat, new THREE.BoxGeometry(0.14, 0.5, 0.26), mat('#c4477a'), [0, 0.25, 0]);
 
-  return { schoolCoat: coat, schoolTeacher: teacher };
+  setBuildTarget(scene, 0);
+  return { schoolCoat: coat, schoolTeacher: teacher, schoolFloor: up };
 }

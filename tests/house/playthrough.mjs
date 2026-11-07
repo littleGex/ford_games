@@ -82,11 +82,19 @@ for (const [what, x, z] of [['the zebra crossing', 97.5, 1.8], ['the turnstiles'
   if (!mumCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office: can't walk to ${what} from the car park`);
 for (const [what, x, z] of [["Mum's desk", 100.1, 13.3], ['the meeting room', 101.6, 18.3], ['the kitchen fridge', 103.0, 15.55], ['the kitchen sink', 103.0, 12.9], ['the WC', 105.0, 19.4], ['the lifts upstairs', 109.0, 16.9], ['the second office', 108.0, 10.0]])
   if (!mumFloorCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`Mum's office floor: can't walk to ${what}`);
-// P's school, the lesson floor (world/school.js): from the top of the stairs to every room she goes into
+// P's school, the lesson floor (world/school.js, upstairs in her building): from the top of the stairs to every
+// room she goes into
+const { SCHOOL } = await import(new URL('../../house/js/world/school.js', import.meta.url));
 const SCHOOL_GRID = { X0: 139.5, Z0: -0.5, NX: Math.round(32 / RES), NZ: Math.round(21 / RES) };
-const schoolCells = walkable(0, 169.2, 13.3, SCHOOL_GRID);
+const schoolCells = walkable(1, ...SCHOOL.top, SCHOOL_GRID);
+// ...and outside (world/schoolyard.js): from the cycle path by the main gate to everywhere she goes
+const YARD_GRID = { X0: 123.5, Z0: -8, NX: Math.round(65.5 / RES), NZ: Math.round(76 / RES) };
+const yardCells = walkable(0, ...SCHOOL.start, YARD_GRID);
+for (const [what, [x, z]] of Object.entries({ 'the bike stands': SCHOOL.bikeStands, 'her bike': SCHOOL.bikeAt, "her building's door": SCHOOL.door, 'the foot of the stairs': SCHOOL.stairsUp,
+  'the bottom of the stairs': SCHOOL.foot, 'the yard': SCHOOL.yard, 'the climbing tower': SCHOOL.tower.at, 'the sandpit': SCHOOL.sandpit.at, 'the table tennis': SCHOOL.pingPong.at,
+  'the hopscotch': SCHOOL.hopscotch.at, 'the main gate': SCHOOL.gateOut, "P's gate from the street": [172.2, 10.0], 'the side gate': [172.5, 22.8], 'the car park': [160.0, 55.0] }))
+  if (!yardCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`school grounds: can't walk to ${what} (${x}, ${z})`);
 {
-  const { SCHOOL } = await import(new URL('../../house/js/world/school.js', import.meta.url));
   const spots = { 'the glass doors': SCHOOL.glassDoors, 'her coat hook': SCHOOL.hook, 'her desk': SCHOOL.desk.at, 'the basin': SCHOOL.sink,
     'the bench circle': SCHOOL.circle.at, 'the book shelves': SCHOOL.books, 'the cushions': SCHOOL.cushions.at, 'the round table': SCHOOL.groupTable.at,
     'the toilets': SCHOOL.toilet, 'the stairs down': SCHOOL.stairsDown, 'the hall table': SCHOOL.hallTable.at };
@@ -95,14 +103,14 @@ const schoolCells = walkable(0, 169.2, 13.3, SCHOOL_GRID);
   // every doorway on the lesson floor can be walked through (rooms P doesn't use too)
   for (const [room, x, z] of [['P\'s classroom', 147.8, 6.4], ['the next classroom', 155.8, 6.4], ['the classroom on the right', 158.0, 6.4], ['the group room', 146.6, 8.9],
     ['the bench-circle room', 148.1, 13.9], ['the reading room', 150.75, 17.3], ['the bottom-middle classroom', 156.1, 13.9], ['the bottom-right classroom', 158.3, 13.9],
-    ['the boys\' toilets', 159.4, 7.8], ['the girls\' toilets', 160.5, 11.2], ['the support room', 169.05, 10.4]])
+    ['the boys\' toilets', 159.4, 7.8], ['the girls\' toilets', 160.5, 11.2], ['the support room', 169.05, 10.4], ['the top of the stairs', ...SCHOOL.top]])
     if (!schoolCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.15)) errors.push(`school: can't get into ${room} (${x}, ${z})`);
   // the doors she uses most: room to walk straight through, nothing to squeeze past
   for (const [room, x1, x2, z1, z2] of [['P\'s classroom', 147.5, 148.05, 6.3, 7.6], ['the bench-circle room', 147.85, 148.35, 12.9, 14.2]])
     for (let x = x1; x <= x2; x += 0.05) for (let z = z1; z <= z2; z += 0.05)
-      if (blocked(x, z, 0)) { errors.push(`school: something in the way of the door to ${room} (${x.toFixed(2)}, ${z.toFixed(2)})`); x = x2 + 1; break; }
+      if (blocked(x, z, 1)) { errors.push(`school: something in the way of the door to ${room} (${x.toFixed(2)}, ${z.toFixed(2)})`); x = x2 + 1; break; }
 }
-const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells, schoolCells), walkable(1, 4.1, 4.55).concat(mumFloorCells), walkable(2, 4.25, 4.6)];
+const cellsOn = [walkable(0, 3.92, 10.6).concat(officeCells, mumCells, yardCells), walkable(1, 4.1, 4.55).concat(mumFloorCells, schoolCells), walkable(2, 4.25, 4.6)];
 // every room in the office can be reached from the bike rack
 for (const [room, x, z] of [['open plan', 42.6, 3.0], ["boss's office", 41.5, 8.4], ['meeting room', 41.9, 12.0], ["Dad's room", 44.0, 8.9], ['kitchen', 44.5, 10.9], ['bathroom', 44.5, 13.0], ['assembly point', 43.1, -2.4]])
   if (!officeCells.some(c => Math.hypot(c[0] - x, c[1] - z) < 0.1)) errors.push(`office: can't walk to the ${room} (${x}, ${z})`);
@@ -185,7 +193,8 @@ const goTo = cell => {
   const p = G.player.group.position;
   if (S.mission && S.mission.clock && !S.mission.done) {
     const m = pathLength(S.level, [p.x, p.z], cell);
-    if (m < 60) { S.mission.t += m / WALK_SPEED; walked += m; }   // (60+ m: a different place, got there by car or bike)
+    const bike = S.carrying === 'bike' || S.carrying === 'dadBike' ? 1.8 : 1;   // (riding a bike: faster, as in the game)
+    if (m < 70) { S.mission.t += m / (WALK_SPEED * bike); walked += m; }   // (70+ m: a different place, got there by car or bike)
   }
   p.x = cell[0]; p.z = cell[1];
 };
@@ -195,6 +204,16 @@ const STAIRS = {
 };
 let stairTrips = 0;
 function travel(level) {
+  if (G.player.group.position.x > 122) {   // at P's school: the stairs in her building
+    while (S.level !== level) {
+      const up = level > S.level, at = up ? SCHOOL.stairsUp : SCHOOL.stairsDown, label = up ? 'Go up the stairs' : 'Go down the stairs';
+      goTo(standNear(at).cell); frame();
+      const n = G.board.nearestAction(G.player.group.position);
+      if (!n || !n.fixed || n.step.label !== label) { errors.push(`school stairs: button shows "${n ? n.step.label : 'nothing'}" instead of "${label}"`); G.levels.show(level); break; }
+      G.board.act(n); stairTrips++; frame();
+    }
+    return;
+  }
   if (G.player.group.position.x > 70) {   // at Mum's office: the stairs between the ground floor and her office floor
     while (S.level !== level) {
       const label = level > S.level ? 'Take the stairs up' : 'Take the stairs down';
@@ -1258,7 +1277,7 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
 // home time. Played well it's three stars; then once late for maths (fewer stars)
 {
   const { roomAt } = await import(new URL('../../house/js/world/rooms.js', import.meta.url));
-  if (roomAt(142, 3, 0).area !== "P's classroom" || roomAt(150, 10, 0).name !== 'Halle') errors.push(`school: room names ${roomAt(142, 3, 0).area}, ${roomAt(150, 10, 0).name}`);
+  if (roomAt(142, 3, 1).area !== "P's classroom" || roomAt(150, 10, 1).name !== 'Halle' || roomAt(150, 30, 0).name !== 'Schulhof') errors.push(`school: room names ${roomAt(142, 3, 1).area}, ${roomAt(150, 10, 1).name}, ${roomAt(150, 30, 0).name}`);
   for (const late of [false, true]) {
     const label = late ? 'a day at school (late for maths)' : 'a day at school';
     G.quizDelay = 0;   // (the lesson card moves on to the next question at once)
@@ -1271,15 +1290,18 @@ if (JSON.parse(store.get('fordHouse.save.v1')).character !== 'dad') errors.push(
     const r = G.missions.best('school', 'girl');
     if (!late && (!r || r.stars !== 3)) errors.push(`${label}: played well it only got ${r && r.stars} stars`);
     if (G.world.schoolCoat.visible) errors.push(`${label}: P's coat is still on the hook after home time`);
-    for (const k of ['maths', 'circle', 'snack', 'reading', 'flags', 'home']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
+    for (const k of ['ride', 'maths', 'circle', 'snack', 'out', 'reading', 'flags', 'home', 'gate']) if (S.mission.doneAt[k] === undefined) errors.push(`${label}: ${k} never done`);
     // played well she's sitting down at least four minutes before she'd be late (five past): room for someone slower than this test
-    if (!late) for (const [k, at, length] of [['maths', 480, 25], ['circle', 520, 15], ['reading', 575, 15], ['flags', 605, 20]])
+    if (!late) for (const [k, at, length] of [['maths', 480, 25], ['circle', 520, 12], ['reading', 585, 12], ['flags', 615, 20]])
       if (S.mission.doneAt[k] - length > at + 1) errors.push(`${label}: ${k} started at minute ${S.mission.doneAt[k] - length}, too near the late mark ${at + 5}`);
     const sc = S.mission.scores || {};
     if (!sc.maths || sc.maths.right !== 5 || sc.maths.of !== 6 || !sc.flags || sc.flags.right !== 5) errors.push(`${label}: lesson scores ${JSON.stringify(sc)}, want 5 of 6 each (one wrong first try)`);
     if (late && S.mission.doneAt.maths - 25 <= 8 * 60 + 5) errors.push(`${label}: wasn't late for maths after all`);
-    console.log(`${label}: home time at ${Math.floor(G.missions.minutes() / 60)}:${String(Math.floor(G.missions.minutes() % 60)).padStart(2, '0')}`);
+    if (process.env.SCHOOL_DEBUG) console.log(label, JSON.stringify(S.mission.doneAt), JSON.stringify(S.mission.breaks));
+    if (!late && !['tower', 'sandpit', 'pingPong', 'hopscotch'].some(k => S.mission.breaks && S.mission.breaks[k])) errors.push(`${label}: didn't get to play at break`);
+    console.log(`${label}: out of the gate at ${Math.floor(G.missions.minutes() / 60)}:${String(Math.floor(G.missions.minutes() % 60)).padStart(2, '0')}`);
     G.missions.end();
+    if (G.items.bike.position.x > 100) errors.push(`${label}: P's bike stayed at school after the mission`);
   }
 }
 

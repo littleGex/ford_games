@@ -4,6 +4,7 @@
 import { LEVEL_HEIGHT, FLOOR_NAMES } from '../config.js';
 import { S } from '../state.js';
 import { MUM } from '../world/mumoffice.js';
+import { SCHOOL } from '../world/school.js';
 
 // ground floor <-> first floor
 const FOOT = { at: [4.4, 6.05], arrive: [4.3, 6.0], facing: 0 };            // ground-floor hall, foot of the stairs
@@ -18,6 +19,7 @@ export function createLevels({ world, player, board, hud, stage }) {
     S.level = level;
     world.upstairs.visible = level >= 1;
     if (world.mumFloor) world.mumFloor.visible = level === 1;   // Mum's office floor (world/mumoffice.js)
+    if (world.schoolFloor) world.schoolFloor.visible = level === 1;   // P's lesson floor (world/school.js)
     world.attic.visible = level === 2;
     player.group.position.y = level * LEVEL_HEIGHT;
   }
@@ -44,6 +46,11 @@ export function createLevels({ world, player, board, hud, stage }) {
   board.addFixed({ level: 1, at: lift, label: 'Take the lift down', act: () => { if (!noLift()) ride(0, lift); } });
   board.addFixed({ level: 0, at: stairs, label: 'Take the stairs up', act: () => ride(1, stairs) });
   board.addFixed({ level: 1, at: stairs, label: 'Take the stairs down', act: () => ride(0, stairs) });
+
+  // P's school: the stairs in her building, between its door and the lesson floor
+  const climb = (level, to, facing) => { show(level); player.group.position.x = to[0]; player.group.position.z = to[1]; player.group.rotation.y = facing; hud.toast(level ? 'Upstairs to the classrooms' : 'Downstairs and out to the yard'); };
+  board.addFixed({ level: 0, at: SCHOOL.stairsUp, label: 'Go up the stairs', act: () => climb(1, SCHOOL.top, -Math.PI / 2) });
+  board.addFixed({ level: 1, at: SCHOOL.stairsDown, label: 'Go down the stairs', act: () => climb(0, SCHOOL.foot, 0) });
 
   // In the attic the roof slopes up between the camera and the rooms: make the half nearest the camera
   // see-through (it swaps over when you turn the view round).
