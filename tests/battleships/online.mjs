@@ -2,7 +2,7 @@
 // check at the end that catches a wrong answer.  node tests/battleships/online.mjs
 import { webcrypto } from 'node:crypto';
 import { randomFleet, resolveShot, cells, seededRandom } from '../../battleships/js/rules.js';
-import { view, check, fleetHash, fleetString, parseFleet, newSalt, newCode, CODE_RE, shooter } from '../../battleships/js/net/online.js';
+import { view, check, fleetHash, fleetString, parseFleet, newSalt, newCode, CODE_RE, shooter, stale, DAY } from '../../battleships/js/net/online.js';
 
 // browsers (and Node 20+) have crypto built in; CI's Node 18 needs it handed over
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -64,6 +64,21 @@ const swapped = JSON.parse(JSON.stringify(room));
 swapped.reveal.b.fleet = fleetString(randomFleet(rng));
 check_(!(await check(swapped, 'a')).ok, 'a different fleet at the end is caught');
 check_((await check({ ...room, reveal: {} }, 'a')).waiting, 'no fleet yet: still waiting');
+
+// --- old rooms: tidied away only once over a day old and nobody is playing in them
+const T = 1e12, HOUR = 60 * 60 * 1000;
+const finished = { ...room, created: T };
+check_(!stale(finished, T + 23 * HOUR), 'a finished room less than a day old stays');
+check_(stale(finished, T + 25 * HOUR), 'a finished room over a day old goes');
+const halfRevealed = { ...finished, reveal: { a: finished.reveal.a }, b: { ...finished.b, seen: T + 20 * HOUR } };
+check_(!stale(halfRevealed, T + 25 * HOUR), 'a finished room still waiting for a fleet to be revealed stays while someone was there today');
+check_(stale(halfRevealed, T + 45 * HOUR), 'and goes once nobody has been there for a day');
+const lonely = { created: T, n: 0, a: { uid: 'u1', name: 'P', seen: T } };
+check_(stale(lonely, T + DAY + HOUR), 'a room nobody joined goes after a day');
+const slow = { created: T, n: 4, a: { uid: 'u1', name: 'P', seen: T + 30 * HOUR }, b: { uid: 'u2', name: 'Dude', seen: T + 2 * HOUR } };
+check_(!stale(slow, T + 31 * HOUR), 'a slow game someone played in today stays');
+check_(stale(slow, T + 55 * HOUR), 'and goes once nobody has been there for a day');
+check_(!stale(null, T) && !stale({ ...lonely }, T + 10 * HOUR), 'nothing to tidy: a missing or new room');
 
 if (fail.length) { console.error(`${fail.length} problem(s):\n- ` + [...new Set(fail)].join('\n- ')); process.exit(1); }
 console.log('Battleships on two devices: all good');
