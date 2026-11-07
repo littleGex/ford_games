@@ -10,6 +10,16 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.19.0] - 2026-11-07
+
+### Added
+- Ford House: **P's school from outside**, from Alan's sketch of the site and photos: the one-way street with
+  its cycle paths, the main gate and the lane, the car park, the bike stands, the yard with the sandpit and its
+  log huts, table tennis, hopscotch and football goals, the playground with the climbing tower, and P's
+  building at the back, her lesson floor now upstairs in it. A day at school starts at 7:25 on her bike:
+  ride in, lock up, cross the yard and go up; at break she goes down to play outside; home time is back to
+  her bike and out of the gate (#65).
+
 ## [4.18.0] - 2026-10-31
 
 ### Added
@@ -442,7 +452,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.18.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.19.0...HEAD
+[4.19.0]: https://github.com/littleGex/ford_games/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/littleGex/ford_games/compare/v4.17.0...v4.18.0
 [4.17.0]: https://github.com/littleGex/ford_games/compare/v4.16.0...v4.17.0
 [4.16.0]: https://github.com/littleGex/ford_games/compare/v4.15.0...v4.16.0

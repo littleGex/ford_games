@@ -60,7 +60,18 @@ ROOMS.push(
   { name: 'Halle', get area() { return `${possessive('girl')} school`; }, r: [SC + 7.1, 6.9, SC + 19.0, 13.3] },
   { name: 'Schule', get area() { return `${possessive('girl')} school`; }, r: [SC - 3, -3, SC + 34, 23] },
 );
-ROOMS.filter(r => r.r[0] >= SC - 3).forEach(r => { r.floor = 'Obergeschoss'; });   // the lesson floor is upstairs
+ROOMS.filter(r => r.r[0] >= SC - 3).forEach(r => { r.level = 1; });   // the lesson floor is upstairs in P's building
+// ...and the school from outside (world/schoolyard.js)
+ROOMS.push(
+  { name: 'Treppenhaus', get area() { return `${possessive('girl')} building`; }, r: [SC + 26.7, 7.2, SC + 30.8, 17.0] },
+  { name: 'Klassenzimmer', area: 'the classrooms downstairs', r: [SC, 0, SC + 26.5, 20] },
+  { name: 'Spielplatz', area: 'the playground', r: [SC - 16, -6, SC - 3, 20.5] },
+  { name: 'Schulhof', area: 'the school yard', r: [SC - 3, 20.2, SC + 33.2, 46.6] },
+  { name: 'Fahrradständer', area: 'the bike stands', r: [SC - 16.5, 53.4, SC + 1, 68] },
+  { name: 'Parkplatz', area: 'the car park', r: [SC + 12, 52.6, SC + 33.2, 68] },
+  { name: 'Weg', area: 'the lane', r: [SC - 16.5, 46.6, SC + 33.2, 53.4] },
+  { name: 'Straße', area: 'one way: bikes both ways', r: [SC + 33.2, -8, SC + 49, 68] },
+  { name: 'Schule', get area() { return `${possessive('girl')} school`; }, r: [SC - 17, -8, SC + 33.2, 68] });
 // Mum's office site (world/mumoffice.js, from x 80): the ground floor and outside, and her office floor upstairs
 const MO = 80;
 ROOMS.push(

@@ -913,43 +913,91 @@ test('the 3D printing mission: pick a design on the laptop close-up', async ({ p
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
 });
 
-test('a day at school: P starts at the top of the school stairs, goes in and hangs up her coat', async ({ page }) => {
+/** At P's school: stand at a spot (`level` 1 is the lesson floor) and press the action button. */
+async function schoolAct(page, spot, label, level = 0) {
+  await page.evaluate(([spot, level]) => {
+    const h = window.house, s = h.missions.schoolSpots[spot], [x, z] = Array.isArray(s) ? s : s.at;
+    if (h.S.level !== level) h.levels.show(level);
+    h.player.group.position.set(x, h.player.group.position.y, z);
+  }, [spot, level]);
+  await expect(page.locator('#actBtn')).toHaveText(label);
+  await page.locator('#actBtn').click();
+}
+
+/** From the start of a day at school to P's coat on its hook. */
+async function schoolToCoat(page) {
+  await schoolAct(page, 'bikeAt', 'Get on your bike');
+  await schoolAct(page, 'bikeStands', 'Ride in through the main gate to the bike stands');
+  await schoolAct(page, 'door', 'Cross the yard to the door of your building');
+  await schoolAct(page, 'stairsUp', 'Go up the stairs');
+  await schoolAct(page, 'glassDoors', 'Up the stairs and through the glass doors', 1);
+  await schoolAct(page, 'hook', 'Hang your coat on your hook', 1);
+}
+
+test('a day at school: P cycles in, leaves her bike in the stands, crosses the yard and goes up to hang up her coat', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();
   await expect(page.locator('[data-mission="school"][data-kid="girl"]')).toHaveText('P');
   await page.locator('[data-mission="school"][data-kid="girl"]').click();
   await expect(page.locator('#home')).toBeHidden();
-  await expect(page.locator('#dayLabel')).toHaveText('A day at school · 7:45');
-  await expect(page.locator('#roomName')).toHaveText('Treppenhaus');
-  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  await expect(page.locator('#dayLabel')).toHaveText('A day at school · 7:25');
+  await expect(page.locator('#roomName')).toHaveText('Straße');
+  await expect(page.locator('#taskList')).toContainText('Ride in to school');
+  await schoolAct(page, 'bikeAt', 'Get on your bike');
+  await schoolAct(page, 'bikeStands', 'Ride in through the main gate to the bike stands');
+  await expect(page.locator('#roomName')).toHaveText('Fahrradständer');
   await expect(page.locator('#taskList')).toContainText('Go in');
-  // through the glass doors, then to the coat hooks in the hall
-  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.glassDoors; window.house.player.group.position.set(x, 0, z); });
-  await expect(page.locator('#actBtn')).toHaveText('Go through the glass doors into the school');
-  await page.locator('#actBtn').click();
+  await schoolAct(page, 'door', 'Cross the yard to the door of your building');
+  // up the stairs in her building, to the lesson floor
+  await schoolAct(page, 'stairsUp', 'Go up the stairs');
+  await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
+  await expect(page.locator('#roomName')).toHaveText('Treppenhaus');
+  expect(await page.evaluate(() => window.house.world.schoolFloor.visible)).toBe(true);
+  await schoolAct(page, 'glassDoors', 'Up the stairs and through the glass doors', 1);
   await expect(page.locator('#taskList')).toContainText('Hang up your coat');
-  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.hook; window.house.player.group.position.set(x, 0, z); });
+  await schoolAct(page, 'hook', 'Hang your coat on your hook', 1);
   await expect(page.locator('#roomName')).toHaveText('Halle');
-  await page.locator('#actBtn').click();
   await expect(page.locator('#taskList')).toContainText('Maths at 8:00');
   expect(await page.evaluate(() => window.house.world.schoolCoat.visible)).toBe(true);
+  // and back down again, to the yard
+  await schoolAct(page, 'stairsDown', 'Go down the stairs', 1);
+  await expect(page.locator('#floorName')).toHaveText('Erdgeschoss');
+  expect(await page.evaluate(() => window.house.world.schoolFloor.visible)).toBe(false);
   await page.evaluate(() => window.house.missions.end());
   await expect(page.locator('#dayLabel')).toHaveText('Day 1');
+  expect(await page.evaluate(() => window.house.items.bike.position.x)).toBeLessThan(10);   // P's bike is back home
+});
+
+test('a day at school: at break she goes out to play in the yard', async ({ page }) => {
+  await openHouse(page);
+  await page.locator('#menuBtn').click();
+  await page.locator('[data-mission="school"][data-kid="girl"]').click();
+  await schoolToCoat(page);
+  // skip the morning's lessons to 9:11: the break's jobs are on the list
+  await page.evaluate(() => {
+    const h = window.house, m = h.missions.active;
+    m.t = (9 * 60 + 11 - (7 * 60 + 25)) * m.clock.secondsPerMinute;
+    for (let n = 0; n < 30 && !h.board.jobs.some(j => j.key === 'out'); n++)
+      for (const j of h.board.jobs.filter(j => j.mission && !j.optional && !h.board.finished(j))) h.board.advance(j);
+  });
+  await expect(page.locator('#taskList')).toContainText('Break: out to play');
+  await expect(page.locator('#taskList')).toContainText('Play: the climbing tower');
+  await schoolAct(page, 'stairsDown', 'Go down the stairs', 1);
+  await schoolAct(page, 'yard', 'Down the stairs and out into the yard');
+  await expect(page.locator('#roomName')).toHaveText('Schulhof');
+  await schoolAct(page, 'pingPong', 'Play table tennis');
+  expect(await page.evaluate(() => window.house.S.sitting && window.house.S.sitting.step.label)).toBe('Play table tennis');
+  await page.evaluate(() => window.house.missions.end());
 });
 
 test('a day at school: the maths lesson is a card of six sums (a wrong one turns red), and the clock waits', async ({ page }) => {
   await openHouse(page);
   await page.locator('#menuBtn').click();
   await page.locator('[data-mission="school"][data-kid="girl"]').click();
-  // skip ahead to 7:56: through the door, coat on the hook, at the desk
-  await page.evaluate(() => { const m = window.house.missions.active; m.t = 11 * m.clock.secondsPerMinute; });
-  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.glassDoors; window.house.player.group.position.set(x, 0, z); });
-  await page.locator('#actBtn').click();
-  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.hook; window.house.player.group.position.set(x, 0, z); });
-  await page.locator('#actBtn').click();
-  await page.evaluate(() => { const [x, z] = window.house.missions.schoolSpots.desk.at; window.house.player.group.position.set(x, 0, z); });
-  await expect(page.locator('#actBtn')).toHaveText('Sit at your desk for maths: six sums');
-  await page.locator('#actBtn').click();
+  // in, coat on the hook, then skip ahead to 7:56 and sit at the desk
+  await schoolToCoat(page);
+  await page.evaluate(() => { const m = window.house.missions.active; m.t = 31 * m.clock.secondsPerMinute; });
+  await schoolAct(page, 'desk', 'Sit at your desk for maths: six sums', 1);
   await expect(page.locator('#quiz')).toBeVisible();
   await expect(page.locator('#quizSubject')).toContainText('Maths');
   await expect(page.locator('#quizCount')).toHaveText('1 of 6');
