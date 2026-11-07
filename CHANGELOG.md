@@ -10,7 +10,14 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Changed
+- Snake, Hangman, Wordle and Word Search: the shared leaderboard and word lists can no longer be deleted or
+  changed by anyone, and a word must fit its game (A to Z, the right length). Snake keeps every score instead
+  of tidying down to the top 50 (#150).
+
 ### Fixed
+- Snake, Hangman, Wordle and Word Search: saving a score or adding a word works on a phone whose clock is a
+  little fast (#150).
 - Tests: the live security-rule checks for Battleships and the two-phone duels still sign in now that the
   Firebase keys only work from the site and local testing (#131).
 

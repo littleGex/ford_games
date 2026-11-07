@@ -1,0 +1,51 @@
+{
+  "rules": {
+    "scores": {
+      ".read": true,
+      "$scoreId": {
+        ".write": "!data.exists()",
+        ".validate": "newData.hasChildren(['name', 'score', 'timestamp'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+        },
+        "score": {
+          ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() < 10000 && newData.val() % 1 == 0"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 300000"
+        },
+        "$other": { ".validate": false }
+      }
+    },
+    "customWords": {
+      ".read": true,
+      "$word": {
+        ".write": "!data.exists()",
+        ".validate": "$word.matches(/^[A-Z]+$/) && $word.length >= 3 && $word.length <= 20 && newData.isNumber() && newData.val() <= now + 300000"
+      }
+    },
+    "wordleWords": {
+      "easy": {
+        ".read": true,
+        "$word": {
+          ".write": "!data.exists()",
+          ".validate": "$word.matches(/^[A-Z]+$/) && $word.length == 4 && newData.isNumber() && newData.val() <= now + 300000"
+        }
+      },
+      "hard": {
+        ".read": true,
+        "$word": {
+          ".write": "!data.exists()",
+          ".validate": "$word.matches(/^[A-Z]+$/) && $word.length == 6 && newData.isNumber() && newData.val() <= now + 300000"
+        }
+      }
+    },
+    "wordSearchWords": {
+      ".read": true,
+      "$word": {
+        ".write": "!data.exists()",
+        ".validate": "$word.matches(/^[A-Z]+$/) && $word.length >= 3 && $word.length <= 10 && newData.isNumber() && newData.val() <= now + 300000"
+      }
+    }
+  }
+}
