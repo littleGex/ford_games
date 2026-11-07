@@ -8,15 +8,16 @@ import { createWorld } from './scene/index.js';
 import { preventZoom } from './nozoom.js';
 import * as sound from './audio.js';
 import { FLEET, randomFleet, fits, shipAt, shipName, shipLength, label, seededRandom, sunkIds, inBounds, cells, resolveShot } from './rules.js';
-import { newGame, place, fire, fired, other, isComputer, validState, tally } from './game.js';
-import { chooseShot } from './ai.js';
+import { newGame, place, fire, fired, other, isComputer, validState, tally, isSalvo, shotsPerTurn, fireSalvo } from './game.js';
+import { chooseShot, chooseSalvo } from './ai.js';
 import { createFirebase, NOW } from './net/firebase.js';
-import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat } from './net/online.js';
+import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat, stale } from './net/online.js';
 
 const params = new URLSearchParams(location.search);
 const rng = params.has('seed') ? seededRandom(Number(params.get('seed')) || 1) : Math.random;
 const SAVE_KEY = 'battleships.save.v1', STATS_KEY = 'battleships.stats.v1', PREFS_KEY = 'battleships.prefs.v1';
 const ONLINE_KEY = 'battleships.online.v1';   // the game on two devices this one is in: { code, seat, fleet, salt }
+const ROOMS_KEY = 'battleships.rooms.v1';     // every room this device has been in, to tidy away later: [code]
 const LEVEL_NAME = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
 
 const load = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch (e) { return fallback; } };
@@ -35,8 +36,9 @@ let viewer = 0;       // whose side the world shows
 let draft = null;     // the fleet being placed
 let mode = 'menu';    // 'menu' | 'placing' | 'aiming' | 'waiting' | 'watching' | 'handoff' | 'over' | 'looking'
 let busy = false;
-let aimSq = null;
-let prefs = { level: 'normal', names: ['', ''], onlineName: '', sound: true, ...load(PREFS_KEY, {}) };
+let aimSq = null;      // the square aimed at (in a salvo, the keyboard's cursor)
+let salvo = [];       // a salvo: the squares picked so far this turn
+let prefs = { level: 'normal', variant: 'classic', names: ['', ''], onlineName: '', sound: true, ...load(PREFS_KEY, {}) };
 sound.setSound(prefs.sound);
 
 const save = () => { if (!state || state.mode !== 'online') keep(SAVE_KEY, state && state.phase !== 'over' ? state : null); };
@@ -51,8 +53,9 @@ function setMode(m) {
   $('fireBtn').hidden = m !== 'aiming';
   $('viewBtn').hidden = !['aiming', 'watching', 'looking'].includes(m);
   $('fleets').hidden = !['aiming', 'waiting', 'watching', 'looking'].includes(m);
-  $('fireBtn').disabled = !aimSq;
-  hint(m === 'placing' ? 'Drag a ship to move it · tap it to turn it' : m === 'aiming' ? 'Tap a square to aim, then Fire!' : '');
+  updateFire();
+  hint(m === 'placing' ? 'Drag a ship to move it · tap it to turn it'
+    : m === 'aiming' ? (salvoTurn() ? `Tap ${shotsPerTurn(state, state.turn)} squares, then Fire salvo` : 'Tap a square to aim, then Fire!') : '');
   updateViewBtn();
 }
 function hint(text) { $('hint').textContent = text; $('hint').hidden = !text; }
@@ -105,22 +108,30 @@ function openMenu() {
   const session = load(ONLINE_KEY, null);
   const saved = session ? null : state && state.mode !== 'online' && state.phase !== 'over' ? state : null;
   $('resumeBtn').hidden = $('resumeWhat').hidden = !saved && !session;
-  $('leaveBtn').hidden = !session;
+  // once the other player is in, leaving would leave them waiting: resign instead, which ends it for both
+  const inGame = !!(session && online && online.room && online.room.b && view(online.room, online.seat).phase !== 'over');
+  $('leaveBtn').hidden = !session || inGame;
+  $('resignBtn').hidden = !inGame;
+  $('resignBtn').dataset.armed = '';
+  if (inGame) $('resignBtn').textContent = `Resign (${theirName()} wins)`;
   if (session) $('resumeWhat').textContent = `Your game on two devices (code ${session.code}). A new game leaves it.`;
   if (saved) {
     const shots = saved.shots[0].length + saved.shots[1].length;
-    $('resumeWhat').textContent = (saved.mode === 'cpu' ? `Against the computer (${LEVEL_NAME[saved.level]})` : `${saved.players[0].name} against ${saved.players[1].name}`)
+    $('resumeWhat').textContent = (saved.mode === 'cpu' ? `Against the computer (${LEVEL_NAME[saved.level]}${isSalvo(saved) ? ', Salvo' : ''})` : `${saved.players[0].name} against ${saved.players[1].name}${isSalvo(saved) ? ' (Salvo)' : ''}`)
       + (saved.phase === 'placing' ? ', placing ships' : `, ${shots} shot${shots === 1 ? '' : 's'} fired`) + '. A new game ends this one.';
   }
   document.querySelectorAll('[data-level]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.level === prefs.level)));
+  showVariant();
   $('name1').value = prefs.names[0] || '';
   $('name2').value = prefs.names[1] || '';
   $('onlineName').value = prefs.onlineName || '';
   $('soundBtn').textContent = `Sound: ${prefs.sound ? 'on' : 'off'}`;
   $('soundBtn').setAttribute('aria-pressed', String(prefs.sound));
   const stats = load(STATS_KEY, {});
-  const played = Object.keys(LEVEL_NAME).filter(l => stats[l] && stats[l].won + stats[l].lost > 0);
-  $('stats').textContent = played.length ? 'Your wins: ' + played.map(l => `${LEVEL_NAME[l]} ${stats[l].won} of ${stats[l].won + stats[l].lost}`).join(' · ') : '';
+  const keys = [...Object.keys(LEVEL_NAME), ...Object.keys(LEVEL_NAME).map(l => `salvo-${l}`)];
+  const played = keys.filter(k => stats[k] && stats[k].won + stats[k].lost > 0);
+  const named = k => (k.startsWith('salvo-') ? `Salvo ${LEVEL_NAME[k.slice(6)]}` : LEVEL_NAME[k]);
+  $('stats').textContent = played.length ? 'Your wins: ' + played.map(k => `${named(k)} ${stats[k].won} of ${stats[k].won + stats[k].lost}`).join(' · ') : '';
   $('over').hidden = true;
   $('home').hidden = false;
 }
@@ -131,11 +142,21 @@ document.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click
   keep(PREFS_KEY, prefs);
   document.querySelectorAll('[data-level]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
 }));
-$('playCpu').addEventListener('click', () => start({ mode: 'cpu', level: prefs.level }));
+function showVariant() {
+  document.querySelectorAll('[data-variant]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.variant === prefs.variant)));
+  $('variantWhat').textContent = prefs.variant === 'salvo' ? 'A shot for each of your ships still afloat, all fired at once' : 'One shot a turn';
+  $('onlineClassic').hidden = prefs.variant !== 'salvo';
+}
+document.querySelectorAll('[data-variant]').forEach(b => b.addEventListener('click', () => {
+  prefs.variant = b.dataset.variant;
+  keep(PREFS_KEY, prefs);
+  showVariant();
+}));
+$('playCpu').addEventListener('click', () => start({ mode: 'cpu', level: prefs.level, variant: prefs.variant }));
 $('playLocal').addEventListener('click', () => {
   prefs.names = [$('name1').value.trim(), $('name2').value.trim()];
   keep(PREFS_KEY, prefs);
-  start({ mode: 'local', names: prefs.names });
+  start({ mode: 'local', names: prefs.names, variant: prefs.variant });
 });
 $('resumeBtn').addEventListener('click', () => {
   closeMenu();
@@ -197,13 +218,21 @@ function handOff(i, title, text) {
     $('handoffBtn').onclick = () => { $('handoff').hidden = true; done(); };
   });
 }
-let last = null;   // the last shot: { by, shot }
+let last = null;   // the last turn: { by, shots } (one shot, or a salvo)
 function lastShotText(i) {
   if (!last || last.by === i) return `${nameOf(other(i))}, look away!`;
-  const where = label(last.shot.x, last.shot.y);
-  const what = last.shot.result === 'miss' ? 'and missed'
-    : last.shot.result === 'sunk' ? `and sank your ${shipName(last.shot.ship.id)}!`
-    : `and hit your ${shipName(shipAt(state.players[i].fleet, last.shot.x, last.shot.y).id)}`;
+  if (last.shots.length > 1) {
+    const hits = last.shots.filter(s => s.result !== 'miss').length;
+    const sank = last.shots.filter(s => s.result === 'sunk').map(s => shipName(s.ship.id));
+    return `${nameOf(last.by)} fired a salvo of ${last.shots.length}: `
+      + (hits ? `${hits} hit${hits === 1 ? '' : 's'}` : 'all missed')
+      + (sank.length ? `, and sank your ${sank.join(' and ')}!` : '');
+  }
+  const shot = last.shots[0];
+  const where = label(shot.x, shot.y);
+  const what = shot.result === 'miss' ? 'and missed'
+    : shot.result === 'sunk' ? `and sank your ${shipName(shot.ship.id)}!`
+    : `and hit your ${shipName(shipAt(state.players[i].fleet, shot.x, shot.y).id)}`;
   return `${nameOf(last.by)} fired at ${where} ${what}`;
 }
 
@@ -311,25 +340,47 @@ async function humanTurn(i, { fresh = false } = {}) {
       await wait(1300);
     }
   }
-  setStatus(state.mode === 'local' ? nameOf(i) : '', 'Your turn: pick a target');
+  setStatus(state.mode === 'local' ? nameOf(i) : '', salvoTurn() ? `Your salvo: pick ${shotsPerTurn(state, i)} targets` : 'Your turn: pick a target');
   await world.view('target', world.viewing === 'target' ? 0 : 900 / speed);
   setMode('aiming');   // only once the camera is there, so a tap lands on the square under it
 }
 
+const salvoTurn = () => !!(state && state.mode !== 'online' && isSalvo(state));
 function aim(sq) {
   aimSq = sq;
   world.aim(sq);
-  $('fireBtn').disabled = !sq;
-  if (sq && mode === 'aiming') $('fireBtn').textContent = `Fire at ${label(...sq)}!`;
-  else $('fireBtn').textContent = 'Fire!';
+  if (!sq) { salvo = []; world.marks(salvo); }
+  updateFire();
+}
+function updateFire() {
+  const btn = $('fireBtn');
+  if (salvoTurn() && state.phase === 'playing') {
+    const k = shotsPerTurn(state, state.turn);
+    btn.disabled = salvo.length !== k;
+    btn.textContent = `Fire salvo (${salvo.length}/${k})`;
+  } else {
+    btn.disabled = !aimSq;
+    btn.textContent = aimSq && mode === 'aiming' ? `Fire at ${label(...aimSq)}!` : 'Fire!';
+  }
 }
 function tapSquare(sq) {
   const pending = online && online.room && view(online.room, online.seat).pending;
   if (fired(state, viewer, ...sq) || (pending && pending.x === sq[0] && pending.y === sq[1])) { toast(`Already fired at ${label(...sq)}`, 'miss'); return; }
+  if (salvoTurn()) {
+    // a salvo: tap to pick a square, tap it again to put it back
+    const k = shotsPerTurn(state, state.turn), at = salvo.findIndex(([x, y]) => x === sq[0] && y === sq[1]);
+    if (at !== -1) salvo.splice(at, 1);
+    else if (salvo.length < k) salvo.push(sq);
+    else { toast(`That's all ${k}: Fire, or tap one to take it back`, 'miss'); return; }
+    world.marks(salvo);
+    aimSq = sq;
+    world.aim(sq);
+    return updateFire();
+  }
   if (aimSq && aimSq[0] === sq[0] && aimSq[1] === sq[1]) return shoot();
   aim(sq);
 }
-$('fireBtn').addEventListener('click', () => { if (mode === 'aiming' && aimSq && !busy) shoot(); });
+$('fireBtn').addEventListener('click', () => { if (mode === 'aiming' && !busy && (salvoTurn() ? salvo.length === shotsPerTurn(state, state.turn) : aimSq)) shoot(); });
 $('viewBtn').addEventListener('click', async () => {
   if (busy) return;
   world.hover(null, null);
@@ -343,7 +394,8 @@ window.addEventListener('keydown', e => {
     e.preventDefault();
     const [x, y] = aimSq || [4, 4];
     const nx = x + moves[e.key][0], ny = y + moves[e.key][1];
-    aim(aimSq && inBounds(nx, ny) ? [nx, ny] : [x, y]);
+    const to = aimSq && inBounds(nx, ny) ? [nx, ny] : [x, y];
+    if (salvoTurn()) { aimSq = to; world.aim(to); } else aim(to);
   } else if ((e.key === 'Enter' || e.key === ' ') && aimSq && document.activeElement === document.body) {
     e.preventDefault();
     tapSquare(aimSq);
@@ -359,12 +411,13 @@ const soundOf = shot => (shot.result === 'miss' ? sound.splash() : (sound.boom()
 
 async function shoot() {
   if (state.mode === 'online') return shootOnline();
+  if (salvoTurn()) return shootSalvo();
   busy = true;
   const me = state.turn, [x, y] = aimSq;
   const shot = fire(state, x, y);
   aim(null);
   if (!shot) { busy = false; return; }
-  last = { by: me, shot };
+  last = { by: me, shots: [shot] };
   save();
   setMode('waiting');
   setStatus(state.mode === 'local' ? nameOf(me) : '', `Firing at ${label(x, y)}…`);
@@ -380,6 +433,38 @@ async function shoot() {
   next({ handoff: state.mode === 'local' });
 }
 
+/** A salvo lands one shell after another, quicker than single shots; side 'target' is yours, 'home' theirs. */
+async function playSalvo(shots, side, byMe, defender, who) {
+  for (const [n, shot] of shots.entries()) {
+    setStatus(state.mode === 'local' ? nameOf(state.mode === 'local' && byMe ? other(defender) : defender) : '',
+      `${who} salvo: ${n + 1} of ${shots.length} at ${label(shot.x, shot.y)}…`);
+    sound.launch();
+    await world.shot(side, shot);
+    soundOf(shot);
+    if (!byMe && shot.result !== 'miss' && navigator.vibrate) try { navigator.vibrate(shot.result === 'sunk' ? [80, 60, 160] : 60); } catch (e) { /* no vibration */ }
+    const w = shotWords(shot, byMe, defender);
+    toast(w.text, w.kind);
+    await wait(shot.result === 'miss' ? 450 : 750);
+  }
+  updateFleets();
+}
+
+async function shootSalvo() {
+  busy = true;
+  const me = state.turn, squares = salvo.slice();
+  const shots = fireSalvo(state, squares);
+  aim(null);
+  if (!shots) { busy = false; return updateFire(); }
+  last = { by: me, shots };
+  save();
+  setMode('waiting');
+  await playSalvo(shots, 'target', true, other(me), 'Your');
+  await wait(500);
+  busy = false;
+  if (state.phase === 'over') return finish();
+  next({ handoff: state.mode === 'local' });
+}
+
 // ---------- the computer's turn ----------
 
 async function computerTurn() {
@@ -389,9 +474,19 @@ async function computerTurn() {
   await world.view('home', 900 / speed);
   updateViewBtn();
   await wait(450 + rng() * 500);
+  if (isSalvo(state)) {
+    const shots = fireSalvo(state, chooseSalvo(state.level, state.shots[1], shotsPerTurn(state, 1), rng));
+    last = { by: 1, shots };
+    save();
+    await playSalvo(shots, 'home', false, 0, 'The computer\'s');
+    await wait(500);
+    busy = false;
+    if (state.phase === 'over') return finish();
+    return humanTurn(0);
+  }
   const [x, y] = chooseShot(state.level, state.shots[1], rng);
   const shot = fire(state, x, y);
-  last = { by: 1, shot };
+  last = { by: 1, shots: [shot] };
   save();
   setStatus('', `The computer fires at ${label(x, y)}…`);
   sound.launch();
@@ -415,10 +510,10 @@ async function finish() {
   const shownSide = cpu ? 0 : winner;
   keep(SAVE_KEY, null);
   if (cpu) {
-    const stats = load(STATS_KEY, {});
-    const s = stats[state.level] || { won: 0, lost: 0 };
+    const stats = load(STATS_KEY, {}), key = isSalvo(state) ? `salvo-${state.level}` : state.level;
+    const s = stats[key] || { won: 0, lost: 0 };
     if (winner === 0) s.won++; else s.lost++;
-    stats[state.level] = s;
+    stats[key] = s;
     keep(STATS_KEY, stats);
   }
   showSide(shownSide, { reveal: true });
@@ -435,6 +530,8 @@ async function finish() {
     ? `It took the computer ${shots} shots. Its ships still afloat are on the right.`
     : `The whole fleet sunk in ${shots} shots (${accuracy}% hits).`;
   $('againBtn').textContent = 'Play again';
+  $('againBtn').classList.remove('second');
+  $('rematchBtn').hidden = $('overRematch').hidden = true;
   $('overCheck').hidden = true;
   $('over').hidden = false;
   $('againBtn').focus();
@@ -442,8 +539,10 @@ async function finish() {
 }
 $('againBtn').addEventListener('click', () => {
   $('over').hidden = true;
+  $('rematchBtn').hidden = $('overRematch').hidden = true;
+  $('againBtn').classList.remove('second');
   if (state.mode === 'online') { leaveOnline(); return openMenu(); }
-  start({ mode: state.mode, level: state.level, names: state.players.map(p => p.name) });
+  start({ mode: state.mode, level: state.level, variant: state.variant, names: state.players.map(p => p.name) });
 });
 $('lookBtn').addEventListener('click', () => { $('over').hidden = true; setMode('looking'); });
 $('overMenuBtn').addEventListener('click', openMenu);
@@ -472,24 +571,31 @@ function netError(e, what) {
   return e && e.status === 0 ? `${what}: no connection` : `${what}: ${e && e.message || 'something went wrong'}`;
 }
 
-async function host() {
+/** A new room with this device in the first seat. Returns its code, or null if no free code turned up. */
+async function newRoom(name) {
   net = net || createFirebase();
+  const uid = await net.uid();
+  for (let tries = 0; tries < 6; tries++) {
+    const code = newCode();
+    try {
+      await net.put(rooms(code), { created: NOW, n: 0, a: { uid, name, seen: NOW } });
+    } catch (e) {
+      if (e.denied) continue;   // that code is taken: try another
+      throw e;
+    }
+    remember(code);
+    return code;
+  }
+  return null;
+}
+
+async function host() {
   const name = onlineName();
   onlineMsg('Starting a game…');
   $('hostBtn').disabled = true;
   try {
-    const uid = await net.uid();
-    for (let tries = 0; tries < 6; tries++) {
-      const code = newCode();
-      try {
-        await net.put(rooms(code), { created: NOW, n: 0, a: { uid, name, seen: NOW } });
-      } catch (e) {
-        if (e.denied) continue;   // that code is taken: try another
-        throw e;
-      }
-      onlineMsg('');
-      return connect({ code, seat: 'a', fleet: null, salt: null });
-    }
+    const code = await newRoom(name);
+    if (code) { onlineMsg(''); return connect({ code, seat: 'a', fleet: null, salt: null }); }
     onlineMsg('Couldn\'t find a free code, try again');
   } catch (e) {
     onlineMsg(netError(e, 'Couldn\'t start a game'));
@@ -517,8 +623,34 @@ async function join(code) {
     onlineMsg('');
     const session = load(ONLINE_KEY, null);
     connect(session && session.code === code && session.seat === seat ? session : { code, seat, fleet: null, salt: null });
+    return true;
   } catch (e) {
     onlineMsg(netError(e, 'Couldn\'t join'));
+  }
+  return false;
+}
+
+/**
+ * Old rooms: every room this device has been in is remembered, and once one is over a day old and nobody is
+ * playing in it any more, it's deleted (the rules allow that for anyone). Runs when a game on two devices starts,
+ * so a device that never plays online never signs in. A room the other player already deleted is just forgotten.
+ */
+function remember(code) {
+  const codes = load(ROOMS_KEY, []);
+  if (!codes.includes(code)) keep(ROOMS_KEY, [...codes, code].slice(-50));
+}
+async function tidyRooms() {
+  const current = (load(ONLINE_KEY, null) || {}).code;
+  for (const code of load(ROOMS_KEY, [])) {
+    if (code === current) continue;
+    try {
+      const room = await net.get(rooms(code));
+      if (room && !stale(room, Date.now())) continue;
+      if (room) await net.remove(rooms(code));
+      keep(ROOMS_KEY, load(ROOMS_KEY, []).filter(c => c !== code));
+    } catch (e) {
+      // offline, or the server's clock says it isn't a day old yet: try again another time
+    }
   }
 }
 
@@ -526,6 +658,8 @@ async function join(code) {
 function connect(session) {
   if (online && online.stop) online.stop();
   net = net || createFirebase();
+  remember(session.code);
+  tidyRooms();
   online = { ...session, room: undefined, shown: null, answered: new Set(), turnShown: -1, finished: false, checked: false };
   keep(ONLINE_KEY, { code: session.code, seat: session.seat, fleet: session.fleet, salt: session.salt });
   state = {
@@ -572,6 +706,17 @@ async function sync() {
     return;
   }
   $('lobby').hidden = true;
+
+  // someone resigned: the end, whatever stage the game was at
+  if (v.resigned) {
+    if (!online.finished) {
+      state.shots = [v.shots[0].map(s => ({ ...s })), v.shots[1].map(s => ({ ...s }))];
+      state.players[0].fleet = online.fleet;
+      online.shown = state.shots[0].length + state.shots[1].length;
+      showSide(0);
+    }
+    return finishOnline(v);
+  }
 
   // placing: this device first, then waiting for the other one
   if (!online.fleet) {
@@ -704,32 +849,42 @@ async function shootOnline() {
 
 async function finishOnline(v) {
   const them = otherSeat(online.seat);
+  const theyPlaced = !!(online.room[them] && online.room[them].hash);
   if (!online.finished) {
     online.finished = true;
     state.phase = 'over';
     state.winner = v.winner === 'me' ? 0 : 1;
-    net.put(`${rooms(online.code)}/reveal/${online.seat}`, { fleet: fleetString(online.fleet), salt: online.salt }).catch(() => { online.finished = false; });
+    if (online.fleet) {
+      net.put(`${rooms(online.code)}/reveal/${online.seat}`, { fleet: fleetString(online.fleet), salt: online.salt }).catch(() => { online.finished = false; });
+    }
     busy = true;
     setMode('looking');
     const won = state.winner === 0;
-    setStatus('Game over', won ? 'You won!' : `${theirName()} won`);
+    setStatus('Game over', v.resigned === 'them' ? `${theirName()} resigned` : won ? 'You won!' : `${theirName()} won`);
     sound.tune(won);
     await world.view('both', 1100 / speed);
     updateViewBtn();
     await wait(700);
     const { shots, hits } = tally(state, state.winner);
     $('overTitle').textContent = won ? 'You won! 🎉' : `${theirName()} won`;
-    $('overText').textContent = won
-      ? `You sank ${theirName()}'s whole fleet in ${shots} shots (${Math.round(hits / shots * 100)}% hits).`
+    $('overText').textContent = v.resigned === 'them' ? `${theirName()} resigned.`
+      : v.resigned === 'me' ? 'You resigned.'
+      : won ? `You sank ${theirName()}'s whole fleet in ${shots} shots (${Math.round(hits / shots * 100)}% hits).`
       : `${theirName()} sank your fleet in ${shots} shots.`;
     $('overCheck').textContent = `Checking ${theirName()}'s answers…`;
     $('overCheck').className = 'check';
-    $('overCheck').hidden = false;
+    $('overCheck').hidden = !theyPlaced;
     $('againBtn').textContent = 'New game';
+    $('againBtn').classList.add('second');
     $('over').hidden = false;
-    $('againBtn').focus();
+    showRematch(v);
+    $('rematchBtn').focus();
     busy = false;
   }
+  if (!online) return;
+  showRematch(v);
+  // nothing of theirs to check (they resigned before placing their fleet)
+  if (!theyPlaced && !online.checked) { online.checked = true; keep(ONLINE_KEY, null); }
   // when their fleet comes in, check it against every answer they gave, and show it
   if (!online.checked && online.room.reveal && online.room.reveal[them]) {
     online.checked = true;
@@ -750,6 +905,64 @@ $('hostBtn').addEventListener('click', () => { leaveOnline(); host(); });
 $('joinForm').addEventListener('submit', e => { e.preventDefault(); leaveOnline(); join($('joinCode').value); });
 $('joinCode').addEventListener('input', () => { $('joinCode').value = $('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
 $('leaveBtn').addEventListener('click', () => { leaveOnline(); openMenu(); });
+$('resignBtn').addEventListener('click', async () => {
+  const btn = $('resignBtn');
+  if (!online || !online.room) return;
+  if (!btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = 'Tap again to resign'; return; }
+  btn.disabled = true;
+  try {
+    await net.put(`${rooms(online.code)}/resigned`, online.seat);
+    closeMenu();
+    syncing = syncing.then(sync);
+  } catch (e) {
+    btn.textContent = netError(e, 'Couldn\'t resign');
+  } finally {
+    btn.disabled = false;
+    btn.dataset.armed = '';
+  }
+});
+
+// ---------- a rematch ----------
+//
+// Whoever taps Rematch first starts a new room and writes its code into the old one (next); the other phone, still
+// following the old room, offers to join it. If both tap at once, the first code written wins and the other phone
+// joins that one (its own new room is tidied away with the old rooms).
+
+function showRematch(v) {
+  $('rematchBtn').hidden = false;
+  $('rematchBtn').textContent = v.next ? 'Join the rematch' : 'Rematch';
+  $('overRematch').hidden = !v.next;
+  $('overRematch').textContent = v.next ? `${theirName()} wants a rematch!` : '';
+}
+async function rematch() {
+  if (!online || !online.room) return;
+  const old = online, btn = $('rematchBtn');
+  btn.disabled = true;
+  try {
+    let code = view(old.room, old.seat).next, mine = false;
+    if (!code) {
+      const fresh = await newRoom(onlineName());
+      if (!fresh) throw new Error('couldn\'t find a free code');
+      try {
+        await net.put(`${rooms(old.code)}/next`, fresh);
+        code = fresh; mine = true;
+      } catch (e) {
+        code = await net.get(`${rooms(old.code)}/next`).catch(() => null);   // they asked first
+        if (!code) throw e;
+      }
+    }
+    $('over').hidden = $('rematchBtn').hidden = $('overRematch').hidden = true;
+    $('againBtn').classList.remove('second');
+    leaveOnline();
+    if (mine) connect({ code, seat: 'a', fleet: null, salt: null });
+    else if (!(await join(code))) openMenu();
+  } catch (e) {
+    toast(netError(e, 'Couldn\'t start a rematch'), 'miss');
+  } finally {
+    btn.disabled = false;
+  }
+}
+$('rematchBtn').addEventListener('click', rematch);
 $('lobbyCancel').addEventListener('click', () => { leaveOnline(); openMenu(); });
 $('shareBtn').addEventListener('click', async () => {
   const link = `${location.origin}${location.pathname}?join=${online.code}`;

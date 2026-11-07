@@ -224,7 +224,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getDatabase, ref, push, set, update
+    getDatabase, ref, push, set
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
@@ -298,15 +298,13 @@
   // unreliable in this environment — fetch() sidesteps it completely, using
   // nothing but a network request and JSON parsing.
   const REST_BASE = 'https://snakes-db-default-rtdb.europe-west1.firebasedatabase.app';
-  const MAX_STORED_SCORES = 50; // cap stored history so every poll fetch stays small
 
   async function fetchAllScores() {
     const res = await fetch(`${REST_BASE}/scores.json`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data) return [];
-    // keep each entry's push key — pruning needs it to know what to delete
-    return Object.entries(data).map(([key, val]) => ({ key, ...val }));
+    return Object.values(data);
   }
 
   async function loadLeaderboard() {
@@ -317,22 +315,6 @@
     } catch (err) {
       console.error('[leaderboard] Leaderboard fetch failed:', err);
       leaderboardList.innerHTML = `<li style="list-style:none; margin-left:-22px;">Couldn't load scores</li>`;
-    }
-  }
-
-  async function pruneOldScores(entries) {
-    if (entries.length <= MAX_STORED_SCORES) return;
-    const sorted = [...entries].sort((a, b) => b.score - a.score);
-    const toDelete = sorted.slice(MAX_STORED_SCORES);
-    const updates = {};
-    toDelete.forEach(entry => { updates[`scores/${entry.key}`] = null; });
-    try {
-      await update(ref(db), updates);
-      console.log(`[leaderboard] pruned ${toDelete.length} old scores, keeping top ${MAX_STORED_SCORES}`);
-    } catch (err) {
-      // not fatal — the leaderboard still works fine, it just means history
-      // keeps growing until the next successful prune
-      console.error('[leaderboard] prune failed:', err);
     }
   }
 
@@ -347,7 +329,7 @@
     });
     const entries = await fetchAllScores();
     renderLeaderboard(topFive(entries)); // immediate refresh so your own save shows up right away
-    await pruneOldScores(entries);
+    // Every score is kept: the database rules don't let anyone delete one (snake/database.rules.json).
   }
 
   function randCell() {
