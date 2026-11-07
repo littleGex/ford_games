@@ -173,12 +173,20 @@ fired at works out hit, miss or sunk on their own device and writes the answer; 
 once it's answered. At the end both fleets are revealed and each device checks the other one against its
 fingerprint and every answer it gave, so a wrong answer shows up on the game over card.
 
+Once the other player has joined, the menu offers **Resign** (two taps) instead of leaving: it writes
+`resigned: 'a' | 'b'` on the room, the other player wins on both phones, no more shots can be fired, and the
+fleets are still revealed and checked (a fleet that was never placed has nothing to check). On the game over card,
+**Rematch** starts a new room and writes its code into the old one as `next`; the other phone, still following
+the old room, shows "P wants a rematch!" and **Join the rematch**, so nobody types a code. Whoever asks first
+starts the new room, so they go first. If both tap at once, the first `next` written wins and the other phone
+joins that room.
+
 The security rules (`battleships/database.rules.json`, pasted into the Firebase console by hand) make everyone
 take turns: only signed-in players, a seat can't be taken twice, only the player whose turn it is can fire,
 only the player fired at can answer, nothing can be changed once written, and every field is checked. Rooms
 over a day old may be deleted: each device remembers the rooms it was in, and when it next starts or joins a
 game on two devices it deletes the ones over a day old that are finished or that nobody has been in for a day.
-After changing the rules, run `node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
+After changing the rules, run `node tests/battleships/rules-live.mjs`: three throwaway players try 62 things against the real database, allowed
 and not. It isn't part of CI, since it needs the real database. The Firebase key only works from the site and
 `http://localhost:8080`, so the live tests sign in as local testing (they send that address as the `Referer`).
 

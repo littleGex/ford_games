@@ -46,7 +46,7 @@
 
         "shots": {
           "$s": {
-            ".write": "auth != null && !data.exists() && $s === '' + data.parent().parent().child('n').val() && data.parent().parent().child('a/hash').exists() && data.parent().parent().child('b/hash').exists() && newData.child('by').val() === (data.parent().parent().child('n').val() % 2 === 0 ? 'a' : 'b') && data.parent().parent().child(newData.child('by').val() + '/uid').val() === auth.uid && (data.parent().parent().child('n').val() === 0 || data.parent().parent().child('results/' + (data.parent().parent().child('n').val() - 1)).exists())",
+            ".write": "auth != null && !data.exists() && !data.parent().parent().child('resigned').exists() && $s === '' + data.parent().parent().child('n').val() && data.parent().parent().child('a/hash').exists() && data.parent().parent().child('b/hash').exists() && newData.child('by').val() === (data.parent().parent().child('n').val() % 2 === 0 ? 'a' : 'b') && data.parent().parent().child(newData.child('by').val() + '/uid').val() === auth.uid && (data.parent().parent().child('n').val() === 0 || data.parent().parent().child('results/' + (data.parent().parent().child('n').val() - 1)).exists())",
             ".validate": "newData.hasChildren(['x', 'y', 'by'])",
             "x": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 9" },
             "y": { ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 9" },
@@ -80,6 +80,16 @@
             "salt": { ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{32}$/)" },
             "$other": { ".validate": false }
           }
+        },
+
+        "resigned": {
+          ".write": "auth != null && !data.exists() && data.parent().child('b').exists() && (newData.val() === 'a' || newData.val() === 'b') && data.parent().child(newData.val() + '/uid').val() === auth.uid",
+          ".validate": "newData.val() === 'a' || newData.val() === 'b'"
+        },
+
+        "next": {
+          ".write": "auth != null && !data.exists() && (data.parent().child('a/uid').val() === auth.uid || data.parent().child('b/uid').val() === auth.uid)",
+          ".validate": "newData.isString() && newData.val().matches(/^[A-HJ-NP-Z2-9]{4}$/) && newData.val() !== $code && root.child('rooms/' + newData.val() + '/a/uid').val() === auth.uid"
         },
 
         "$other": { ".validate": false }
