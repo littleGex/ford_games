@@ -137,6 +137,20 @@ export function createBoard(scene, { cx, kind }) {
   }
   aim.rotation.x = -Math.PI / 2; aim.position.y = GRID_Y + 0.03; aim.visible = false; aim.renderOrder = 3;
   root.add(aim);
+  // a salvo: a marked square for each shot picked so far (made when first needed, then reused)
+  const marks = [];
+  const markFill = new THREE.MeshBasicMaterial({ color: '#ffb02e', transparent: true, opacity: 0.35, depthWrite: false });
+  const markRing = new THREE.RingGeometry(0.34, 0.44, 32), markSquare = new THREE.PlaneGeometry(0.86, 0.86);
+  function mark(i) {
+    if (!marks[i]) {
+      const g = new THREE.Group();
+      g.add(new THREE.Mesh(markSquare, markFill), new THREE.Mesh(markRing, aimMat));
+      g.rotation.x = -Math.PI / 2; g.renderOrder = 3;
+      root.add(g);
+      marks[i] = g;
+    }
+    return marks[i];
+  }
 
   const pegs = [];
   const pegMat = {
@@ -157,6 +171,10 @@ export function createBoard(scene, { cx, kind }) {
     },
     setHover(sq) { hover.visible = !!sq; if (sq) hover.position.set(-4.5 + sq[0], GRID_Y + 0.01, -4.5 + sq[1]); },
     setAim(sq) { aim.visible = !!sq; if (sq) aim.position.set(-4.5 + sq[0], GRID_Y + 0.03, -4.5 + sq[1]); },
+    setMarks(squares) {
+      squares.forEach(([x, y], i) => { const m = mark(i); m.visible = true; m.position.set(-4.5 + x, GRID_Y + 0.02, -4.5 + y); });
+      for (let i = squares.length; i < marks.length; i++) marks[i].visible = false;
+    },
     /** A peg in a square: white for a miss, red for a hit. On a ship, it stands on the deck. */
     peg(x, y, result, onDeck = 0) {
       const g = new THREE.Group();

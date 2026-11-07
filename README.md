@@ -140,6 +140,13 @@ After changing the rules, run `node tests/snake/rules-live.mjs`: it tries 53 wri
 Classic rules: a 10×10 grid, a fleet of five (Carrier 5, Battleship 4, Cruiser 3, Submarine 3, Destroyer 2), ships may
 not touch (not even at the corners), and you're told when you've sunk a ship (and which). Turns alternate.
 
+**Salvo** (picked at the top of the menu, against the computer or two on one device): each turn you fire one shot
+for every ship you still have afloat, five at the start. Tap squares to pick them (tap one again to put it back),
+then **Fire salvo**; the shells land one after another, and if the last ship sinks part-way the rest don't count.
+The computer aims its salvo one shot at a time with its usual aim, counting the ones already picked as misses, so
+on Hard it sinks a fleet in about 11 salvos (Normal 12, Easy 16). Wins are counted separately for Salvo. On two
+devices it's Classic for now.
+
 ```
 battleships/js/
   rules.js     the grid, the fleet, placing, firing: no three.js, runs in Node
