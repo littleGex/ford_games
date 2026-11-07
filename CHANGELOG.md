@@ -10,6 +10,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Fixed
+- Tests: the live security-rule checks for Battleships and the two-phone duels still sign in now that the
+  Firebase keys only work from the site and local testing (#131).
+
 ## [4.19.0] - 2026-11-07
 
 ### Added

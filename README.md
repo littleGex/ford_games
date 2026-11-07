@@ -166,7 +166,8 @@ take turns: only signed-in players, a seat can't be taken twice, only the player
 only the player fired at can answer, nothing can be changed once written, and every field is checked. Rooms
 over a day old may be deleted (by hand, in the console). After changing the rules, run
 `node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
-and not. It isn't part of CI, since it needs the real database.
+and not. It isn't part of CI, since it needs the real database. The Firebase key only works from the site and
+`http://localhost:8080`, so the live tests sign in as local testing (they send that address as the `Referer`).
 
 ### Connect 4 and Tic-Tac-Toe on two phones
 

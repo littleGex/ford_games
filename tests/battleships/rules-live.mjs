@@ -11,7 +11,9 @@ let passed = 0;
 
 async function signUp() {
   const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${CONFIG.apiKey}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnSecureToken: true }),
+    // The key only works from the site or local testing (#131), so say we're local testing.
+    method: 'POST', headers: { 'Content-Type': 'application/json', Referer: 'http://localhost:8080/' },
+    body: JSON.stringify({ returnSecureToken: true }),
   }).then(res => res.json());
   if (!r.idToken) throw new Error(`couldn't sign in: ${JSON.stringify(r)}`);
   return { uid: r.localId, token: r.idToken };
