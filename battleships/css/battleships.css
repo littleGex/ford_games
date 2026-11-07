@@ -97,6 +97,8 @@ button, a, input, [role="button"] { touch-action: manipulation; }
 .check.ok { color: var(--mint); }
 .check.bad { color: var(--red); font-weight: 700; }
 .linkbtn.danger { color: var(--red); }
+.pills.variant { margin-top: 4px; }
+.variant-what { margin: 6px 0 4px; font-size: 14px; color: var(--muted); text-align: center; }
 .rematch-ask { margin: -6px 0 14px; font-weight: 700; color: var(--mint); }
 #rematchBtn + #againBtn { margin-top: 10px; }
 #leaveBtn { margin-top: 6px; font-size: 13px; }

@@ -1,8 +1,8 @@
 // Battleships rules and computer players, checked over many seeded games:  node tests/battleships/play.mjs
 // (Runs plain Node, no browser.)
 import { FLEET, SIZE, cells, fits, validFleet, randomFleet, resolveShot, seededRandom } from '../../battleships/js/rules.js';
-import { chooseShot, knowledge } from '../../battleships/js/ai.js';
-import { newGame, place, fire, canFire, validState } from '../../battleships/js/game.js';
+import { chooseShot, chooseSalvo, knowledge } from '../../battleships/js/ai.js';
+import { newGame, place, fire, canFire, validState, fireSalvo, shotsPerTurn } from '../../battleships/js/game.js';
 
 const fail = [];
 const check = (ok, msg) => { if (!ok) fail.push(msg); };
@@ -92,6 +92,62 @@ check(average.hard < 50, `hard takes ${average.hard} shots on average, want unde
   const cpu = newGame({ mode: 'cpu', rng: seededRandom(3) });
   check(cpu.players[1].fleet && validFleet(cpu.players[1].fleet), 'the computer places its fleet straight away');
 }
+
+// --- Salvo: a shot for each ship still afloat
+{
+  const g = newGame({ mode: 'local', variant: 'salvo', names: ['P', 'Dude'] });
+  place(g, 0, fleet); place(g, 1, fleet);
+  check(g.variant === 'salvo' && shotsPerTurn(g, 0) === 5, 'a salvo starts at five shots');
+  check(fireSalvo(g, [[9, 9], [9, 8], [9, 7], [9, 6]]) === null, 'four shots isn\'t a salvo of five');
+  check(fireSalvo(g, [[9, 9], [9, 9], [9, 7], [9, 6], [9, 5]]) === null, 'the same square twice isn\'t allowed');
+  check(fireSalvo(g, [[9, 9], [9, 8], [9, 7], [9, 6], [10, 5]]) === null, 'nor a square off the board');
+  const g2 = newGame({ mode: 'local', variant: 'salvo', names: ['P', 'Dude'] });
+  place(g2, 0, fleet); place(g2, 1, fleet);
+  const first = fireSalvo(g2, [[0, 8], [1, 8], [9, 9], [9, 8], [9, 7]]);
+  check(first && first.length === 5 && first[1].result === 'sunk' && g2.turn === 1, 'a salvo lands in order (the destroyer sinks on its second shot) and the turn passes');
+  check(shotsPerTurn(g2, 1) === 4 && shotsPerTurn(g2, 0) === 5, 'Dude lost a ship: four shots now, P still five');
+  check(fireSalvo(g2, [[9, 9], [9, 8], [9, 7], [9, 6], [9, 5]]) === null, 'five is too many for Dude now');
+  check(fireSalvo(g2, [[9, 9], [9, 8], [9, 7], [9, 6]]).length === 4 && g2.turn === 0, 'Dude fires four');
+  check(validState(JSON.parse(JSON.stringify(g2))), 'a salvo game saves and loads');
+  check(validState({ ...JSON.parse(JSON.stringify(g2)), variant: undefined }), 'an older save without a variant still loads (as classic)');
+  check(!validState({ ...JSON.parse(JSON.stringify(g2)), variant: 'blitz' }), 'a made-up variant doesn\'t');
+  check(shotsPerTurn(newGame({ mode: 'cpu' }), 0) === 1, 'classic is one shot a turn');
+
+  // the last ship sinks part-way through a salvo: the rest don't count, and that player wins
+  const g3 = newGame({ mode: 'local', variant: 'salvo' });
+  place(g3, 0, fleet); place(g3, 1, fleet);
+  const all = fleet.flatMap(cells), last = all.pop();
+  for (const [x, y] of all) g3.shots[0].push(resolveShot(fleet, g3.shots[0], x, y));
+  const end = fireSalvo(g3, [[9, 9], last, [9, 8], [9, 7], [9, 6]]);
+  check(end.length === 2 && g3.phase === 'over' && g3.winner === 0, 'the game ends on the sinking shot');
+}
+
+// --- the computer's salvos: all different, never a square fired at before, and Hard still the best
+function salvoGame(level, seed) {
+  const r = seededRandom(seed), target = randomFleet(r), shots = [];
+  let turns = 0;
+  while (shots.filter(s => s.result === 'sunk').length < FLEET.length && turns < 100) {
+    turns++;
+    const k = Math.min(5, SIZE * SIZE - shots.length);
+    const salvo = chooseSalvo(level, shots, k, r);
+    const keys = salvo.map(([x, y]) => `${x},${y}`);
+    if (salvo.length !== k || new Set(keys).size !== k || salvo.some(([x, y]) => shots.some(s => s.x === x && s.y === y))) {
+      fail.push(`${level} seed ${seed}: a bad salvo ${keys.join(' ')}`); return 999;
+    }
+    for (const [x, y] of salvo) {
+      shots.push(resolveShot(target, shots, x, y));
+      if (shots.filter(s => s.result === 'sunk').length === FLEET.length) break;
+    }
+  }
+  return turns;
+}
+const salvoTurns = {};
+for (const level of ['easy', 'normal', 'hard']) {
+  const runs = Array.from({ length: 100 }, (_, i) => salvoGame(level, 2000 + i));
+  salvoTurns[level] = runs.reduce((a, b) => a + b, 0) / runs.length;
+}
+check(salvoTurns.normal < salvoTurns.easy && salvoTurns.hard <= salvoTurns.normal, `salvo turns should go easy > normal >= hard: ${JSON.stringify(salvoTurns)}`);
+console.log(`Average salvos to sink the fleet: easy ${salvoTurns.easy.toFixed(1)}, normal ${salvoTurns.normal.toFixed(1)}, hard ${salvoTurns.hard.toFixed(1)}`);
 
 console.log(`Average shots to sink the fleet: easy ${average.easy.toFixed(1)}, normal ${average.normal.toFixed(1)}, hard ${average.hard.toFixed(1)}`);
 if (fail.length) { console.error(`${fail.length} problem(s):\n- ` + [...new Set(fail)].slice(0, 30).join('\n- ')); process.exit(1); }

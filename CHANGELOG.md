@@ -11,6 +11,9 @@ pull request; at release time that section becomes the new version (see "Releasi
 ## [Unreleased]
 
 ### Added
+- Battleships: **Salvo**, against the computer or two on one device: a shot for each of your ships still afloat,
+  all picked and then fired together. The computer plays it at every level, and Salvo wins are counted on their
+  own (#127).
 - Battleships: **resign** a game on two phones from the menu (two taps). The other player wins on both phones,
   and the fleets are still revealed and checked (#126).
 - Battleships: **rematch** the same player on two phones from the game over card. The other phone offers to

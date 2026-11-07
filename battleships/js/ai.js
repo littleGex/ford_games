@@ -98,6 +98,23 @@ function hard(grid, afloat, rng) {
   return pick(squares((x, y) => score[at(x, y)] === best), rng);
 }
 
+/**
+ * A salvo of k shots: [[x, y], ...], all different. It aims them one by one with the same aim as a single shot,
+ * counting the ones already picked as misses (it doesn't know yet what they'll find), which also spreads them out.
+ */
+export function chooseSalvo(level, shots, k, rng = Math.random) {
+  const picked = [], assumed = [...shots];
+  for (let i = 0; i < k; i++) {
+    let sq = chooseShot(level, assumed, rng);
+    const taken = ([x, y]) => assumed.some(s => s.x === x && s.y === y);
+    if (!sq || taken(sq)) sq = pick(squares((x, y) => !taken([x, y])), rng);   // nothing sensible left: anywhere new
+    if (!sq) break;
+    picked.push(sq);
+    assumed.push({ x: sq[0], y: sq[1], result: 'miss' });
+  }
+  return picked;
+}
+
 /** Where the computer fires next: [x, y], a square it hasn't fired at yet. */
 export function chooseShot(level, shots, rng = Math.random) {
   const { grid, afloat } = knowledge(shots);
