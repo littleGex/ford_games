@@ -167,6 +167,8 @@ export function createWorld(canvas) {
     },
 
     aim(sq) { boards.target.setAim(sq); },
+    /** The squares picked for a salvo, each marked on the target board. */
+    marks(squares) { boards.target.setMarks(squares || []); },
     hover(side, sq) { boards.home.setHover(side === 'home' ? sq : null); boards.target.setHover(side === 'target' ? sq : null); },
 
     /** While placing: move one of your ships (and glow it: picked up, or red where it can't go). */

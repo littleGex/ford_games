@@ -10,6 +10,31 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.20.0] - 2026-11-07
+
+### Added
+- Battleships: **Salvo**, against the computer or two on one device: a shot for each of your ships still afloat,
+  all picked and then fired together. The computer plays it at every level, and Salvo wins are counted on their
+  own (#127).
+- Battleships: **resign** a game on two phones from the menu (two taps). The other player wins on both phones,
+  and the fleets are still revealed and checked (#126).
+- Battleships: **rematch** the same player on two phones from the game over card. The other phone offers to
+  join it, so nobody types a code; whoever asks first goes first (#125).
+- Battleships: old games on two phones tidy themselves away. Each phone remembers the games it was in and, the
+  next time it starts or joins one, deletes those over a day old that are finished or that nobody has been
+  in for a day (#128).
+
+### Changed
+- Snake, Hangman, Wordle and Word Search: the shared leaderboard and word lists can no longer be deleted or
+  changed by anyone, and a word must fit its game (A to Z, the right length). Snake keeps every score instead
+  of tidying down to the top 50 (#150).
+
+### Fixed
+- Snake, Hangman, Wordle and Word Search: saving a score or adding a word works on a phone whose clock is a
+  little fast (#150).
+- Tests: the live security-rule checks for Battleships and the two-phone duels still sign in now that the
+  Firebase keys only work from the site and local testing (#131).
+
 ## [4.19.0] - 2026-11-07
 
 ### Added
@@ -452,7 +477,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.19.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.20.0...HEAD
+[4.20.0]: https://github.com/littleGex/ford_games/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/littleGex/ford_games/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/littleGex/ford_games/compare/v4.17.0...v4.18.0
 [4.17.0]: https://github.com/littleGex/ford_games/compare/v4.16.0...v4.17.0

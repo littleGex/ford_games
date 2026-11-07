@@ -163,3 +163,74 @@ test('sinking the last ship wins, and the win is counted', async ({ page }) => {
   await expect(page.locator('#stats')).toHaveText('Your wins: Normal 1 of 1');
   await expect(page.locator('#resumeBtn')).toBeHidden();
 });
+
+test('Salvo against the computer: pick five, fire them all, and the computer fires five back', async ({ page }) => {
+  await open(page);
+  await page.click('[data-variant="salvo"]');
+  await expect(page.locator('#variantWhat')).toHaveText(/a shot for each of your ships/i);
+  await expect(page.locator('#onlineClassic')).toBeVisible();   // two devices stay Classic for now
+  await page.click('#playCpu');
+  await page.click('#readyBtn');
+  await ready(page);
+  await expect(page.locator('#statusText')).toHaveText('Your salvo: pick 5 targets');
+  await expect(page.locator('#fireBtn')).toHaveText('Fire salvo (0/5)');
+  await expect(page.locator('#fireBtn')).toBeDisabled();
+
+  // tapping a picked square puts it back; a sixth is too many
+  for (const [x, y] of [[0, 0], [2, 2], [4, 4], [6, 6]]) await tap(page, 'target', x, y);
+  await tap(page, 'target', 2, 2);
+  await expect(page.locator('#fireBtn')).toHaveText('Fire salvo (3/5)');
+  for (const [x, y] of [[8, 8], [9, 0]]) await tap(page, 'target', x, y);
+  await expect(page.locator('#fireBtn')).toHaveText('Fire salvo (5/5)');
+  await tap(page, 'target', 5, 5);
+  await expect(page.locator('#toast')).toHaveText(/That's all 5/);
+  await page.click('#fireBtn');
+
+  await expect.poll(async () => (await state(page)).shots[1].length, { timeout: 20000 }).toBe(5);
+  await ready(page);
+  const s = await state(page);
+  expect(s.variant).toBe('salvo');
+  expect(s.shots[0].map(sh => [sh.x, sh.y])).toEqual([[0, 0], [4, 4], [6, 6], [8, 8], [9, 0]]);
+  expect(new Set(s.shots[1].map(sh => `${sh.x},${sh.y}`)).size).toBe(5);
+
+  // a reload carries on in Salvo, and the menu says so
+  await page.reload();
+  await expect(page.locator('#resumeWhat')).toHaveText(/Normal, Salvo/);
+  await page.click('#resumeBtn');
+  await ready(page);
+  await expect(page.locator('#fireBtn')).toHaveText('Fire salvo (0/5)');
+});
+
+test('Salvo: lose a ship and your salvo gets smaller; a win counts as a Salvo win', async ({ page }) => {
+  await open(page);
+  await page.click('[data-variant="salvo"]');
+  await page.click('#playCpu');
+  await page.click('#readyBtn');
+  await ready(page);
+  // the computer has sunk your destroyer: four shots now
+  await page.evaluate(() => {
+    const st = window.battleships.state, mine = st.players[0].fleet.find(f => f.id === 'destroyer');
+    const cells = mine.dir === 'h' ? [[mine.x, mine.y], [mine.x + 1, mine.y]] : [[mine.x, mine.y], [mine.x, mine.y + 1]];
+    st.shots[1].push({ x: cells[0][0], y: cells[0][1], result: 'hit' }, { x: cells[1][0], y: cells[1][1], result: 'sunk', ship: { ...mine } });
+  });
+  const lastSq = await page.evaluate(() => window.battleships.test.nearlyWon());
+  await page.reload();
+  await page.click('#resumeBtn');
+  await ready(page);
+  await expect(page.locator('#fireBtn')).toHaveText('Fire salvo (0/4)');
+  // the winning shot is the first of the four: the rest don't count
+  await tap(page, 'target', ...lastSq);
+  const others = await page.evaluate(([lx, ly]) => {
+    const st = window.battleships.state, out = [];
+    for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) {
+      if (out.length < 3 && !(x === lx && y === ly) && !st.shots[0].some(s => s.x === x && s.y === y)) out.push([x, y]);
+    }
+    return out;
+  }, lastSq);
+  for (const sq of others) await tap(page, 'target', ...sq);
+  await page.click('#fireBtn');
+  await expect(page.locator('#over')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('#overTitle')).toHaveText('You won! 🎉');
+  await page.click('#overMenuBtn');
+  await expect(page.locator('#stats')).toHaveText(/Salvo Normal 1 of 1/);
+});

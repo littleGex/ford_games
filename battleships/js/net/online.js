@@ -8,6 +8,8 @@
 //   shots:   { 0: { by: 'a', x, y }, 1: ... },
 //   results: { 0: { r: 'miss' | 'hit' | 'sunk', ship? }, ... },   written by the player who was fired at
 //   reveal:  { a: { fleet, salt }, b: ... },                      written at the end
+//   resigned: 'a' | 'b',              that player gave up: the other one wins, and no more shots
+//   next: 'X7QM',                     the code of the rematch, written by whoever asked for it first
 // }
 //
 // A fleet never goes into the database during the game. Each device keeps its own and puts up only a fingerprint
@@ -70,17 +72,38 @@ export function view(room, seat) {
   const toShot = s => (s.result === 'sunk' ? { x: s.x, y: s.y, result: s.result, ship: s.ship } : { x: s.x, y: s.y, result: s.result });
   const shots = [answered.filter(s => s.by === seat).map(toShot), answered.filter(s => s.by === them).map(toShot)];
   const sunk = i => shots[i].filter(s => s.result === 'sunk').length;
-  const winner = sunk(0) === FLEET.length ? 'me' : sunk(1) === FLEET.length ? 'them' : null;
-  const pending = all.find(s => !s.result) || null;
-  const phase = !other ? 'waiting' : !(me && me.hash && other.hash) ? 'placing' : winner ? 'over' : 'playing';
+  const sankAll = sunk(0) === FLEET.length ? 'me' : sunk(1) === FLEET.length ? 'them' : null;
+  // a fleet sunk before anyone resigned still counts; otherwise whoever resigned loses
+  const resigned = room && (room.resigned === seat || room.resigned === them) && other && !sankAll
+    ? (room.resigned === seat ? 'me' : 'them') : null;
+  const winner = sankAll || (resigned && (resigned === 'me' ? 'them' : 'me'));
+  const pending = resigned ? null : all.find(s => !s.result) || null;
+  const phase = !other ? 'waiting' : resigned ? 'over' : !(me && me.hash && other.hash) ? 'placing' : winner ? 'over' : 'playing';
   return {
-    phase, shots, pending, winner,
+    phase, shots, pending, winner, resigned,
+    next: (room && typeof room.next === 'string' && room.next) || null,
     myTurn: phase === 'playing' && !pending && shooter((room && room.n) || 0) === seat,
     names: [me ? me.name : '', other ? other.name : ''],
     ready: [!!(me && me.hash), !!(other && other.hash)],
     seen: other && other.seen || null,
     n: (room && room.n) || 0,
   };
+}
+
+export const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Can this room be tidied away? Only once it's over a day old (the rules won't delete it sooner) and nobody is
+ * still playing in it: it's finished, or nobody has been there for a day. `now` is this device's clock, so a
+ * little extra is allowed in case it runs fast.
+ */
+export function stale(room, now) {
+  if (!room || !(now - room.created > DAY + 10 * 60 * 1000)) return false;
+  // finished, and every fleet that was placed has been revealed (after a resign, one may never have been)
+  const revealed = seat => !(room[seat] && room[seat].hash) || (room.reveal && room.reveal[seat]);
+  if (view(room, 'a').phase === 'over' && revealed('a') && revealed('b')) return true;
+  const lastSeen = Math.max(room.created, (room.a && room.a.seen) || 0, (room.b && room.b.seen) || 0);
+  return now - lastSeen > DAY;
 }
 
 /**

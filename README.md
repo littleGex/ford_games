@@ -102,6 +102,7 @@ A small collection of browser games, hosted on GitHub Pages. Pick a game from th
     │   └── house.spec.js
     ├── battleships/    # Node tests of the Battleships rules, computer players and two-device games
     ├── duels/          # rules-live.mjs: the two-phone rules checked against the real database (by hand)
+    ├── snake/          # rules-live.mjs: the leaderboard and word-list rules checked against the real database (by hand)
     ├── solitaire/      # Node test of the Klondike rules
     └── house/          # Node play-through test for Ford House (no browser)
 ```
@@ -117,16 +118,34 @@ Each game lives in its own folder and is fully self-contained — no shared depe
 
 ## Snake's leaderboard
 
-Backed by a Firebase Realtime Database, accessed via plain REST `fetch()` calls rather than the Firebase SDK (the SDK's realtime sync layer proved unreliable in testing). Scores are capped at 50 stored entries — the leaderboard prunes down to the top 50 automatically after each save — and only the top 5 are displayed. There's no polling; the display refreshes on page load, after a save, or via the manual refresh button.
+Backed by a Firebase Realtime Database, accessed via plain REST `fetch()` calls rather than the Firebase SDK (the SDK's realtime sync layer proved unreliable in testing). Every score is kept (the database rules don't allow deleting one; a score is under 100 bytes) and only the top 5 are displayed. There's no polling; the display refreshes on page load, after a save, or via the manual refresh button.
 
 ## Shared word lists (hangman, wordle, word search)
 
 All three let anyone add a word to a shared pool, stored in the same Firebase database as the leaderboard (different top-level nodes: `customWords` for hangman, `wordleWords/easy` and `wordleWords/hard` for wordle, `wordSearchWords` for word search). Each word is stored using the word itself as the key rather than a generated ID — this makes Firebase's own rules reject duplicate/simultaneous additions automatically, with no risk of a race condition even if two devices add the same word at once. Custom words load in the background on page load and are available starting with the next new word/game/puzzle — no need to wait on a network call before playing. There's no profanity filtering; since the site is public, anyone who can reach the page could technically add an inappropriate word.
 
+### The database rules
+
+Nothing here signs in, so the security rules (`snake/database.rules.json`, pasted into the Firebase console of
+`snakes-db` by hand) are what protect the leaderboard and the word lists. Anything can be added but nothing
+can be changed or deleted, by anyone. A score needs a name of 1 to 20 characters, a whole number from 1 to 9999
+and a time, and nothing else. A word must be capital letters A to Z and fit its game: 3 to 20 letters for
+Hangman, exactly 4 or 6 for Wordle easy or hard, 3 to 10 for Word Search. Times may be up to five minutes ahead
+of the server's, for phones whose clock runs fast. To remove a bad word or score, delete it in the console.
+After changing the rules, run `node tests/snake/rules-live.mjs`: it tries 53 writes that must be refused, and
+`--add-score` also saves one real score ("Rules test", 1 point) to check a save still works.
+
 ## Battleships
 
 Classic rules: a 10×10 grid, a fleet of five (Carrier 5, Battleship 4, Cruiser 3, Submarine 3, Destroyer 2), ships may
 not touch (not even at the corners), and you're told when you've sunk a ship (and which). Turns alternate.
+
+**Salvo** (picked at the top of the menu, against the computer or two on one device): each turn you fire one shot
+for every ship you still have afloat, five at the start. Tap squares to pick them (tap one again to put it back),
+then **Fire salvo**; the shells land one after another, and if the last ship sinks part-way the rest don't count.
+The computer aims its salvo one shot at a time with its usual aim, counting the ones already picked as misses, so
+on Hard it sinks a fleet in about 11 salvos (Normal 12, Easy 16). Wins are counted separately for Salvo. On two
+devices it's Classic for now.
 
 ```
 battleships/js/
@@ -161,12 +180,22 @@ fired at works out hit, miss or sunk on their own device and writes the answer; 
 once it's answered. At the end both fleets are revealed and each device checks the other one against its
 fingerprint and every answer it gave, so a wrong answer shows up on the game over card.
 
+Once the other player has joined, the menu offers **Resign** (two taps) instead of leaving: it writes
+`resigned: 'a' | 'b'` on the room, the other player wins on both phones, no more shots can be fired, and the
+fleets are still revealed and checked (a fleet that was never placed has nothing to check). On the game over card,
+**Rematch** starts a new room and writes its code into the old one as `next`; the other phone, still following
+the old room, shows "P wants a rematch!" and **Join the rematch**, so nobody types a code. Whoever asks first
+starts the new room, so they go first. If both tap at once, the first `next` written wins and the other phone
+joins that room.
+
 The security rules (`battleships/database.rules.json`, pasted into the Firebase console by hand) make everyone
 take turns: only signed-in players, a seat can't be taken twice, only the player whose turn it is can fire,
 only the player fired at can answer, nothing can be changed once written, and every field is checked. Rooms
-over a day old may be deleted (by hand, in the console). After changing the rules, run
-`node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
-and not. It isn't part of CI, since it needs the real database.
+over a day old may be deleted: each device remembers the rooms it was in, and when it next starts or joins a
+game on two devices it deletes the ones over a day old that are finished or that nobody has been in for a day.
+After changing the rules, run `node tests/battleships/rules-live.mjs`: three throwaway players try 62 things against the real database, allowed
+and not. It isn't part of CI, since it needs the real database. The Firebase key only works from the site and
+`http://localhost:8080`, so the live tests sign in as local testing (they send that address as the `Referer`).
 
 ### Connect 4 and Tic-Tac-Toe on two phones
 
