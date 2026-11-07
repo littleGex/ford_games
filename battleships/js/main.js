@@ -106,7 +106,12 @@ function openMenu() {
   const session = load(ONLINE_KEY, null);
   const saved = session ? null : state && state.mode !== 'online' && state.phase !== 'over' ? state : null;
   $('resumeBtn').hidden = $('resumeWhat').hidden = !saved && !session;
-  $('leaveBtn').hidden = !session;
+  // once the other player is in, leaving would leave them waiting: resign instead, which ends it for both
+  const inGame = !!(session && online && online.room && online.room.b && view(online.room, online.seat).phase !== 'over');
+  $('leaveBtn').hidden = !session || inGame;
+  $('resignBtn').hidden = !inGame;
+  $('resignBtn').dataset.armed = '';
+  if (inGame) $('resignBtn').textContent = `Resign (${theirName()} wins)`;
   if (session) $('resumeWhat').textContent = `Your game on two devices (code ${session.code}). A new game leaves it.`;
   if (saved) {
     const shots = saved.shots[0].length + saved.shots[1].length;
@@ -436,6 +441,8 @@ async function finish() {
     ? `It took the computer ${shots} shots. Its ships still afloat are on the right.`
     : `The whole fleet sunk in ${shots} shots (${accuracy}% hits).`;
   $('againBtn').textContent = 'Play again';
+  $('againBtn').classList.remove('second');
+  $('rematchBtn').hidden = $('overRematch').hidden = true;
   $('overCheck').hidden = true;
   $('over').hidden = false;
   $('againBtn').focus();
@@ -443,6 +450,8 @@ async function finish() {
 }
 $('againBtn').addEventListener('click', () => {
   $('over').hidden = true;
+  $('rematchBtn').hidden = $('overRematch').hidden = true;
+  $('againBtn').classList.remove('second');
   if (state.mode === 'online') { leaveOnline(); return openMenu(); }
   start({ mode: state.mode, level: state.level, names: state.players.map(p => p.name) });
 });
@@ -473,24 +482,31 @@ function netError(e, what) {
   return e && e.status === 0 ? `${what}: no connection` : `${what}: ${e && e.message || 'something went wrong'}`;
 }
 
-async function host() {
+/** A new room with this device in the first seat. Returns its code, or null if no free code turned up. */
+async function newRoom(name) {
   net = net || createFirebase();
+  const uid = await net.uid();
+  for (let tries = 0; tries < 6; tries++) {
+    const code = newCode();
+    try {
+      await net.put(rooms(code), { created: NOW, n: 0, a: { uid, name, seen: NOW } });
+    } catch (e) {
+      if (e.denied) continue;   // that code is taken: try another
+      throw e;
+    }
+    remember(code);
+    return code;
+  }
+  return null;
+}
+
+async function host() {
   const name = onlineName();
   onlineMsg('Starting a game…');
   $('hostBtn').disabled = true;
   try {
-    const uid = await net.uid();
-    for (let tries = 0; tries < 6; tries++) {
-      const code = newCode();
-      try {
-        await net.put(rooms(code), { created: NOW, n: 0, a: { uid, name, seen: NOW } });
-      } catch (e) {
-        if (e.denied) continue;   // that code is taken: try another
-        throw e;
-      }
-      onlineMsg('');
-      return connect({ code, seat: 'a', fleet: null, salt: null });
-    }
+    const code = await newRoom(name);
+    if (code) { onlineMsg(''); return connect({ code, seat: 'a', fleet: null, salt: null }); }
     onlineMsg('Couldn\'t find a free code, try again');
   } catch (e) {
     onlineMsg(netError(e, 'Couldn\'t start a game'));
@@ -518,9 +534,11 @@ async function join(code) {
     onlineMsg('');
     const session = load(ONLINE_KEY, null);
     connect(session && session.code === code && session.seat === seat ? session : { code, seat, fleet: null, salt: null });
+    return true;
   } catch (e) {
     onlineMsg(netError(e, 'Couldn\'t join'));
   }
+  return false;
 }
 
 /**
@@ -599,6 +617,17 @@ async function sync() {
     return;
   }
   $('lobby').hidden = true;
+
+  // someone resigned: the end, whatever stage the game was at
+  if (v.resigned) {
+    if (!online.finished) {
+      state.shots = [v.shots[0].map(s => ({ ...s })), v.shots[1].map(s => ({ ...s }))];
+      state.players[0].fleet = online.fleet;
+      online.shown = state.shots[0].length + state.shots[1].length;
+      showSide(0);
+    }
+    return finishOnline(v);
+  }
 
   // placing: this device first, then waiting for the other one
   if (!online.fleet) {
@@ -731,32 +760,42 @@ async function shootOnline() {
 
 async function finishOnline(v) {
   const them = otherSeat(online.seat);
+  const theyPlaced = !!(online.room[them] && online.room[them].hash);
   if (!online.finished) {
     online.finished = true;
     state.phase = 'over';
     state.winner = v.winner === 'me' ? 0 : 1;
-    net.put(`${rooms(online.code)}/reveal/${online.seat}`, { fleet: fleetString(online.fleet), salt: online.salt }).catch(() => { online.finished = false; });
+    if (online.fleet) {
+      net.put(`${rooms(online.code)}/reveal/${online.seat}`, { fleet: fleetString(online.fleet), salt: online.salt }).catch(() => { online.finished = false; });
+    }
     busy = true;
     setMode('looking');
     const won = state.winner === 0;
-    setStatus('Game over', won ? 'You won!' : `${theirName()} won`);
+    setStatus('Game over', v.resigned === 'them' ? `${theirName()} resigned` : won ? 'You won!' : `${theirName()} won`);
     sound.tune(won);
     await world.view('both', 1100 / speed);
     updateViewBtn();
     await wait(700);
     const { shots, hits } = tally(state, state.winner);
     $('overTitle').textContent = won ? 'You won! 🎉' : `${theirName()} won`;
-    $('overText').textContent = won
-      ? `You sank ${theirName()}'s whole fleet in ${shots} shots (${Math.round(hits / shots * 100)}% hits).`
+    $('overText').textContent = v.resigned === 'them' ? `${theirName()} resigned.`
+      : v.resigned === 'me' ? 'You resigned.'
+      : won ? `You sank ${theirName()}'s whole fleet in ${shots} shots (${Math.round(hits / shots * 100)}% hits).`
       : `${theirName()} sank your fleet in ${shots} shots.`;
     $('overCheck').textContent = `Checking ${theirName()}'s answers…`;
     $('overCheck').className = 'check';
-    $('overCheck').hidden = false;
+    $('overCheck').hidden = !theyPlaced;
     $('againBtn').textContent = 'New game';
+    $('againBtn').classList.add('second');
     $('over').hidden = false;
-    $('againBtn').focus();
+    showRematch(v);
+    $('rematchBtn').focus();
     busy = false;
   }
+  if (!online) return;
+  showRematch(v);
+  // nothing of theirs to check (they resigned before placing their fleet)
+  if (!theyPlaced && !online.checked) { online.checked = true; keep(ONLINE_KEY, null); }
   // when their fleet comes in, check it against every answer they gave, and show it
   if (!online.checked && online.room.reveal && online.room.reveal[them]) {
     online.checked = true;
@@ -777,6 +816,64 @@ $('hostBtn').addEventListener('click', () => { leaveOnline(); host(); });
 $('joinForm').addEventListener('submit', e => { e.preventDefault(); leaveOnline(); join($('joinCode').value); });
 $('joinCode').addEventListener('input', () => { $('joinCode').value = $('joinCode').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
 $('leaveBtn').addEventListener('click', () => { leaveOnline(); openMenu(); });
+$('resignBtn').addEventListener('click', async () => {
+  const btn = $('resignBtn');
+  if (!online || !online.room) return;
+  if (!btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = 'Tap again to resign'; return; }
+  btn.disabled = true;
+  try {
+    await net.put(`${rooms(online.code)}/resigned`, online.seat);
+    closeMenu();
+    syncing = syncing.then(sync);
+  } catch (e) {
+    btn.textContent = netError(e, 'Couldn\'t resign');
+  } finally {
+    btn.disabled = false;
+    btn.dataset.armed = '';
+  }
+});
+
+// ---------- a rematch ----------
+//
+// Whoever taps Rematch first starts a new room and writes its code into the old one (next); the other phone, still
+// following the old room, offers to join it. If both tap at once, the first code written wins and the other phone
+// joins that one (its own new room is tidied away with the old rooms).
+
+function showRematch(v) {
+  $('rematchBtn').hidden = false;
+  $('rematchBtn').textContent = v.next ? 'Join the rematch' : 'Rematch';
+  $('overRematch').hidden = !v.next;
+  $('overRematch').textContent = v.next ? `${theirName()} wants a rematch!` : '';
+}
+async function rematch() {
+  if (!online || !online.room) return;
+  const old = online, btn = $('rematchBtn');
+  btn.disabled = true;
+  try {
+    let code = view(old.room, old.seat).next, mine = false;
+    if (!code) {
+      const fresh = await newRoom(onlineName());
+      if (!fresh) throw new Error('couldn\'t find a free code');
+      try {
+        await net.put(`${rooms(old.code)}/next`, fresh);
+        code = fresh; mine = true;
+      } catch (e) {
+        code = await net.get(`${rooms(old.code)}/next`).catch(() => null);   // they asked first
+        if (!code) throw e;
+      }
+    }
+    $('over').hidden = $('rematchBtn').hidden = $('overRematch').hidden = true;
+    $('againBtn').classList.remove('second');
+    leaveOnline();
+    if (mine) connect({ code, seat: 'a', fleet: null, salt: null });
+    else if (!(await join(code))) openMenu();
+  } catch (e) {
+    toast(netError(e, 'Couldn\'t start a rematch'), 'miss');
+  } finally {
+    btn.disabled = false;
+  }
+}
+$('rematchBtn').addEventListener('click', rematch);
 $('lobbyCancel').addEventListener('click', () => { leaveOnline(); openMenu(); });
 $('shareBtn').addEventListener('click', async () => {
   const link = `${location.origin}${location.pathname}?join=${online.code}`;

@@ -65,6 +65,26 @@ swapped.reveal.b.fleet = fleetString(randomFleet(rng));
 check_(!(await check(swapped, 'a')).ok, 'a different fleet at the end is caught');
 check_((await check({ ...room, reveal: {} }, 'a')).waiting, 'no fleet yet: still waiting');
 
+// --- resigning: the other player wins, at any stage, and no shot is left waiting
+const mid = JSON.parse(JSON.stringify({ created: 1, n: 3, a: { uid: 'u1', name: 'P', hash: hashA }, b: { uid: 'u2', name: 'Dude', hash: hashB },
+  shots: { 0: { by: 'a', x: 0, y: 0 }, 1: { by: 'b', x: 0, y: 0 }, 2: { by: 'a', x: 1, y: 1 } }, results: { 0: { r: 'miss' }, 1: { r: 'miss' } } }));
+check_(view(mid, 'a').pending && view(mid, 'a').phase === 'playing', 'mid-game, a shot waiting');
+mid.resigned = 'b';
+check_(view(mid, 'a').phase === 'over' && view(mid, 'a').winner === 'me' && view(mid, 'a').resigned === 'them', 'Dude resigns: P wins, seen by P');
+check_(view(mid, 'b').winner === 'them' && view(mid, 'b').resigned === 'me', 'and seen by Dude');
+check_(view(mid, 'a').pending === null && !view(mid, 'a').myTurn, 'no shot left waiting once someone resigned');
+const placing = { created: 1, n: 0, a: { uid: 'u1', name: 'P', hash: hashA }, b: { uid: 'u2', name: 'Dude' }, resigned: 'a' };
+check_(view(placing, 'b').phase === 'over' && view(placing, 'b').winner === 'me', 'resigning while placing ends it too');
+check_(view({ ...placing, b: undefined }, 'a').phase === 'waiting', 'nobody to resign to: still waiting');
+check_(view({ ...room, resigned: 'a' }, 'a').winner === 'me' && view({ ...room, resigned: 'a' }, 'a').resigned === null, 'a resign after the last ship sank doesn\'t change the winner');
+const resignedEarly = { ...placing, created: 0, reveal: { a: { fleet: fleetString(fleetA), salt: saltA } }, b: { ...placing.b, seen: 2 * DAY - 60000 } };
+check_(stale(resignedEarly, 2 * DAY), 'a game resigned before Dude placed is finished once P\'s fleet is revealed (Dude has none)');
+check_(!stale({ ...resignedEarly, reveal: {} }, 2 * DAY), 'but not before, while someone was there today');
+
+// --- the rematch: the new code, from either side
+check_(view(room, 'a').next === null, 'no rematch yet');
+check_(view({ ...room, next: 'X7QM' }, 'b').next === 'X7QM', 'the rematch code is there for both');
+
 // --- old rooms: tidied away only once over a day old and nobody is playing in them
 const T = 1e12, HOUR = 60 * 60 * 1000;
 const finished = { ...room, created: T };

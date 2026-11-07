@@ -11,6 +11,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 ## [Unreleased]
 
 ### Added
+- Battleships: **resign** a game on two phones from the menu (two taps). The other player wins on both phones,
+  and the fleets are still revealed and checked (#126).
+- Battleships: **rematch** the same player on two phones from the game over card. The other phone offers to
+  join it, so nobody types a code; whoever asks first goes first (#125).
 - Battleships: old games on two phones tidy themselves away. Each phone remembers the games it was in and, the
   next time it starts or joins one, deletes those over a day old that are finished or that nobody has been
   in for a day (#128).

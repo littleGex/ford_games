@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 // Battleships on two devices: two browser contexts (two phones, each with its own storage and sign-in) play
 // each other through a stand-in for the database that lives here in the test, so the real one is never touched.
 // The stand-in keeps the data as the database would (paths, server timestamps); it doesn't check the security
-// rules (battleships/database.rules.json), which only the real database can.
+// rules (battleships/database.rules.json), which only the real database can, apart from one (see attach).
 
 function fakeDatabase() {
   let data = {}, uids = 0;
@@ -26,6 +26,8 @@ function fakeDatabase() {
       await context.exposeBinding('__fakeDb', (source, op, path, value) => {
         if (op === 'uid') return uid;
         if (op === 'get') return JSON.parse(JSON.stringify(get(path) ?? null));
+        // the one rule the stand-in keeps: a resign and a rematch code are written once (as the real rules say)
+        if (op === 'put' && /\/(next|resigned)$/.test(path) && get(path) !== undefined) throw new Error('Permission denied');
         if (op === 'put') { set(path, stamp(value)); return null; }
         if (op === 'patch') { for (const [k, v] of Object.entries(value)) set(`${path}/${k}`, stamp(v)); return null; }
         if (op === 'remove') { set(path, null); return null; }
@@ -240,4 +242,114 @@ test('two phones: old rooms this phone was in are tidied away, games still going
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('battleships.rooms.v1')).sort()))
     .toEqual(['NEW4', 'SLW3', code].sort());
   await context.close();
+});
+
+test('two phones: resign from the menu, the other player wins and the fleets are still checked', async ({ browser }) => {
+  const db = fakeDatabase();
+  const { p, dude, code, phones } = await twoPhones(browser, db);
+  await fireAt(p, 5, 0);
+  await expect.poll(() => shotsSeen(dude)).toEqual([0, 1]);
+
+  // Dude opens the menu: no "Leave" (P would be left waiting), a resign that needs two taps
+  await expect.poll(() => dude.evaluate(() => window.battleships.mode)).toBe('aiming');
+  await dude.click('#menuBtn');
+  await expect(dude.locator('#leaveBtn')).toBeHidden();
+  await expect(dude.locator('#resignBtn')).toHaveText('Resign (P wins)');
+  await dude.click('#resignBtn');
+  await expect(dude.locator('#resignBtn')).toHaveText('Tap again to resign');
+  expect(db.get(`rooms/${code}/resigned`)).toBeNull();
+  await dude.click('#resignBtn');
+  await expect.poll(() => db.get(`rooms/${code}/resigned`)).toBe('b');
+
+  await expect(p.locator('#over')).toBeVisible({ timeout: 20000 });
+  await expect(p.locator('#overTitle')).toHaveText('You won! 🎉');
+  await expect(p.locator('#overText')).toHaveText('Dude resigned.');
+  await expect(dude.locator('#over')).toBeVisible({ timeout: 20000 });
+  await expect(dude.locator('#overTitle')).toHaveText('P won');
+  await expect(dude.locator('#overText')).toHaveText('You resigned.');
+  // both fleets come out and each answer is checked, as at any end
+  await expect(p.locator('#overCheck')).toHaveText('✓ Dude\'s fleet matches every answer they gave.', { timeout: 10000 });
+  await expect(dude.locator('#overCheck')).toHaveText('✓ P\'s fleet matches every answer they gave.', { timeout: 10000 });
+  for (const ph of phones) await ph.context.close();
+});
+
+test('two phones: resign while the other player is still placing their fleet', async ({ browser }) => {
+  const db = fakeDatabase();
+  const phones = [];
+  for (let i = 0; i < 2; i++) { const context = await browser.newContext(); await db.attach(context); phones.push({ context, page: await context.newPage() }); }
+  const [p, dude] = phones.map(x => x.page);
+  await p.goto('/battleships/?speed=8');
+  await p.fill('#onlineName', 'P');
+  await p.click('#hostBtn');
+  await expect(p.locator('#lobbyCode')).toHaveText(/^[A-HJ-NP-Z2-9]{4}$/);
+  const code = (await p.locator('#lobbyCode').textContent()).trim();
+  await dude.goto(`/battleships/?speed=8&join=${code}`);
+  await dude.fill('#onlineName', 'Dude');
+  await dude.click('#joinBtn');
+  await expect.poll(() => p.evaluate(() => window.battleships.mode)).toBe('placing');
+  await p.click('#readyBtn');
+  await expect(p.locator('#statusText')).toHaveText('Waiting for Dude to place their fleet…');
+
+  await p.click('#menuBtn');
+  await p.click('#resignBtn');
+  await p.click('#resignBtn');
+  await expect(dude.locator('#over')).toBeVisible({ timeout: 20000 });
+  await expect(dude.locator('#overTitle')).toHaveText('You won! 🎉');
+  await expect(dude.locator('#overText')).toHaveText('P resigned.');
+  await expect(p.locator('#overText')).toHaveText('You resigned.', { timeout: 20000 });
+  // Dude never placed a fleet, so there's nothing of Dude's to check
+  await expect(p.locator('#overCheck')).toBeHidden();
+  for (const ph of phones) await ph.context.close();
+});
+
+test('two phones: a rematch with the same player, no code to type', async ({ browser }) => {
+  const db = fakeDatabase();
+  const { p, dude, code, phones } = await twoPhones(browser, db);
+  await ready(p);
+  await p.click('#menuBtn');
+  await p.click('#resignBtn');
+  await p.click('#resignBtn');
+  for (const page of [p, dude]) {
+    await expect(page.locator('#over')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('#rematchBtn')).toHaveText('Rematch');
+  }
+
+  // Dude asks first: a new room, its code in the old one, and P's phone offers to join it
+  await dude.click('#rematchBtn');
+  await expect.poll(() => db.get(`rooms/${code}/next`)).toMatch(/^[A-HJ-NP-Z2-9]{4}$/);
+  const next = db.get(`rooms/${code}/next`);
+  expect(next).not.toBe(code);
+  expect(db.get(`rooms/${next}/a/name`)).toBe('Dude');
+  await expect(dude.locator('#lobby')).toBeVisible();
+  await expect(p.locator('#overRematch')).toHaveText('Dude wants a rematch!');
+  await expect(p.locator('#rematchBtn')).toHaveText('Join the rematch');
+  await p.click('#rematchBtn');
+
+  // the same two, in the new room: Dude started it, so Dude goes first this time
+  await expect.poll(() => db.get(`rooms/${next}/b/name`)).toBe('P');
+  for (const [page, fleet] of [[p, LEFT], [dude, RIGHT]]) {
+    await expect.poll(() => page.evaluate(() => window.battleships.mode)).toBe('placing');
+    await page.evaluate(f => window.battleships.test.setDraft(f), fleet);
+    await page.click('#readyBtn');
+  }
+  await ready(dude);
+  await expect(p.locator('#statusText')).toHaveText(/Dude's turn/);
+  for (const ph of phones) await ph.context.close();
+});
+
+test('two phones: both tap Rematch at once, and still end up in the same game', async ({ browser }) => {
+  const db = fakeDatabase();
+  const { p, dude, code, phones } = await twoPhones(browser, db);
+  await ready(p);
+  await dude.click('#menuBtn');
+  await dude.click('#resignBtn');
+  await dude.click('#resignBtn');
+  for (const page of [p, dude]) await expect(page.locator('#rematchBtn')).toBeVisible({ timeout: 20000 });
+  await Promise.all([p.click('#rematchBtn'), dude.click('#rematchBtn')]);
+  await expect.poll(() => db.get(`rooms/${code}/next`)).toBeTruthy();
+  const next = db.get(`rooms/${code}/next`);
+  // whichever code got written, both phones end up placing in that room
+  for (const page of [p, dude]) await expect.poll(() => page.evaluate(() => window.battleships.mode), { timeout: 20000 }).toBe('placing');
+  await expect.poll(() => [db.get(`rooms/${next}/a`), db.get(`rooms/${next}/b`)].every(Boolean)).toBe(true);
+  for (const ph of phones) await ph.context.close();
 });

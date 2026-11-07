@@ -1,7 +1,7 @@
 // The security rules (battleships/database.rules.json) checked against the real database: three throwaway
 // anonymous players try what's allowed and what isn't. Run by hand after changing the rules in the console:
 //   node tests/battleships/rules-live.mjs
-// It leaves one test room behind (anyone may delete a room once it's a day old; or delete it in the console).
+// It leaves three test rooms behind (anyone may delete a room once it's a day old; or delete them in the console).
 import { CONFIG } from '../../battleships/js/net/firebase.js';
 import { newCode } from '../../battleships/js/net/online.js';
 
@@ -74,12 +74,33 @@ await expectNo('change the shot', a, 'PUT', `${room}/shots/0`, { by: 'a', x: 1, 
 await expectNo('fire twice in a row', a, 'PATCH', room, { 'shots/1': { by: 'a', x: 0, y: 0 }, n: 2 });
 await expectOk('fire (Dude, shot 2)', b, 'PATCH', room, { 'shots/1': { by: 'b', x: 9, y: 9 }, n: 2 });
 await expectOk('answer sunk with the ship (P)', a, 'PUT', `${room}/results/1`, { r: 'sunk', ship: { id: 'destroyer', x: 8, y: 9, dir: 'h' } });
+
+// a rematch: the code of a new room, written once, by either player, pointing at a room they started
+const code2 = newCode(), room2 = `rooms/${code2}`, dudes = newCode();
+await expectOk('start the rematch room (P)', a, 'PUT', room2, { created: NOW, n: 0, a: { uid: a.uid, name: 'P', seen: NOW } });
+await expectOk('a room of Dude\'s', b, 'PUT', `rooms/${dudes}`, { created: NOW, n: 0, a: { uid: b.uid, name: 'Dude', seen: NOW } });
+await expectNo('a watcher sets the rematch', c, 'PUT', `${room}/next`, code2);
+await expectNo('a rematch in someone else\'s room', a, 'PUT', `${room}/next`, dudes);
+await expectNo('a rematch in this same room', a, 'PUT', `${room}/next`, code);
+await expectNo('a rematch code that isn\'t one', a, 'PUT', `${room}/next`, 'ab1o');
+await expectOk('ask for a rematch (P)', a, 'PUT', `${room}/next`, code2);
+await expectNo('ask again with another room', b, 'PUT', `${room}/next`, dudes);
+
+// resigning: only your own seat, once, and then nobody fires
+await expectNo('resign for the other player', b, 'PUT', `${room}/resigned`, 'a');
+await expectNo('a watcher resigns', c, 'PUT', `${room}/resigned`, 'a');
+await expectNo('resign as nobody', b, 'PUT', `${room}/resigned`, 'x');
+await expectOk('resign (Dude)', b, 'PUT', `${room}/resigned`, 'b');
+await expectNo('resign again', a, 'PUT', `${room}/resigned`, 'a');
+await expectNo('fire after someone resigned', a, 'PATCH', room, { 'shots/2': { by: 'a', x: 5, y: 5 }, n: 3 });
+await expectNo('resign before anyone has joined', a, 'PUT', `${room2}/resigned`, 'a');
+
 await expectNo('reveal the other player\'s fleet', b, 'PUT', `${room}/reveal/a`, { fleet: 'x', salt: '0'.repeat(32) });
 await expectNo('a salt that isn\'t one', a, 'PUT', `${room}/reveal/a`, { fleet: 'x', salt: 'salt' });
 await expectOk('reveal your fleet', a, 'PUT', `${room}/reveal/a`, { fleet: 'carrier:0,0,h', salt: '0'.repeat(32) });
 await expectNo('reveal it again', a, 'PUT', `${room}/reveal/a`, { fleet: 'carrier:1,0,h', salt: '0'.repeat(32) });
 await expectNo('delete a room less than a day old', c, 'DELETE', room);
 
-console.log(`Test room: ${code}`);
+console.log(`Test rooms: ${code}, ${code2}, ${dudes} (deleted by the tidy-up once a day old, or in the console)`);
 if (fail.length) { console.error(`${passed} as expected, ${fail.length} not:\n- ${fail.join('\n- ')}`); process.exit(1); }
 console.log(`Battleships database rules: all ${passed} checks as expected`);
