@@ -206,3 +206,38 @@ test('two phones: a wrong answer is caught at the end', async ({ browser }) => {
   await expect(p.locator('#overCheck')).toHaveText(/⚠ Something doesn't add up: the answer to your shot 1 was wrong/, { timeout: 10000 });
   for (const ph of phones) await ph.context.close();
 });
+
+test('two phones: old rooms this phone was in are tidied away, games still going are not', async ({ browser }) => {
+  const db = fakeDatabase();
+  const DAY = 24 * 60 * 60 * 1000, now = Date.now();
+  const room = (created, seen, extra = {}) => ({ created, n: 0, a: { uid: 'someone', name: 'P', seen }, ...extra });
+  db.set('rooms/OLD2', room(now - 2 * DAY, now - 2 * DAY));                                  // nobody joined, two days ago
+  db.set('rooms/SLW3', room(now - 3 * DAY, now - DAY, { b: { uid: 'x', name: 'D', seen: now - 60000 } }));   // a slow game, played a minute ago
+  db.set('rooms/NEW4', room(now - 60000, now - 60000));                                       // started a minute ago
+  const context = await browser.newContext();
+  await db.attach(context);
+  await context.addInitScript(() => {
+    if (!sessionStorage.getItem('seeded')) {
+      sessionStorage.setItem('seeded', '1');
+      localStorage.setItem('battleships.rooms.v1', JSON.stringify(['OLD2', 'SLW3', 'NEW4', 'GON5']));
+    }
+  });
+  const page = await context.newPage();
+  await page.goto('/battleships/?speed=8');
+  // a page that never plays on two devices never touches the database
+  await page.waitForTimeout(300);
+  expect(db.get('rooms/OLD2')).not.toBeNull();
+
+  await page.fill('#onlineName', 'P');
+  await page.click('#hostBtn');
+  await expect(page.locator('#lobby')).toBeVisible();
+  const code = (await page.locator('#lobbyCode').textContent()).trim();
+  await expect.poll(() => db.get('rooms/OLD2')).toBeNull();
+  expect(db.get('rooms/SLW3')).not.toBeNull();
+  expect(db.get('rooms/NEW4')).not.toBeNull();
+  expect(db.get(`rooms/${code}`)).not.toBeNull();
+  // forgotten: the deleted one and the one already gone; remembered: the ones still in use, and the new one
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('battleships.rooms.v1')).sort()))
+    .toEqual(['NEW4', 'SLW3', code].sort());
+  await context.close();
+});

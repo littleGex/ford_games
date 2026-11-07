@@ -83,6 +83,20 @@ export function view(room, seat) {
   };
 }
 
+export const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Can this room be tidied away? Only once it's over a day old (the rules won't delete it sooner) and nobody is
+ * still playing in it: it's finished, or nobody has been there for a day. `now` is this device's clock, so a
+ * little extra is allowed in case it runs fast.
+ */
+export function stale(room, now) {
+  if (!room || !(now - room.created > DAY + 10 * 60 * 1000)) return false;
+  if (view(room, 'a').phase === 'over' && room.reveal && room.reveal.a && room.reveal.b) return true;
+  const lastSeen = Math.max(room.created, (room.a && room.a.seen) || 0, (room.b && room.b.seen) || 0);
+  return now - lastSeen > DAY;
+}
+
 /**
  * At the end: does the other player's revealed fleet match their fingerprint and every answer they gave?
  * Returns { ok, fleet } or { ok: false, why }.

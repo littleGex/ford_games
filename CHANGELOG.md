@@ -10,6 +10,11 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Battleships: old games on two phones tidy themselves away. Each phone remembers the games it was in and, the
+  next time it starts or joins one, deletes those over a day old that are finished or that nobody has been
+  in for a day (#128).
+
 ### Changed
 - Snake, Hangman, Wordle and Word Search: the shared leaderboard and word lists can no longer be deleted or
   changed by anyone, and a word must fit its game (A to Z, the right length). Snake keeps every score instead

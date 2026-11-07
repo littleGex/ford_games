@@ -11,12 +11,13 @@ import { FLEET, randomFleet, fits, shipAt, shipName, shipLength, label, seededRa
 import { newGame, place, fire, fired, other, isComputer, validState, tally } from './game.js';
 import { chooseShot } from './ai.js';
 import { createFirebase, NOW } from './net/firebase.js';
-import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat } from './net/online.js';
+import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat, stale } from './net/online.js';
 
 const params = new URLSearchParams(location.search);
 const rng = params.has('seed') ? seededRandom(Number(params.get('seed')) || 1) : Math.random;
 const SAVE_KEY = 'battleships.save.v1', STATS_KEY = 'battleships.stats.v1', PREFS_KEY = 'battleships.prefs.v1';
 const ONLINE_KEY = 'battleships.online.v1';   // the game on two devices this one is in: { code, seat, fleet, salt }
+const ROOMS_KEY = 'battleships.rooms.v1';     // every room this device has been in, to tidy away later: [code]
 const LEVEL_NAME = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
 
 const load = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch (e) { return fallback; } };
@@ -522,10 +523,36 @@ async function join(code) {
   }
 }
 
+/**
+ * Old rooms: every room this device has been in is remembered, and once one is over a day old and nobody is
+ * playing in it any more, it's deleted (the rules allow that for anyone). Runs when a game on two devices starts,
+ * so a device that never plays online never signs in. A room the other player already deleted is just forgotten.
+ */
+function remember(code) {
+  const codes = load(ROOMS_KEY, []);
+  if (!codes.includes(code)) keep(ROOMS_KEY, [...codes, code].slice(-50));
+}
+async function tidyRooms() {
+  const current = (load(ONLINE_KEY, null) || {}).code;
+  for (const code of load(ROOMS_KEY, [])) {
+    if (code === current) continue;
+    try {
+      const room = await net.get(rooms(code));
+      if (room && !stale(room, Date.now())) continue;
+      if (room) await net.remove(rooms(code));
+      keep(ROOMS_KEY, load(ROOMS_KEY, []).filter(c => c !== code));
+    } catch (e) {
+      // offline, or the server's clock says it isn't a day old yet: try again another time
+    }
+  }
+}
+
 /** Take a seat in a room (new, or carrying on after a reload) and follow it. */
 function connect(session) {
   if (online && online.stop) online.stop();
   net = net || createFirebase();
+  remember(session.code);
+  tidyRooms();
   online = { ...session, room: undefined, shown: null, answered: new Set(), turnShown: -1, finished: false, checked: false };
   keep(ONLINE_KEY, { code: session.code, seat: session.seat, fleet: session.fleet, salt: session.salt });
   state = {

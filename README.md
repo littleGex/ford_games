@@ -176,8 +176,9 @@ fingerprint and every answer it gave, so a wrong answer shows up on the game ove
 The security rules (`battleships/database.rules.json`, pasted into the Firebase console by hand) make everyone
 take turns: only signed-in players, a seat can't be taken twice, only the player whose turn it is can fire,
 only the player fired at can answer, nothing can be changed once written, and every field is checked. Rooms
-over a day old may be deleted (by hand, in the console). After changing the rules, run
-`node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
+over a day old may be deleted: each device remembers the rooms it was in, and when it next starts or joins a
+game on two devices it deletes the ones over a day old that are finished or that nobody has been in for a day.
+After changing the rules, run `node tests/battleships/rules-live.mjs`: three throwaway players try 47 things against the real database, allowed
 and not. It isn't part of CI, since it needs the real database. The Firebase key only works from the site and
 `http://localhost:8080`, so the live tests sign in as local testing (they send that address as the `Referer`).
 
