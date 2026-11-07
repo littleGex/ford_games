@@ -10,6 +10,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.20.0] - 2026-11-07
+
 ### Added
 - Battleships: **Salvo**, against the computer or two on one device: a shot for each of your ships still afloat,
   all picked and then fired together. The computer plays it at every level, and Salvo wins are counted on their
@@ -475,7 +477,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.19.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.20.0...HEAD
+[4.20.0]: https://github.com/littleGex/ford_games/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/littleGex/ford_games/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/littleGex/ford_games/compare/v4.17.0...v4.18.0
 [4.17.0]: https://github.com/littleGex/ford_games/compare/v4.16.0...v4.17.0
