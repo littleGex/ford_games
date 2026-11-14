@@ -26,7 +26,12 @@ December. It completes the elf story so the children get a send-off, not an elf 
   6. Results card: "Goodbye, <name>!" with "You found <name> N times this December." No "Try again", no stars.
 - **Which notes:** from the scenes found this Advent (found dates in December, scene of each date via
   `pickScene`), three different scenes: the first found, one from the middle, the most recent. Fewer than three
-  found: the rest are filled from fixed spots (the Christmas tree, the dining table), with their own lines.
+  found: the rest are filled from fixed spots, in order the Christmas tree, the dining room windowsill (where the
+  wish list went), the kitchen worktop, each with its own memory line ("I loved watching the tree lights at
+  night"), skipping any spot a found scene already uses, so there are always three notes at three different
+  places. *(Claude's call, builder check: an elf who arrives on 23 December reaches the 24th with nothing found.)*
+- **The first note** is tucked beside the Advent calendars, not behind door 24; the calendars and their doors are
+  untouched. *(Claude's call, builder check.)*
 - **After both goodbyes:** his door is gone for the rest of the Advent year (and Christmas Day on has no `advent`
   anyway). His name and arrival record are kept; next December the arrival mission brings him back as before.
 
@@ -56,7 +61,8 @@ December. It completes the elf story so the children get a send-off, not an elf 
 
 - Replaces the 24 December find (Alan). Approach A (Alan).
 - *(Claude's calls)* Offered on 24 December only; starts at the Advent calendars; three notes chosen first /
-  middle / latest; fallbacks the tree and the dining table; door gone after goodbye for that Advent; name kept.
+  middle / latest; fallbacks the tree, the windowsill, the worktop; door gone after both goodbyes for that Advent;
+  name kept.
 - Each child says their own goodbye (Alan). The store remembers each child's goodbye this Advent
   (`left: { girl: 'YYYY-MM-DD', boy: ... }`); a child can't replay theirs the same December. *(Claude's call: no
   "Try again", like the arrival.)*
