@@ -1172,3 +1172,14 @@ test("the elf's name card takes any name typed on a keyboard, and Escape closes 
   await page.evaluate(() => window.house.missions.start('print3d', 'dad'));
   await expect(page.locator('#elfLetter')).toBeHidden();
 });
+
+test("where's the elf: a clue under Find the elf after a minute, readable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('fordHouse.elf.v1', JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' })));
+  await page.goto('/house/?date=2026-12-02');
+  await play(page);
+  const hint = await page.evaluate(() => { const G = window.house; G.days.setCharacter('girl'); G.player.setCharacter('girl'); G.days.next(); G.elf.update(61); return G.elf.scene.hint[0]; });
+  await expect(page.locator('#taskList')).toContainText(hint);
+  await expect(page.locator('#toast')).toContainText(hint);   // the list is folded away on a phone: it pops up too
+  await page.screenshot({ path: 'test-results/elf-clue-phone.png' });
+});

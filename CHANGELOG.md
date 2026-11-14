@@ -15,6 +15,12 @@ pull request; at release time that section becomes the new version (see "Releasi
   brings the elf's door and a letter, shown on screen for the children to read; fix his door in the hall and,
   the first year, give him a name (Pip until then). He's out from the next morning, with his name everywhere,
   and comes back each December with a welcome-back letter.
+- Ford House: where's the elf? After a minute of looking, a clue says which room he's in, and a minute later
+  a closer one.
+
+### Fixed
+- Ford House: starting over from day 1 brings the elf back out that morning; finding him in November (testing
+  with `?holiday=christmas`) no longer counts as his arrival; the elf's name box takes every letter.
 
 ## [4.21.1] - 2026-11-14
 

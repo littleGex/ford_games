@@ -3,6 +3,7 @@
 // the house with the mess he made in the night. The "Find the elf" job (jobs.js) finds him, puts the mess right
 // and takes him back through his door.
 import { bell } from '../core/audio.js';
+import { S } from '../state.js';
 import { sendHome } from '../items.js';
 import { ELF_SCENES } from '../pack/elfscenes.js';
 import { elfName } from '../elf.js';
@@ -16,6 +17,10 @@ export function createElf(ctx) {
   stage.scene.add(door);
   const built = {};
   let scene = null, day;   // day: the date today's game day was planned for (days.js params.elfDate)
+  let looking = 0;          // seconds of play with him out and not found yet (where's the elf? clues)
+  const CLUES_AT = [60, 120];
+  const elfJob = () => ctx.board && ctx.board.find('elf');
+  function clue(text) { const j = elfJob(); if (j && j.status !== text) { j.status = text; ctx.board.refresh(); } }
 
   /** A scene's mess, built the first time it's needed and added to the elf's floor (hidden). */
   function propsOf(id) {
@@ -36,6 +41,7 @@ export function createElf(ctx) {
     reset(params) {
       const tags = [].concat(params.holiday || []);
       hideAll(); hideElf();
+      looking = 0; clue(undefined);
       day = params.elfDate;
       door.visible = tags.includes('advent') && ctx.elfLog.hasArrived(day);   // his door: from the day he arrived
       scene = ELF_SCENES.find(s => s.id === params.elfScene) || null;
@@ -46,9 +52,18 @@ export function createElf(ctx) {
       elf.userData.level = level; elf.visible = true;
       propsOf(scene.id).forEach(p => { p.visible = true; });
     },
+    /** Where's the elf? After a minute of looking a clue under "Find the elf" (which room), a minute later a closer one. */
+    update(dt) {
+      if (S.menuOpen || S.dayOver || S.mission || !scene || !items.elf.visible) return;
+      const j = elfJob();
+      if (!j || j.i !== 0) return;
+      looking += dt;
+      const n = CLUES_AT.filter(t => looking >= t).length;
+      if (n && j.status !== scene.hint[n - 1]) { clue(scene.hint[n - 1]); hud.toast(`Where's ${elfName()}? ${scene.hint[n - 1]}`); }   // the list may be folded away
+    },
     /** Put one bit of today's mess right. */
     clear(i) { const p = scene && propsOf(scene.id)[i]; if (p) p.visible = false; },
-    found() { const E = elfName(); bell(); hud.toast(`You found ${E}! ${scene ? scene.title(E) : ''}`.trim()); },
+    found() { clue(undefined); const E = elfName(); bell(); hud.toast(`You found ${E}! ${scene ? scene.title(E) : ''}`.trim()); },
     /** Back through his door: gone until tomorrow. */
     home() { hideElf(); hideAll(); ctx.elfLog.markFound(day); },
     /** The elf arrives mission: nothing of his about until his door is fixed. */

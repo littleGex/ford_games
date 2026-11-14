@@ -848,11 +848,26 @@ for (const who of ['dad', 'girl']) {
   G.days.next();
   const job = G.board.find('elf');
   if (!job || !job.steps.some(st => /Holly/.test(st.label))) errors.push(`the morning after he arrives: no "Find the elf" with Holly (${G.board.jobs.map(j => j.id)})`);
+  // where's the elf? a clue under the job after a minute of looking, a closer one a minute later, gone once he's found
+  {
+    const { ELF_SCENES } = await import(new URL('../../house/js/pack/elfscenes.js', import.meta.url));
+    const bad = ELF_SCENES.filter(sc => !Array.isArray(sc.hint) || sc.hint.length !== 2 || sc.hint.some(h => typeof h !== 'string' || !h));
+    if (bad.length) errors.push(`elf clues: scenes without two clues: ${bad.map(sc => sc.id)}`);
+    const sc = G.elf.scene, st = () => job && job.status;
+    if (st()) errors.push(`elf clues: a clue straight away (${st()})`);
+    G.elf.update(50);
+    if (st()) errors.push('elf clues: a clue before a minute');
+    G.elf.update(15);
+    if (!sc || st() !== sc.hint[0]) errors.push(`elf clues: after a minute want "${sc && sc.hint[0]}", got "${st()}"`);
+    G.elf.update(60);
+    if (!sc || st() !== sc.hint[1]) errors.push(`elf clues: after two minutes want "${sc && sc.hint[1]}", got "${st()}"`);
+  }
   // found and taken home, then "Start over from day 1": he's back out (a fresh game), still Holly, still arrived
   if (job) { let guard = 0; while (job.i < job.steps.length && guard++ < 20) { const r = doStep(job); if (r !== true) { errors.push(`finding Holly: ${r}`); break; } } }
   if (!G.elfLog.found('2026-12-02')) errors.push('finding Holly: never marked found');
   G.days.restart();
   const back = G.board.find('elf');
+  if (back && back.status) errors.push(`elf clues: still showing after start over (${back.status})`);
   if (!back || back.i !== 0 || !G.items.elf.visible || G.elfLog.name() !== 'Holly' || !G.elfLog.hasArrived('2026-12-02'))
     errors.push(`start over from day 1: want Holly back out to find (job ${back && back.i}, visible ${G.items.elf.visible}, ${G.elfLog.name()})`);
   // next December: the same elf, welcome back, no name card
