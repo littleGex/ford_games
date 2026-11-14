@@ -56,11 +56,19 @@ export function createElfCards(ctx) {
     close() { if (S.elfCard === 'letter') done(); },
     /** The name card's "That's his name" (empty keeps the name he has). */
     submit(text) { if (S.elfCard !== 'name') return; ctx.elfLog.setName(text); done(); },
+    /** Put a card away without finishing its step (a mission starting or ending). */
+    reset() { S.elfCard = null; job = null; step = null; el.letter.hidden = true; el.name.hidden = true; },
     /** The letter's text (for tests). */
     text: () => shown.join('\n'),
   };
   el.close.addEventListener('click', () => api.close());
   el.ok.addEventListener('click', () => api.submit(el.input.value));
   el.input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); api.submit(el.input.value); } });
+  // Escape: the letter is read (closed); the name card takes what's in the box (the home menu stays shut, ui/home.js)
+  window.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !S.elfCard) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (S.elfCard === 'letter') api.close(); else api.submit(el.input.value);
+  });
   return api;
 }

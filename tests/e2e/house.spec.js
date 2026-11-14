@@ -1153,3 +1153,22 @@ test('the elf arrives: the mission card from 1 to 23 December until he has come,
   await expect(page.locator('#homePlay')).toBeVisible();
   await expect(card).toBeHidden();
 });
+
+test("the elf's name card takes any name typed on a keyboard, and Escape closes his letter, not under the menu", async ({ page }) => {
+  await page.goto('/house/?date=2026-12-01');
+  await play(page);
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'name' }));
+  await page.locator('#elfNameInput').fill('');
+  await page.locator('#elfNameInput').pressSequentially('Mr Jingle');
+  await expect(page.locator('#elfNameInput')).toHaveValue('Mr Jingle');
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => window.house.elfLog.name())).toBe('Mr Jingle');
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#elfLetter')).toBeHidden();
+  expect(await page.evaluate(() => window.house.home.isOpen)).toBe(false);
+  // a mission started with a card left open: the card goes
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
+  await page.evaluate(() => window.house.missions.start('print3d', 'dad'));
+  await expect(page.locator('#elfLetter')).toBeHidden();
+});

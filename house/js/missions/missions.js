@@ -659,6 +659,7 @@ export function createMissions(ctx) {
   function start(id, who) {
     const m = MISSIONS[id], kid = m && (m.spot ? m.spot(who) : KIDS[who]);
     if (!m || !kid) return;
+    if (S.elfCard) ctx.elfCards.reset();   // a card left open from before isn't this mission's
     if (S.sitting) ctx.sitting.standUp();
     if (S.laptop) ctx.laptop.close();
     if (ctx.home) ctx.home.close();
@@ -764,6 +765,7 @@ export function createMissions(ctx) {
   function end() {
     if (!S.mission) return;
     S.mission = null;
+    if (S.elfCard) ctx.elfCards.reset();
     if (S.laptop) ctx.laptop.close();
     if (S.quiz) ctx.quiz.close();
     if (ctx.printing) ctx.printing.reset();
