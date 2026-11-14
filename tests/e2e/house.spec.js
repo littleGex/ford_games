@@ -1131,3 +1131,25 @@ test("the elf's letter and name cards: big enough to read on a phone, and the na
   await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
   await expect(letter).toContainText("It's me, Holly!");
 });
+
+test('the elf arrives: the mission card from 1 to 23 December until he has come, and not with Christmas off', async ({ page }) => {
+  const card = page.locator('#missionElf');
+  await page.goto('/house/?date=2026-11-20');
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(card).toBeHidden();
+  await page.goto('/house/?date=2026-12-01');
+  await expect(card).toBeVisible();
+  await expect(card.locator('[data-mission="elfArrives"][data-kid="girl"]')).toBeVisible();
+  await page.goto('/house/?date=2026-12-24');
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(card).toBeHidden();
+  await page.goto('/house/?date=2026-12-01');
+  await page.evaluate(() => window.house.elfLog.arrive('2026-12-01'));
+  await page.reload();
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(card).toBeHidden();
+  await page.evaluate(() => { localStorage.removeItem('fordHouse.elf.v1'); window.house.settings.set('christmas', false); });
+  await page.reload();
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(card).toBeHidden();
+});

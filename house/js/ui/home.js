@@ -5,13 +5,23 @@ import { S } from '../state.js';
 import { NAMES, nameOf, showNames } from '../names.js';
 import { clockText, MISSIONS } from '../missions/missions.js';
 import { DESIGNS } from '../systems/printing.js';
+import { currentHolidays, today } from '../holidays.js';
+import { dateKey } from '../elf.js';
 
 export function createHome(ctx) {
   const { board, clock, days } = ctx;
   const $ = id => document.getElementById(id);
   const el = { box: $('home'), sub: $('homeSub'), play: $('homePlay'), menu: $('menuBtn'), restartYes: $('gameRestartYes') };
 
+  /** The elf arrives: offered from 1 to 23 December (Christmas on) until he's come this Advent. */
+  function elfOffered() {
+    const d = today(), tags = ctx.settings ? ctx.settings.filterTags(currentHolidays()) : currentHolidays();
+    return d.getMonth() === 11 && d.getDate() <= 23 && tags.includes('advent') && !!ctx.elfLog && !ctx.elfLog.hasArrived(dateKey(d));
+  }
+
   function render() {
+    const elfCard = document.getElementById('missionElf');
+    if (elfCard) elfCard.hidden = !elfOffered();
     showNames();   // the players' names on the buttons and mission cards
     // the best result for each mission, under its card
     document.querySelectorAll('.mission-best').forEach(b => {

@@ -123,6 +123,13 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.BoxGeometry(0.24, 0.1, 0.24), mat('#c49a62'), [0, 0.05, 0]);
       add(g, new THREE.BoxGeometry(0.245, 0.005, 0.06), mat('#2f6fd6'), [0, 0.102, 0]);
     }, [0, 0, 0], { hidden: true }),
+    // the elf arrives (missions.js): a parcel from the North Pole with his door and a letter inside
+    elfParcel: item(g => {
+      add(g, new THREE.BoxGeometry(0.3, 0.14, 0.22), mat('#b8865a'), [0, 0.07, 0]);
+      add(g, new THREE.BoxGeometry(0.305, 0.006, 0.05), mat('#c62828'), [0, 0.142, 0]);
+      add(g, new THREE.BoxGeometry(0.05, 0.006, 0.225), mat('#c62828'), [0, 0.143, 0]);
+      add(g, new THREE.TorusGeometry(0.03, 0.01, 6, 12), mat('#2e7d32'), [0, 0.16, 0], null, [Math.PI / 2, 0, 0]);
+    }, [0, 0, 0], { hidden: true }),
     printModel: item(() => {}, [0.86, 0.09, 3.68], { hidden: true, userData: { carry: [0.1, 0.62, 0.26] } }),
     // a garden bag of raked leaves (shows up once the lawn is raked)
     leafBag: item(g => {

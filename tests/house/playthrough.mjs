@@ -803,6 +803,64 @@ for (const who of ['dad', 'girl']) {
   console.log('the elf: found by P and Dude on 3 December, once a day, off with Christmas, away in November');
 }
 
+// --- the elf arrives (#157): the courier's parcel, his letter, his door and (the first year) his name; out the
+// next real morning; the next December a welcome back, no naming
+{
+  const { MISSIONS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  const spot = MISSIONS.elfArrives.spot('girl');
+  if (blocked(spot.start[0], spot.start[1], spot.level)) errors.push('the elf arrives: P starts inside something');
+  function arrive(label) {
+    let rang = false, letter = '', named = false;
+    const realOpen = G.elfCards.open;
+    G.elfCards.open = (j, st) => { realOpen(j, st); if (st.card === 'letter') letter = G.elfCards.text(); if (st.card === 'name') named = true; };
+    G.missions.start('elfArrives', 'girl');
+    for (let round = 0; round < 30 && !S.mission.done; round++) {
+      for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+        let guard = 0;
+        while (job.i < job.steps.length && guard++ < 10) {
+          const before = job.i, r = doStep(job);
+          if (/parcel/i.test(G.deliveries.banner() || '')) rang = true;
+          if (r !== true) { errors.push(`${label} "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; S.carrying = null; break; }
+        }
+      }
+      frame();
+    }
+    G.elfCards.open = realOpen;
+    const done = S.mission.done, card = G.missions.card();
+    if (!done) errors.push(`${label}: never finished`);
+    if (!rang) errors.push(`${label}: the courier never rang with the parcel`);
+    if (card.again) errors.push(`${label}: the results card offers "Try again"`);
+    G.missions.end();
+    return { letter, named, card };
+  }
+  localStorage.removeItem(ELF_KEY);
+  elfNameToType = 'Holly';
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  globalThis.location.search = '?season=winter&date=2026-12-01';
+  G.days.next();
+  const first = arrive('the elf arrives (first year)');
+  if (!/But first I need a name/.test(first.letter) || !first.named) errors.push(`the first year: the letter (${first.letter.slice(0, 40)}...) or the name card is missing`);
+  if (!G.elfLog.hasArrived('2026-12-01') || G.elfLog.name() !== 'Holly') errors.push(`the elf arrives: arrived ${G.elfLog.arrivedOn('2026-12-01')}, named ${G.elfLog.name()}`);
+  if (first.card.title !== 'Welcome, Holly!' || first.card.best !== 'Arrived 1 Dec') errors.push(`the elf arrives: results "${first.card.title}" / "${first.card.best}"`);
+  if (!G.elf.door.visible || G.board.find('elf')) errors.push('the day he arrives: want his door up and no "Find the elf" yet');
+  globalThis.location.search = '?season=winter&date=2026-12-02';
+  G.days.next();
+  const job = G.board.find('elf');
+  if (!job || !job.steps.some(st => /Holly/.test(st.label))) errors.push(`the morning after he arrives: no "Find the elf" with Holly (${G.board.jobs.map(j => j.id)})`);
+  // next December: the same elf, welcome back, no name card
+  globalThis.location.search = '?season=winter&date=2027-12-01';
+  G.days.next();
+  const again = arrive('the elf arrives (next year)');
+  if (again.named || !/It's me, Holly!/.test(again.letter)) errors.push(`the next year: a name card, or the letter isn't a welcome back (${again.letter.slice(0, 40)}...)`);
+  if (!G.elfLog.hasArrived('2027-12-01')) errors.push('the next year: he never arrived');
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('the elf arrives: parcel, letter, door and Holly; out the next morning; welcome back the next year');
+}
+
 // --- names and switched-off jobs (#78): P called Pia and Dad called Alan show in job titles, labels, the room
 // chip and the buttons; with the dragon and the clarinet off they never come up, and a day still finishes
 {
