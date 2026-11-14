@@ -64,6 +64,8 @@
           <span class="mission-play" role="group" aria-label="Play work from home as"><button data-mission="wfh" data-kid="dad" data-name="dad">Dad</button><button data-mission="wfh" data-kid="mum" data-name="mum">Mum</button></span></li>
         <li class="mission" id="missionOffice"><span class="mission-icon" aria-hidden="true">🏢</span><span><b>Work at the office</b><small><span data-name="dad">Dad</span> cycles: clock in, meet the boss, work, lunch, the team meeting, maybe a fire drill, home by 17:30. <span data-name="mum">Mum</span> drives: zebra crossing, turnstiles, clock in, lift up to her floor, meetings, lunch, a fire drill, home by 17:30</small><small class="mission-best" data-best="office officeMum"></small></span>
           <span class="mission-play" role="group" aria-label="Play work at the office as"><button data-mission="office" data-kid="dad" data-name="dad">Dad</button><button data-mission="officeMum" data-kid="mum" data-name="mum">Mum</button></span></li>
+        <li class="mission" id="missionElf" hidden><span class="mission-icon" aria-hidden="true">🧝</span><span><b>The elf arrives</b><small>A parcel with a little door and a letter: read it, fix the door in the hall and meet your elf</small></span>
+          <span class="mission-play" role="group" aria-label="Play the elf arrives as"><button data-mission="elfArrives" data-kid="girl" data-name="girl">P</button><button data-mission="elfArrives" data-kid="boy" data-name="boy">Dude</button></span></li>
         <li class="mission" id="missionPrint3d"><span class="mission-icon" aria-hidden="true">🖨️</span><span><b>3D printing</b><small><span data-name="dad">Dad</span>: pick a design on the laptop, order filament, load the printer by the sofa, print it and put it where it belongs</small><small class="mission-best" data-best="print3d"></small></span>
           <span class="mission-play" role="group" aria-label="Play 3D printing as"><button data-mission="print3d" data-kid="dad" data-name="dad">Dad</button><button data-mission="print3d" data-kid="mum" data-name="mum" data-cover="dad" hidden>Mum</button></span></li>
         <li class="mission" id="missionBedtime"><span class="mission-icon" aria-hidden="true">🌙</span><span><b>Bedtime</b><small><span data-name="mum">Mum</span> or <span data-name="dad">Dad</span>, from 19:45: iPads off, upstairs, a shower, pyjamas and teeth each, a story, then tuck them in and lights out by 20:30. Expect some trouble!</small><small class="mission-best" data-best="bedtime"></small></span>
@@ -189,6 +191,23 @@
       <h2 class="advent-count" id="adventCount"></h2>
       <ul class="advent-gifts" id="adventGifts"></ul>
       <div class="advent-actions"><button class="btn" id="adventDone">Done</button></div>
+    </div>
+  </div>
+
+  <div class="advent elf-overlay" id="elfLetter" role="dialog" aria-modal="true" aria-labelledby="elfLetterTitle" hidden>
+    <div class="elf-card elf-paper">
+      <h1 id="elfLetterTitle">A letter for you ✉️</h1>
+      <div class="elf-letter" id="elfLetterText"></div>
+      <div class="advent-actions"><button class="btn" id="elfLetterClose">Close</button></div>
+    </div>
+  </div>
+
+  <div class="advent elf-overlay" id="elfName" role="dialog" aria-modal="true" aria-labelledby="elfNameTitle" hidden>
+    <div class="elf-card elf-paper">
+      <h1 id="elfNameTitle">What's my name?</h1>
+      <label class="elf-name-label" for="elfNameInput">Give your elf a name</label>
+      <input class="elf-name-input" id="elfNameInput" type="text" autocomplete="off" spellcheck="false" maxlength="16">
+      <div class="advent-actions"><button class="btn" id="elfNameOk">That's his name</button></div>
     </div>
   </div>
 

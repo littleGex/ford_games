@@ -10,6 +10,12 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **the elf arrives** (#157), a mission for P or Dude once a December. A parcel from the North Pole
+  brings the elf's door and a letter, shown on screen for the children to read; fix his door in the hall and,
+  the first year, give him a name (Pip until then). He's out from the next morning, with his name everywhere,
+  and comes back each December with a welcome-back letter.
+
 ## [4.21.1] - 2026-11-14
 
 ### Fixed

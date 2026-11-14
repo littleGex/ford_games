@@ -146,6 +146,13 @@ with the day.
   the lifts don't run, and go out to the assembly point in the garden). Then shut down, back down, clock
   out, badge out and drive home. Her clock runs a little slower than the other days (her site is twice
   the walk).
+- **The elf arrives** (P or Dude, once a December, `js/ui/elfcards.js`): from 1 to 23 December, until he's come,
+  the home screen offers it. The courier brings a parcel from the North Pole; carry it to the dining table and
+  open it, and his letter comes up on screen, big enough for the children to read. Fix his little door to the
+  skirting in the hall and, the first time, give him a name ("Pip" is filled in; type your own). He's out from
+  the next morning ("Find the elf"), and his name is in every label. Each December after, the same elf comes
+  back: a welcome-back letter with his name, no naming. Saved on the device (`fordHouse.elf.v1`). A device that
+  had the elf out before this mission existed counts him as arrived. Try it with `?date=2026-12-01`.
 - **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
   for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
   pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the
@@ -248,7 +255,8 @@ can look at both calendars on the wall or from the home screen, and the card lis
 What's been opened is saved on the device; a new Advent starts with the doors shut.
 
 **The naughty elf** (`js/elf.js`, `js/systems/elf.js`, scenes in `js/pack/elfscenes.js`): from 1 to 24 December
-Pip the elf has a little green door on the skirting in the hall, by the kitchen door. Each night he gets up to
+the elf (Pip until the children name him, in the elf arrives mission) has a little green door on the skirting
+in the hall, by the kitchen door, from the day he arrives. Each night he gets up to
 something somewhere in the house: loo roll round the coats, the biscuit tin raided, tinsel on the bearded
 dragon's terrarium (only while the dragon is switched on), the porch full of shoes, a zip wire across the living
 room, a flour snow angel on the dining table, a Lego sleigh in the attic, a cushion fort, fishing in the kitchen
@@ -257,7 +265,7 @@ marker shows where he is, so they have to look. Then they put the mess right and
 scene a day, in order, picked from the date, so every device has the same one. He's found once a real day (saved
 on the device: playing another day on the same date doesn't bring him back), whichever of P or Dude finds him,
 and swapping player halfway carries on where they were. Switching Christmas off switches him off too. Try it
-with `?date=2026-12-03`. Elf missions to come: #157-#160.
+with `?date=2026-12-03` (after playing the elf arrives). More elf missions to come: #158-#160.
 
 Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
 `?holiday=christmas` for a day like 15 December.

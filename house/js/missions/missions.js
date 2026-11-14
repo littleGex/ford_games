@@ -34,6 +34,10 @@ import { MUM } from '../world/mumoffice.js';
 import { SCHOOL } from '../world/school.js';
 import { BED, SEARCH, NAMES as KID } from '../systems/bedtime.js';
 import { STAIRS } from '../systems/levels.js';
+import { XMAS } from '../world/christmas.js';
+import { ELF_DOOR } from '../world/elf.js';
+import { elfName, dateKey } from '../elf.js';
+import { today } from '../holidays.js';
 
 const KEY = 'fordHouse.missions.v1';
 const BEST = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
@@ -604,6 +608,35 @@ export const MISSIONS = {
       return { title: 'Printed!', stats: `You printed a ${c.label.toLowerCase()} ${d.name}.`, record: d.id };
     },
   },
+  // The elf arrives (#157): once a December, from 1 to 23 December until he's come (ui/home.js). The courier brings
+  // a parcel with his door and a letter (ui/elfcards.js); fix the door in the hall and, the first year, name him.
+  // He's out from the next morning (elf.js out()).
+  elfArrives: {
+    title: 'The elf arrives', who: ['girl', 'boy'], once: true,
+    spot: who => ({ name: nameOf(who), level: 0, start: [3.9, 7.4], facing: Math.PI }),
+    intro: 'Someone is sending you a parcel...',
+    setup(c) { c.elf.prepareArrival(); },
+    jobs: () => [
+      { title: 'A parcel is coming', steps: [
+        { kind: 'wait', delivery: 'elfParcel', dur: 15, label: 'Wait for the parcel', doneMessage: 'Ding-dong! A parcel for you' },
+        { kind: 'pick', item: 'elfParcel', at: FOOD_DELIVERY.door, label: 'Answer the door and take the parcel' }] },
+      { title: 'Open it on the dining table', steps: [
+        { kind: 'drop', item: 'elfParcel', at: XMAS.table.at, place: [1.95, 0.75, 6.85], label: 'Put the parcel on the dining table' },
+        { kind: 'card', card: 'letter', at: XMAS.table.at, label: 'Open the parcel and read the letter', onDone: c => { c.items.elfParcel.visible = false; } }] },
+      (c) => {
+        const naming = !c.elfLog.named();   // the first time he comes, he needs a name
+        const arrive = cc => cc.elfLog.arrive(dateKey(today()));
+        return { title: naming ? 'Fix his door and give him a name' : 'Fix his door', steps: [
+          { kind: 'use', at: ELF_DOOR.at, label: 'Fix the little door to the skirting in the hall', onDone: cc => { cc.elf.fixDoor(); if (!naming) arrive(cc); } },
+          ...(naming ? [{ kind: 'card', card: 'name', at: ELF_DOOR.at, label: 'Give your elf a name', onDone: arrive }] : [])] };
+      },
+    ],
+    result() {
+      const E = elfName(), d = today();
+      return { title: `Welcome, ${E}!`, stats: `Look out for ${E} tomorrow morning. He'll be up to something!`,
+               best: `Arrived ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}` };
+    },
+  },
 };
 
 export function createMissions(ctx) {
@@ -626,6 +659,7 @@ export function createMissions(ctx) {
   function start(id, who) {
     const m = MISSIONS[id], kid = m && (m.spot ? m.spot(who) : KIDS[who]);
     if (!m || !kid) return;
+    if (S.elfCard) ctx.elfCards.reset();   // a card left open from before isn't this mission's
     if (S.sitting) ctx.sitting.standUp();
     if (S.laptop) ctx.laptop.close();
     if (ctx.home) ctx.home.close();
@@ -690,7 +724,7 @@ export function createMissions(ctx) {
     if (!m.clock) return finishForFun(mission, m);
     const arrived = now(), r = m.result ? m.result(mission, arrived) : null, stars = r ? r.stars : m.stars(arrived);
     const at = r && r.minutes !== undefined ? r.minutes : arrived;   // bedtime: when the lights went out
-    el.stars.hidden = false; el.again.textContent = 'Try again';
+    el.stars.hidden = false; el.again.textContent = 'Try again'; el.again.hidden = false;
     mission.done = true;
     const best = ((BEST[mission.id] ||= {})[mission.who]);
     const better = !best || stars > best.stars || (stars === best.stars && at < best.minutes);
@@ -710,22 +744,28 @@ export function createMissions(ctx) {
   /** A mission with no clock: no stars, just what you made, and everything you've made so far. */
   function finishForFun(mission, m) {
     mission.done = true;
-    const r = m.result(mission), rec = ((BEST[mission.id] ||= {})[mission.who] ||= { made: [] });
-    if (!rec.made.includes(r.record)) { rec.made.push(r.record); saveBest(); }
+    const r = m.result(mission);
     el.eyebrow.textContent = `${m.title} · ${NAMES[mission.who]}`;
     el.title.textContent = r.title;
     el.stars.hidden = true;
     el.stats.textContent = r.stats;
-    el.best.textContent = `Made so far: ${rec.made.map(id => (DESIGNS.find(d => d.id === id) || { name: id }).name).join(', ')}`;
+    if (r.best !== undefined) el.best.textContent = r.best;   // a mission's own line (the elf arrives: when)
+    else {
+      const rec = ((BEST[mission.id] ||= {})[mission.who] ||= { made: [] });
+      if (!rec.made.includes(r.record)) { rec.made.push(r.record); saveBest(); }
+      el.best.textContent = `Made so far: ${rec.made.map(id => (DESIGNS.find(d => d.id === id) || { name: id }).name).join(', ')}`;
+    }
     el.again.textContent = 'Print something else';
+    el.again.hidden = !!m.once;   // once a December (the elf arrives): nothing to try again
     el.box.hidden = false;
-    el.again.focus();
+    (m.once ? el.back : el.again).focus();
   }
 
   /** Leave the mission and pick the day up again. */
   function end() {
     if (!S.mission) return;
     S.mission = null;
+    if (S.elfCard) ctx.elfCards.reset();
     if (S.laptop) ctx.laptop.close();
     if (S.quiz) ctx.quiz.close();
     if (ctx.printing) ctx.printing.reset();
@@ -742,6 +782,8 @@ export function createMissions(ctx) {
 
   return {
     start, end,
+    /** The results card as it is now (tests, and the console). */
+    card: () => ({ title: el.title.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
     update(dt) {
       if (!S.mission || S.mission.done) return;
       if (S.quiz) return;   // the clock stops while a lesson card is open (it moves on by the lesson's length after)

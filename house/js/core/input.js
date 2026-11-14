@@ -20,7 +20,9 @@ export function createInput({ stick, knob, onAction, onTurn, onFirstInput }) {
 
   window.addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
-    if (e.target && e.target.tagName === 'BUTTON' && (k === ' ' || k === 'enter')) return;   // let buttons work
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;   // typing a name: every key is a letter
+    if (t && t.tagName === 'BUTTON' && (k === ' ' || k === 'enter')) return;   // let buttons work
     keys[k] = true;
     if (k === 'e' || k === ' ') { e.preventDefault(); onAction(); }
     if (k === 'q') onTurn();

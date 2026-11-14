@@ -77,7 +77,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (S.mission && S.mission.drill && !s.drill) return false;   // a fire drill: nothing else until the all-clear
     if (s.notBefore && !(S.mission && S.mission.clock && S.mission.clock.start + S.mission.t / S.mission.clock.secondsPerMinute >= s.notBefore)) return false;   // a mission step that isn't open yet (lunch from 12:00)
     if (s.kind === 'sit') return !S.sitting;
-    if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe' || s.kind === 'quiz') return true;
+    if (s.kind === 'use' || s.kind === 'sort' || s.kind === 'wipe' || s.kind === 'quiz' || s.kind === 'card') return true;
     if (s.kind === 'choose') return !S.carrying;
     if (s.kind === 'pick') return !S.carrying;
     if (s.kind === 'drop') return S.carrying === s.item;
@@ -183,6 +183,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
     if (s.kind === 'sort') { ctx.sorting.open(job, s); return; }
     if (s.kind === 'choose') { ctx.laptop.open(job, s); return; }
     if (s.kind === 'quiz') { ctx.quiz.open(job, s); return; }
+    if (s.kind === 'card') { ctx.elfCards.open(job, s); return; }   // the elf's letter or name card: it finishes the step
     if (s.kind === 'wipe') { ctx.wiping.start(job, s); return; }
     if (s.kind === 'pick') S.carrying = s.item;
     if (s.kind === 'drop') { place(s); S.carrying = null; }
