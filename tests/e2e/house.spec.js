@@ -1237,3 +1237,24 @@ test("the elf says goodbye: the card on Christmas Eve, a button for each child s
   await expect(page.locator('#homePlay')).toBeVisible();
   await expect(card).toBeHidden();
 });
+
+test("the elf's report card: readable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('fordHouse.elf.v1', JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' })));
+  await page.goto('/house/?date=2026-12-10');
+  await play(page);
+  const card = page.locator('#elfLetter');
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'report', who: 'boy', lines: [{ text: 'Made the bed', done: true }, { text: 'Laid the table', done: false }] }));
+  await expect(card).toBeVisible();
+  await expect(page.locator('#elfLetterTitle')).toContainText('Report for Father Christmas');
+  await expect(card).toContainText('Dude');
+  await expect(card).toContainText('✓ Made the bed');
+  await expect(card).toContainText('✗ Laid the table');
+  await expect(card).toContainText('Signed, Holly');
+  expect(await page.locator('#elfLetterText').evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
+  await card.evaluate(e => Promise.all(e.getAnimations({ subtree: true }).map(a => a.finished)));
+  const box = await page.locator('#elfLetter .elf-card').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.locator('#elfLetterClose').click();
+  await expect(card).toBeHidden();
+});
