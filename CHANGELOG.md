@@ -10,6 +10,13 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.21.1] - 2026-11-14
+
+### Fixed
+- Ford House: phones and tablets that had played before kept the old game after 4.21.0, without the elf. The
+  offline cache now lists the elf's files and has a new version, and a test checks every script is listed and
+  that the cache version moves with any change to the house.
+
 ## [4.21.0] - 2026-11-14
 
 ### Added
@@ -484,7 +491,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.21.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.21.1...HEAD
+[4.21.1]: https://github.com/littleGex/ford_games/compare/v4.21.0...v4.21.1
 [4.21.0]: https://github.com/littleGex/ford_games/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/littleGex/ford_games/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/littleGex/ford_games/compare/v4.18.0...v4.19.0
