@@ -683,6 +683,25 @@ for (const who of ['dad', 'girl']) {
   console.log(`Christmas: tree, biscuits, presents, Advent doors 1-15 for P, Christmas Eve, down on 5 January`);
 }
 
+// --- the naughty elf: out in his scene on an Advent morning, behind his door otherwise
+{
+  const { ELF_SCENES } = await import(new URL('../../house/js/pack/elfscenes.js', import.meta.url));
+  const near = (o, [x, , z]) => Math.hypot(o.position.x - x, o.position.z - z) < 0.01;
+  const shown = id => G.elf.propsOf(id).every(p => p.visible) && G.elf.propsOf(id).length > 0;
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  globalThis.location.search = '?season=winter&date=2026-12-03';
+  G.days.next();
+  const scene = ELF_SCENES.find(s => s.id === G.elf.scene.id);
+  if (!G.elf.door.visible || !G.items.elf.visible || !near(G.items.elf, scene.elf.place) || !shown(scene.id)) errors.push(`3 December: the elf isn't out in his scene (${scene && scene.id}), or his door isn't there`);
+  globalThis.location.search = '?season=autumn&date=2026-11-20';
+  G.days.next();
+  if (G.elf.door.visible || G.items.elf.visible || ELF_SCENES.some(s => G.elf.propsOf(s.id).some(p => p.visible))) errors.push('20 November: the elf, his door or his mess is out');
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('the elf: out on 3 December, away in November');
+}
+
 // --- names and switched-off jobs (#78): P called Pia and Dad called Alan show in job titles, labels, the room
 // chip and the buttons; with the dragon and the clarinet off they never come up, and a day still finishes
 {

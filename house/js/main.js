@@ -46,6 +46,8 @@ import { createSetup, isFirstVisit } from './ui/setup.js';
 import { createQuiz } from './ui/quiz.js';
 import { createChristmas } from './systems/christmas.js';
 import { createAdvent } from './advent.js';
+import { createElfLog } from './elf.js';
+import { createElf } from './systems/elf.js';
 import { createAdventCard } from './ui/advent.js';
 import { createSettings } from './settings.js';
 import { createSettingsCard } from './ui/settings.js';
@@ -99,6 +101,8 @@ ctx.advent = createAdvent();   // P's and Dude's Advent calendar doors (saved on
 ctx.settings = createSettings();   // which jobs are on (saved on this device)
 ctx.christmas = createChristmas(ctx);
 ctx.christmas.useAdvent(ctx.advent);
+ctx.elfLog = createElfLog();   // the days the naughty elf has been found (saved on this device)
+ctx.elf = createElf(ctx);
 board.setContext(ctx);
 ctx.days = createDays(ctx);
 ctx.adventCard = createAdventCard(ctx);

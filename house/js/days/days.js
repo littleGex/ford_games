@@ -6,7 +6,9 @@ import { resetItems } from '../items.js';
 import { createJobs } from '../jobs/jobs.js';
 import { planDay, personalDue, seededRandom, isFor, onHoliday } from './planner.js';
 import { currentSeason } from '../seasons.js';
-import { currentHolidays, currentBirthday } from '../holidays.js';
+import { currentHolidays, currentBirthday, today as realToday } from '../holidays.js';
+import { pickScene } from '../elf.js';
+import { ELF_SCENES } from '../pack/elfscenes.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
 /** Which bins go out next, and which are waiting at the kerb to come back in. */
@@ -14,7 +16,8 @@ function binParams(save) {
   const last = save.lastBinPair, birthday = birthdayOf();
   // day: where the loft box is; holiday: today's tags, for Halloween and Christmas jobs and decorations (kept
   // for the day once it's planned)
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: offTags(currentHolidays()), birthday };
+  // elfScene: the naughty elf's scene for today's date (kept for the day, like the tags)
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: offTags(currentHolidays()), birthday, elfScene: elfSceneFor() };
 }
 
 // a player's life stage (players.js: from their birthday), whose birthday it is today, and the day's tags for
@@ -22,7 +25,8 @@ function binParams(save) {
 // by createDays
 let stageOf = () => undefined, birthdayOf = () => null, tagsFor = (who, holiday) => [].concat(holiday || []);
 // the house settings (settings.js): jobs switched off, and special days switched off
-let offJobs = () => new Set(), offTags = tags => tags;
+let offJobs = () => new Set(), offTags = tags => tags, groupOn = () => true;
+const elfSceneFor = () => pickScene(realToday(), ELF_SCENES, id => groupOn(id));
 /** The day's jobs for a character, without the ones that are switched off. */
 const poolFor = params => { const off = offJobs(); return createJobs(params).filter(j => !off.has(j.id)); };
 
@@ -39,6 +43,7 @@ export function createDays(ctx) {
   birthdayOf = () => (settings() && !settings().birthdaysOn() ? null : currentBirthday(ctx.players));
   offTags = tags => (settings() ? settings().filterTags(tags) : [].concat(tags || []));
   offJobs = () => (settings() ? settings().offJobs() : new Set());
+  groupOn = id => (settings() ? settings().isOn(id) : true);
   tagsFor = (who, holiday) => offTags([...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : [])]);
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
@@ -54,7 +59,8 @@ export function createDays(ctx) {
     resetItems(items);
     ctx.halloween.reset(today.params.holiday);   // decorations up on Halloween (the decorating job takes some down again)
     if (ctx.christmas) ctx.christmas.reset(today.params.holiday);   // the tree, lights, Advent calendars... at Christmas
-    if (ctx.birthday) ctx.birthday.reset(today.params.birthday);   // someone's birthday: balloons, banner, presents
+    if (ctx.birthday) ctx.birthday.reset(today.params.birthday);
+    if (ctx.elf) ctx.elf.reset(today.params);   // the naughty elf out in his mischief on an Advent morning   // someone's birthday: balloons, banner, presents
 
     // every job in the house either needs doing today, or is shown done
     for (const job of jobsToday()) {
