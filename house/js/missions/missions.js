@@ -21,7 +21,7 @@
 // parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
 // laptop, watch it grow, then take the model out and put it where it belongs.
 import { S } from '../state.js';
-import { NAMES, nameOf, possessive, their } from '../names.js';
+import { NAMES, nameOf, possessive, their, inFamily } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { deskOf, pageAt } from '../pack/workdesks.js';
 import { resetItems } from '../items.js';
@@ -38,6 +38,7 @@ import { XMAS } from '../world/christmas.js';
 import { ELF_DOOR } from '../world/elf.js';
 import { elfName, dateKey, createElfLog } from '../elf.js';
 import { ELF_SCENES, CALENDAR_NOTE, trailStops } from '../pack/elfscenes.js';
+import { dealDeeds } from '../pack/elfdeeds.js';
 import { today } from '../holidays.js';
 
 const KEY = 'fordHouse.missions.v1';
@@ -638,6 +639,40 @@ export const MISSIONS = {
                best: `Arrived ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}` };
     },
   },
+  // The elf's report to Father Christmas (#160): from the morning after he arrives to 23 December (ui/home.js), a
+  // game to replay. Five good deeds dealt fresh each go (pack/elfdeeds.js), any order; once three are done the
+  // report can be posted on the dining room windowsill (it ends the go); half an hour on the clock (17:00 to
+  // 17:30) and the go ends when it runs out. ★★★ all five and posted in time, ★★ four, ★ otherwise. The day's own
+  // elf is left alone: if he's been found today he sits on the windowsill writing, otherwise he stays hidden.
+  elfReport: {
+    title: "The elf's report", who: ['girl', 'boy'], endsAtClock: true,
+    clock: { start: hm(17), end: hm(17.5), secondsPerMinute: 6 },
+    spot: who => ({ ...KIDS[who], name: nameOf(who), level: 0, start: [2.4, 3.0], facing: Math.PI }),
+    intro: 'the elf is writing his report for Father Christmas. Do five good deeds!',
+    setup(c, kid) {
+      const mission = S.mission, who = mission.who;
+      mission.deeds = dealDeeds(who, { isOn: id => (c.settings ? c.settings.isOn(id) : true), inFamily, rand: mission.rand || Math.random });
+      mission.deeds.forEach(d => { if (d.setup) d.setup(c, who, KIDS[who]); });
+      if (c.elfLog.found(dateKey(today()))) c.elf.atWindowsill();   // home through his door today: out to write his report
+    },
+    jobs: () => [(c, mission) => mission.deeds.map(d => ({ key: `deed-${d.id}`, optional: true, title: d.label(mission.who), steps: d.steps(mission.who, KIDS[mission.who]) }))],
+    onOptional(c, mission) {
+      const n = Object.keys(mission.doneAt).filter(k => k.startsWith('deed-')).length;
+      if (n >= 3 && !mission.posting) {
+        mission.posting = true;
+        c.missions.add({ key: 'post', title: 'Post your report', steps: [{ kind: 'use', at: XMAS.windowsill.at, label: 'Post the report on the windowsill for Father Christmas' }] });
+        c.hud.toast(`Three good deeds! Post the report on the windowsill, or do more first.`);
+      }
+    },
+    result(mission, at) {
+      const n = mission.deeds.filter(d => mission.doneAt[`deed-${d.id}`] !== undefined).length;
+      const posted = mission.doneAt.post !== undefined && mission.doneAt.post <= mission.clock.end;
+      const stars = n === 5 && posted ? 3 : n >= 4 ? 2 : 1;
+      return { stars, title: ['', 'A kind start!', 'A good report!', 'A glowing report!'][stars],
+               stats: `${n} good ${n === 1 ? 'deed' : 'deeds'} for Father Christmas${posted ? ', report posted at ' + clockText(at) : ''}.`,
+               report: mission.deeds.map(d => ({ text: d.label(mission.who), done: mission.doneAt[`deed-${d.id}`] !== undefined })) };
+    },
+  },
   // The elf says goodbye (#158): Christmas Eve, each child once (ui/home.js). A note by the Advent calendars, then
   // three notes at mischief they found this December (pack/elfscenes.js trailStops), each remembering it and
   // pointing to the next; the last sends them to his door, where he says goodbye and goes through it. His door
@@ -688,7 +723,7 @@ export function createMissions(ctx) {
   }
 
   /** Start a mission as one of the family (the school run: one of the kids; 3D printing: Dad). */
-  function start(id, who) {
+  function start(id, who, { rand } = {}) {
     const m = MISSIONS[id], kid = m && (m.spot ? m.spot(who) : KIDS[who]);
     if (!m || !kid) return;
     if (S.elfCard) ctx.elfCards.reset();   // a card left open from before isn't this mission's
@@ -697,7 +732,7 @@ export function createMissions(ctx) {
     if (S.laptop) ctx.laptop.close();
     if (ctx.home) ctx.home.close();
     el.box.hidden = true;
-    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {}, doneAt: {}, due: {}, later: [] };
+    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {}, doneAt: {}, due: {}, later: [], rand };
     S.carrying = null; S.dayOver = false; S.wiping = null;
     hud.hideDayComplete();
     board.clear();
@@ -772,6 +807,7 @@ export function createMissions(ctx) {
     el.best.textContent = better ? 'A new best!' : `Your best: ${'★'.repeat(b.stars)} at ${clockText(b.minutes)}`;
     el.box.hidden = false;
     el.again.focus();
+    if (r && r.report) ctx.elfCards.open(null, { card: 'report', who: mission.who, lines: r.report });   // on top of the results
   }
 
   /** A mission with no clock: no stars, just what you made, and everything you've made so far. */
@@ -816,13 +852,14 @@ export function createMissions(ctx) {
   return {
     start, end,
     /** The results card as it is now (tests, and the console). */
-    card: () => ({ title: el.title.textContent, stats: el.stats.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
+    card: () => ({ title: el.title.textContent, stars: el.stars.textContent, stats: el.stats.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
     update(dt) {
       if (!S.mission || S.mission.done) return;
       if (S.quiz) return;   // the clock stops while a lesson card is open (it moves on by the lesson's length after)
       S.mission.t += dt;
       showClock(false);
       const m = MISSIONS[S.mission.id];
+      if (m.endsAtClock && now() >= S.mission.clock.end) { finish(); return; }   // time's up (the elf's report)
       if (m.update) m.update(ctx, S.mission, now());
     },
     /** Cycle to the office or back home: the bike goes in the rack (or back through the gate), the clock moves

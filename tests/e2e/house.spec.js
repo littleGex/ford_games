@@ -1258,3 +1258,26 @@ test("the elf's report card: readable on a phone", async ({ page }) => {
   await page.locator('#elfLetterClose').click();
   await expect(card).toBeHidden();
 });
+
+test("the elf's report: offered from the day after he arrives to 23 December", async ({ page }) => {
+  test.setTimeout(120000);   // several page loads
+  const card = page.locator('#missionElfReport');
+  const at = async (date, store) => {
+    await page.goto(`/house/?date=${date}`);
+    await page.evaluate(s => { if (s) localStorage.setItem('fordHouse.elf.v1', JSON.stringify(s)); else localStorage.removeItem('fordHouse.elf.v1'); }, store);
+    await page.goto(`/house/?date=${date}`);
+    await expect(page.locator('#homePlay')).toBeVisible();
+  };
+  const came = { found: [], arrived: '2026-12-01' };
+  await at('2026-12-01', came); await expect(card).toBeHidden();
+  await at('2026-12-02', came); await expect(card).toBeVisible();
+  await expect(card.locator('[data-mission="elfReport"][data-kid="boy"]')).toBeVisible();
+  await at('2026-12-23', came); await expect(card).toBeVisible();
+  await at('2026-12-24', came); await expect(card).toBeHidden();
+  await at('2026-12-10', null); await expect(card).toBeHidden();
+  await at('2026-12-10', came);
+  await page.evaluate(() => window.house.settings.set('christmas', false));
+  await page.goto('/house/?date=2026-12-10');
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(card).toBeHidden();
+});

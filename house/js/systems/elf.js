@@ -99,6 +99,13 @@ export function createElf(ctx) {
       e.position.set(ELF_DOOR.place[0], 0, ELF_DOOR.place[2] + 0.14); e.rotation.set(0, 0, 0);
       e.userData.level = 0; e.visible = true;
     },
+    /** The elf's report: he sits on the dining room windowsill, beside the wish list, writing it. */
+    atWindowsill() {
+      const e = items.elf;
+      if (e.parent !== floors()[0]) floors()[0].attach(e);
+      e.position.set(1.35, 0.86, 8.8); e.rotation.set(0, Math.PI, 0);
+      e.userData.level = 0; e.visible = true;
+    },
     /** He waves and goes through his door; done() after. */
     wave(done) { waving = { t: 0, done }; },
     /** Notes and the waiting elf put away (a mission left part-way, a new day). */

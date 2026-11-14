@@ -10,6 +10,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **the elf's report to Father Christmas** (#160), a game for P and Dude to replay: five good deeds
+  dealt fresh each go, half an hour on the clock, post his report on the windowsill for up to three stars.
+
 ## [4.22.0] - 2026-11-14
 
 ### Added
