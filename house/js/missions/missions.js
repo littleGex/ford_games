@@ -654,6 +654,7 @@ export const MISSIONS = {
       mission.deeds = dealDeeds(who, { isOn: id => (c.settings ? c.settings.isOn(id) : true), inFamily, rand: mission.rand || Math.random });
       mission.deeds.forEach(d => { if (d.setup) d.setup(c, who, KIDS[who]); });
       if (c.elfLog.found(dateKey(today()))) c.elf.atWindowsill();   // home through his door today: out to write his report
+      else c.elf.restore();   // not found yet: still in his hiding spot, watching
     },
     jobs: () => [(c, mission) => mission.deeds.map(d => ({ key: `deed-${d.id}`, optional: true, title: d.label(mission.who), steps: d.steps(mission.who, KIDS[mission.who]) }))],
     onOptional(c, mission) {

@@ -35,6 +35,7 @@ export function createElf(ctx) {
     return built[id];
   }
   function hideAll() { Object.values(built).forEach(list => list.forEach(p => { p.visible = false; })); }
+  let lastParams = null;   // the day's, for restore()
   function hideElf() { sendHome(items.elf); items.elf.visible = false; }
   function hideTrail() { notes.forEach(n => { n.visible = false; }); if (waving) { waving = null; hideElf(); } }
 
@@ -43,6 +44,7 @@ export function createElf(ctx) {
     get scene() { return scene; },
     /** Start of a day: his door up on Advent days; if he's still to be found today, him and the day's mess out. */
     reset(params) {
+      lastParams = params;
       const tags = [].concat(params.holiday || []);
       hideAll(); hideElf(); hideTrail();
       looking = 0; clue(undefined);
@@ -99,6 +101,8 @@ export function createElf(ctx) {
       e.position.set(ELF_DOOR.place[0], 0, ELF_DOOR.place[2] + 0.14); e.rotation.set(0, 0, 0);
       e.userData.level = 0; e.visible = true;
     },
+    /** Back as the day set him: in his hiding spot if he's still waiting to be found (a mission's resetItems sends him home). */
+    restore() { if (lastParams) this.reset(lastParams); },
     /** The elf's report: he sits on the dining room windowsill, beside the wish list, writing it. */
     atWindowsill() {
       const e = items.elf;

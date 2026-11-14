@@ -967,6 +967,7 @@ for (const who of ['dad', 'girl']) {
     G.elfCards.open = (j, st) => { realOpen(j, st); if (st.card === 'report') lines = st.lines; };
     G.days.setCharacter(who); G.player.setCharacter(who);
     G.missions.start('elfReport', who, { rand });
+    if (!G.elfLog.found('2026-12-10') && (!G.items.elf.visible || G.items.elf.position.toArray().join() !== elfSpot)) errors.push(`the elf's report (${who}): not found yet, but he's gone from his hiding spot during the go`);
     const deeds = G.board.jobs.filter(j => /^deed-/.test(j.key || ''));
     if (deeds.length !== 5) errors.push(`the elf's report (${who}): ${deeds.length} deeds on the list`);
     deeds.slice(0, deedsToDo).forEach((j, n) => {
