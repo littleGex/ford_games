@@ -10,6 +10,13 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.21.0] - 2026-11-14
+
+### Added
+- Ford House: **the naughty elf** (#161). From 1 to 24 December, P and Dude find Pip the elf somewhere in the house each
+  morning (no marker), put his mischief right and take him back to his little door in the hall. Ten scenes, one a
+  day; he's found once a real day on each device, and goes with the Christmas switch.
+
 ## [4.20.0] - 2026-11-07
 
 ### Added
@@ -477,7 +484,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.20.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.21.0...HEAD
+[4.21.0]: https://github.com/littleGex/ford_games/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/littleGex/ford_games/compare/v4.19.0...v4.20.0
 [4.19.0]: https://github.com/littleGex/ford_games/compare/v4.18.0...v4.19.0
 [4.18.0]: https://github.com/littleGex/ford_games/compare/v4.17.0...v4.18.0

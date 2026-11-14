@@ -39,6 +39,7 @@ house/js/
   pack/                                         the Ford house
     kidrooms.js   whose bed, wardrobe and desk are where      (done: first slice)
     workdesks.js  where Mum and Dad work at home              (done: first slice)
+    elfscenes.js  where the naughty elf gets up to mischief    (written as pack data from the start)
     spots.js      named places: the kitchen sink, the hall cupboard, the bins...
     jobs.js       the job list, written against named spots
     rules.js      how often each job comes up, who does it

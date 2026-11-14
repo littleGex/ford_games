@@ -7,6 +7,7 @@ import { add, mat, castShadows } from './core/build.js';
 import { makePumpkin } from './world/halloween.js';
 import { makeCake, makePresent } from './systems/birthday.js';
 import { makeBiscuitTray } from './world/christmas.js';
+import { makeElf, ELF_DOOR } from './world/elf.js';
 
 function item(build, pos, opts = {}) {
   const g = new THREE.Group();
@@ -334,6 +335,8 @@ export function createItems(scene, upstairs, attic) {
       add(g, new THREE.BoxGeometry(0.16, 0.006, 0.11), mat('#fff6e6'), [0, 0.003, 0]);
       add(g, new THREE.BoxGeometry(0.03, 0.007, 0.03), mat('#c0282d'), [0.05, 0.004, 0.03]);   // a little drawing of a star
     }, [2.95, 0.73, 8.0], { level: 1, hidden: true }),
+    // the naughty elf (systems/elf.js): at home behind his door in the hall unless he's out in his mischief
+    elf: item(g => makeElf(g), ELF_DOOR.place, { hidden: true }),
     // the box that goes up into the loft and comes back down (moved about by the loft jobs)
     box: item(g => {
       add(g, new THREE.BoxGeometry(0.45, 0.32, 0.36), mat('#c49a62'), [0, 0.16, 0]);
