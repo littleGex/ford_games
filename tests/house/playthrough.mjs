@@ -904,6 +904,71 @@ for (const who of ['dad', 'girl']) {
   console.log('the elf arrives: parcel, letter, door and Holly; out the next morning; welcome back the next year');
 }
 
+// --- the elf says goodbye (#158): Christmas Eve, a trail of notes to his door; P then Dude; the door goes after both
+{
+  const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  function goodbye(who, label) {
+    const texts = [];
+    const realOpen = G.elfCards.open;
+    G.elfCards.open = (j, st) => { realOpen(j, st); texts.push({ card: st.card, text: G.elfCards.text() }); };
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.missions.start('elfGoodbye', who);
+    for (let round = 0; round < 30 && !S.mission.done; round++) {
+      for (const job of G.board.jobs.filter(j => j.i < j.steps.length)) {
+        let guard = 0;
+        while (job.i < job.steps.length && guard++ < 12) {
+          const before = job.i, r = doStep(job);
+          if (r !== true) { errors.push(`${label} "${job.title}" step ${before + 1}: ${r}`); job.i = job.steps.length; break; }
+        }
+      }
+      frame();
+    }
+    for (let k = 0; k < 150; k++) frame();   // the wave
+    G.elfCards.open = realOpen;
+    const done = S.mission.done, card = G.missions.card();
+    if (!done) errors.push(`${label}: never finished`);
+    if (card.again) errors.push(`${label}: the results card offers "Try again"`);
+    G.missions.end();
+    return { texts, card };
+  }
+  const xmasEve = found => {
+    localStorage.setItem(ELF_KEY, JSON.stringify({ found, arrived: '2026-12-01', name: 'Holly' }));
+    globalThis.location.search = '?season=winter&date=2026-12-24';
+    G.days.setCharacter('girl'); G.player.setCharacter('girl');
+    G.days.next();
+  };
+  xmasEve(['2026-12-02', '2026-12-05', '2026-12-09']);
+  if (G.board.find('elf') || G.items.elf.visible) errors.push('Christmas Eve: "Find the elf" or the elf out as well as the goodbye');
+  if (!G.elf.door.visible) errors.push('Christmas Eve: his door should be up before the goodbye');
+  const p = goodbye('girl', 'the elf says goodbye (P)');
+  const notes = p.texts.filter(t => t.card === 'note'), bye = p.texts.find(t => t.card === 'goodbye');
+  if (notes.length !== 4) errors.push(`goodbye (P): want 4 notes, got ${notes.length}`);
+  else {
+    if (!/First clue/.test(notes[0].text)) errors.push(`goodbye (P): the calendar note has no clue (${notes[0].text})`);
+    if (!/Remember/.test(notes[1].text)) errors.push(`goodbye (P): the second note doesn't remember a morning (${notes[1].text})`);
+    if (!/little door/.test(notes[3].text)) errors.push(`goodbye (P): the last note doesn't send them to his door (${notes[3].text})`);
+  }
+  if (!bye || !/Dear P,/.test(bye.text) || !/Love from Holly/.test(bye.text)) errors.push(`goodbye (P): no goodbye letter to P (${bye && bye.text.slice(0, 30)})`);
+  if (!G.elfLog.saidGoodbye('girl') || G.elfLog.saidGoodbye('boy')) errors.push('goodbye (P): P not recorded, or Dude recorded too');
+  if (!G.elf.door.visible) errors.push('goodbye (P): his door went, but Dude still has to say goodbye');
+  if (p.card.title !== 'Goodbye, Holly!' || !/3 times/.test(G.missions.lastStats || p.card.stats || '')) errors.push(`goodbye (P): results "${p.card.title}" / "${p.card.stats}"`);
+  const d = goodbye('boy', 'the elf says goodbye (Dude)');
+  if (!d.texts.some(t => t.card === 'goodbye' && /Dear Dude,/.test(t.text))) errors.push('goodbye (Dude): no goodbye letter to Dude');
+  if (!G.elfLog.hasLeft('2026-12-24') || G.elf.door.visible || G.items.elf.visible) errors.push(`after both goodbyes: want him gone and his door down (left ${G.elfLog.hasLeft('2026-12-24')}, door ${G.elf.door.visible})`);
+  G.days.next();
+  if (G.elf.door.visible || G.items.elf.visible || G.board.find('elf')) errors.push('the next game day on Christmas Eve: his door or the elf is back');
+  // nothing found all December (he came on the 23rd): the tree, the windowsill and the worktop
+  xmasEve([]);
+  const z = goodbye('girl', 'the elf says goodbye (nothing found)');
+  if (z.texts.filter(t => t.card === 'note').length !== 4) errors.push('goodbye (nothing found): want 4 notes');
+  if (!/next December/.test(z.card.stats || '')) errors.push(`goodbye (nothing found): results "${z.card.stats}"`);
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log('the elf says goodbye: four notes to his door, P then Dude, the door gone after both');
+}
+
 // --- names and switched-off jobs (#78): P called Pia and Dad called Alan show in job titles, labels, the room
 // chip and the buttons; with the dragon and the clarinet off they never come up, and a day still finishes
 {

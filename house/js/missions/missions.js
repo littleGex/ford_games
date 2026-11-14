@@ -36,7 +36,8 @@ import { BED, SEARCH, NAMES as KID } from '../systems/bedtime.js';
 import { STAIRS } from '../systems/levels.js';
 import { XMAS } from '../world/christmas.js';
 import { ELF_DOOR } from '../world/elf.js';
-import { elfName, dateKey } from '../elf.js';
+import { elfName, dateKey, createElfLog } from '../elf.js';
+import { ELF_SCENES, CALENDAR_NOTE, trailStops } from '../pack/elfscenes.js';
 import { today } from '../holidays.js';
 
 const KEY = 'fordHouse.missions.v1';
@@ -637,6 +638,37 @@ export const MISSIONS = {
                best: `Arrived ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}` };
     },
   },
+  // The elf says goodbye (#158): Christmas Eve, each child once (ui/home.js). A note by the Advent calendars, then
+  // three notes at mischief they found this December (pack/elfscenes.js trailStops), each remembering it and
+  // pointing to the next; the last sends them to his door, where he says goodbye and goes through it. His door
+  // goes once both children have said goodbye (elf.js hasLeft).
+  elfGoodbye: {
+    title: 'The elf says goodbye', who: ['girl', 'boy'], once: true,
+    spot: who => ({ name: nameOf(who), level: 0, start: [2.4, 3.0], facing: Math.PI }),
+    intro: 'Is that a note by the Advent calendars?',
+    setup(c) {
+      const day = dateKey(today()), isOn = id => (c.settings ? c.settings.isOn(id) : true), mission = S.mission;
+      mission.stops = trailStops(c.elfLog.foundScenes(day, ELF_SCENES, isOn));
+      c.elf.hideTrail();
+      c.elf.showNotes(mission.stops);
+    },
+    jobs: () => [(c, mission) => {   // built once setup has picked the stops
+      const E = elfName(), stops = mission.stops, who = mission.who;
+      const note = (i, at, level, text) => ({ kind: 'card', card: 'note', at, level, text, label: 'Read the note', onDone: cc => cc.elf.takeNote(i) });
+      return { title: `Follow ${E}'s notes`, steps: [
+        note(0, CALENDAR_NOTE.at, 0, ["I've left you a trail of notes. Follow them all the way to the end!", `First clue: ${stops[0].hint[0]}`]),
+        ...stops.map((st, i) => note(i + 1, st.at, st.level, [st.memory(E), i < stops.length - 1 ? `Next clue: ${stops[i + 1].hint[0]}` : 'Last clue: go to my little door in the hall.'])),
+        { kind: 'use', at: ELF_DOOR.at, label: `Knock on ${E}'s little door`, onDone: cc => cc.elf.atDoor() },
+        { kind: 'card', card: 'goodbye', who, at: ELF_DOOR.at, label: 'Say goodbye',
+          onDone: cc => { const day = dateKey(today()); cc.elfLog.leave(who, day); cc.elf.wave(() => { if (cc.elfLog.hasLeft(day)) cc.elf.door.visible = false; }); } }] };
+    }],
+    result() {
+      const E = elfName(), n = createElfLog().foundCount(dateKey(today()));
+      return { title: `Goodbye, ${E}!`,
+               stats: n ? `You found ${E} ${n} ${n === 1 ? 'time' : 'times'} this December.` : "He'll be back next December!",
+               best: 'Said goodbye 24 Dec' };
+    },
+  },
 };
 
 export function createMissions(ctx) {
@@ -783,7 +815,7 @@ export function createMissions(ctx) {
   return {
     start, end,
     /** The results card as it is now (tests, and the console). */
-    card: () => ({ title: el.title.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
+    card: () => ({ title: el.title.textContent, stats: el.stats.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
     update(dt) {
       if (!S.mission || S.mission.done) return;
       if (S.quiz) return;   // the clock stops while a lesson card is open (it moves on by the lesson's length after)

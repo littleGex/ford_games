@@ -19,10 +19,24 @@ export function createHome(ctx) {
     return d.getMonth() === 11 && d.getDate() <= 23 && tags.includes('advent') && !!ctx.elfLog && !ctx.elfLog.hasArrived(dateKey(d));
   }
 
+  /** The elf says goodbye: Christmas Eve, Christmas on, once he's come this Advent; a button for each child still to say it. */
+  function goodbyeFor() {
+    const d = today(), day = dateKey(d), tags = ctx.settings ? ctx.settings.filterTags(currentHolidays()) : currentHolidays();
+    if (!ctx.elfLog || d.getMonth() !== 11 || d.getDate() !== 24 || !tags.includes('advent') || !ctx.elfLog.hasArrived(day)) return [];
+    return ['girl', 'boy'].filter(who => !ctx.elfLog.saidGoodbye(who, day));
+  }
+
   function render() {
     const elfCard = document.getElementById('missionElf');
     if (elfCard) elfCard.hidden = !elfOffered();
     showNames();   // the players' names on the buttons and mission cards
+    const bye = document.getElementById('missionElfGoodbye');
+    if (bye) {   // after showNames, which shows every child's button
+      const kids = goodbyeFor();
+      bye.hidden = !kids.length;
+      bye.querySelectorAll('[data-kid]').forEach(b => { b.dataset.played = kids.includes(b.dataset.kid) ? '' : 'yes'; });
+      showNames(bye);
+    }
     // the best result for each mission, under its card
     document.querySelectorAll('.mission-best').forEach(b => {
       const id = b.dataset && b.dataset.best, who = ['girl', 'boy', 'dad', 'mum'].map(k => [k, NAMES[k]]);
