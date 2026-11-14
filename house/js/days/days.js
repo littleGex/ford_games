@@ -161,7 +161,11 @@ export function createDays(ctx) {
   /** "Start day N+1" */
   function next() { save.day++; save.today = null; writeSave(save); start(); }
   /** "Start over from day 1" (keeps who you're playing as) */
-  function restart() { const character = save.character; clearSave(); save = freshSave(); save.character = character; writeSave(save); start(); }
+  function restart() {
+    const character = save.character; clearSave(); save = freshSave(); save.character = character; writeSave(save);
+    if (ctx.elfLog) ctx.elfLog.unfind(dateKey(realToday()));   // a fresh game: the elf is back out this morning (arrival and name kept)
+    start();
+  }
   hud.onDayButtons({ next, restart });
 
   return {

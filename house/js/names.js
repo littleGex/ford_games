@@ -71,12 +71,12 @@ export function cleanName(text) {
 
 /** Fill every element marked data-name="girl" (and so on) with that player's name, and hide the buttons of a
  *  grown-up who isn't in the family: who's playing (data-c) and the missions (data-kid). A button marked
- *  data-cover="dad" is the stand-in for Dad's: it shows only while Dad isn't in the family. */
+ *  data-cover="dad" is the stand-in for Dad's: it shows only while Dad isn't in the family; data-played="yes" stays hidden. */
 export function showNames(root = globalThis.document) {
   if (!root || !root.querySelectorAll) return;
   for (const el of root.querySelectorAll('[data-name]')) el.textContent = nameOf(el.dataset.name);
   for (const el of root.querySelectorAll('[data-c], [data-kid]')) {
     const key = el.dataset.c || el.dataset.kid, cover = el.dataset.cover;
-    el.hidden = !inFamily(key) || (!!cover && inFamily(cover));
+    el.hidden = !inFamily(key) || (!!cover && inFamily(cover)) || el.dataset.played === 'yes';   // data-played: a once-only mission they've done (ui/home.js)
   }
 }

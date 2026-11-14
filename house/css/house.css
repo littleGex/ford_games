@@ -307,3 +307,6 @@ button, a, [role="button"] { touch-action: manipulation; }
 .elf-letter p:last-child { font-weight: 700; color: #2e7d32; }
 .elf-name-label { display: block; margin-bottom: 8px; font-size: 17px; text-align: center; }
 .elf-name-input { display: block; width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; border: 2px solid #2e7d32; background: #fff; color: #3b2a1a; font-size: 22px; text-align: center; }
+
+/* a mission button for someone who has already played it (the elf says goodbye: each child once) */
+.mission-play button[hidden] { display: none; }

@@ -110,7 +110,7 @@ ctx.days = createDays(ctx);
 ctx.adventCard = createAdventCard(ctx);
 // the Advent calendars on the living room wall: anyone can have a look (P and Dude open theirs from their job)
 board.addFixed({ level: 0, at: XMAS.calendars, label: 'Look at the Advent calendars', can: () => ctx.christmas.calendarsUp, act: () => ctx.adventCard.open(ctx.days.character) });
-const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween, ctx.christmas, ctx.bedtime, ctx.birthday];
+const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hoovering, ctx.sitting, ctx.charging, ctx.waiting, ctx.plant, ctx.days, ctx.levels, ctx.loft, ctx.weather, ctx.sweeping, ctx.trimming, ctx.printing, ctx.seasonal, ctx.halloween, ctx.christmas, ctx.bedtime, ctx.birthday, ctx.elf];
 
 // controls
 preventZoom();

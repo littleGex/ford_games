@@ -24,9 +24,21 @@ export function letterText(named) {
       'Love from your elf'];
 }
 
+/** His goodbye on Christmas Eve, to the child saying it (the elf says goodbye mission). */
+export function goodbyeText(who) {
+  const E = elfName();
+  return [`Dear ${nameOf(who)},`,
+    'Thank you for finding me every morning, and for putting right all my mischief. This has been my best December ever!',
+    'I have to go back to the North Pole now to help Father Christmas get ready for tonight. Be good, and go to sleep early!',
+    'See you next December!',
+    `Love from ${E}`];
+}
+
+const PAPER = new Set(['letter', 'note', 'goodbye']);   // the cards on the letter paper (closed with Close)
+
 export function createElfCards(ctx) {
   const $ = id => document.getElementById(id);
-  const el = { letter: $('elfLetter'), text: $('elfLetterText'), close: $('elfLetterClose'),
+  const el = { letter: $('elfLetter'), title: $('elfLetterTitle'), text: $('elfLetterText'), close: $('elfLetterClose'),
                name: $('elfName'), input: $('elfNameInput'), ok: $('elfNameOk') };
   let job = null, step = null, shown = [];
 
@@ -43,8 +55,10 @@ export function createElfCards(ctx) {
     open(j, st) {
       job = j; step = j ? st : null;
       S.elfCard = st.card;
-      if (st.card === 'letter') {
-        shown = letterText(ctx.elfLog.named());
+      if (PAPER.has(st.card)) {
+        const E = elfName();
+        el.title.textContent = st.card === 'note' ? `A note from ${E} ✉️` : st.card === 'goodbye' ? 'Goodbye! 👋' : 'A letter for you ✉️';
+        shown = st.card === 'note' ? [].concat(st.text || []) : st.card === 'goodbye' ? goodbyeText(st.who) : letterText(ctx.elfLog.named());
         el.text.replaceChildren(...shown.map(t => { const p = document.createElement('p'); p.textContent = t; return p; }));
         el.letter.hidden = false; el.close.focus();
       } else {
@@ -52,8 +66,8 @@ export function createElfCards(ctx) {
         el.name.hidden = false; el.input.focus();
       }
     },
-    /** The letter's Close. */
-    close() { if (S.elfCard === 'letter') done(); },
+    /** The letter's (or a note's, or the goodbye's) Close. */
+    close() { if (PAPER.has(S.elfCard)) done(); },
     /** The name card's "That's his name" (empty keeps the name he has). */
     submit(text) { if (S.elfCard !== 'name') return; ctx.elfLog.setName(text); done(); },
     /** Put a card away without finishing its step (a mission starting or ending). */
@@ -68,7 +82,7 @@ export function createElfCards(ctx) {
   window.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !S.elfCard) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    if (S.elfCard === 'letter') api.close(); else api.submit(el.input.value);
+    if (PAPER.has(S.elfCard)) api.close(); else api.submit(el.input.value);
   });
   return api;
 }

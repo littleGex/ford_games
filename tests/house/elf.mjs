@@ -54,6 +54,11 @@ store.clear();
 store.set(ELF_KEY, JSON.stringify({ found: ['2026-12-02'] }));
 const old = createElfLog({ now: () => dec(3) });
 check(old.arrivedOn('2026-12-03') === '2026-12-02' && old.waiting(['advent'], '2026-12-03'), 'old store: found on 2 December counts as arrived');
+// found in November (testing with ?holiday=christmas before December) isn't an arrival: the mission is still offered
+store.set(ELF_KEY, JSON.stringify({ found: ['2026-11-14'] }));
+const nov = createElfLog({ now: () => dec(1) });
+check(!nov.hasArrived('2026-12-01') && !nov.waiting(['advent'], '2026-12-02'), `found on 14 November: arrived ${nov.arrivedOn('2026-12-01')}`);
+store.set(ELF_KEY, JSON.stringify({ found: ['2026-12-02'] }));
 // his name
 old.setName('Holly');
 check(old.name() === 'Holly' && old.named() && elfName() === 'Holly', `name: ${old.name()}`);
@@ -66,6 +71,32 @@ check(old.name() === 'Holly', 'an empty name keeps the last one');
 store.set(ELF_KEY, 'not json');
 let broken;
 try { broken = createElfLog({ now: () => dec(3) }); check(!broken.found(), 'broken store: nothing found'); } catch (e) { fail.push(`broken store threw ${e.message}`); }
+
+// saying goodbye on Christmas Eve (#158): each child their own; he's gone once both have
+{
+  const { trailScenes } = await import('../../house/js/elf.js');
+  store.clear();
+  const g = createElfLog({ now: () => dec(24) });
+  g.arrive('2026-12-01');
+  check(!g.waiting(['advent', 'christmasEve'], '2026-12-24'), 'Christmas Eve: no daily find');
+  check(g.waiting(['advent'], '2026-12-23'), '23 December: still out');
+  g.leave('girl', '2026-12-24');
+  check(g.saidGoodbye('girl') && !g.saidGoodbye('boy') && !g.hasLeft('2026-12-24'), 'P said goodbye: Dude still to');
+  g.leave('boy', '2026-12-24');
+  check(g.hasLeft('2026-12-24') && g.hasLeft('2027-01-03'), 'both said goodbye: he has left (into January)');
+  check(!g.saidGoodbye('girl', '2027-12-24') && !g.hasLeft('2027-12-24'), 'next Advent: no goodbyes yet');
+  check(g.hasArrived('2026-12-24') && g.name() === 'Pip', 'goodbye keeps the arrival');
+  store.set(ELF_KEY, JSON.stringify({ found: ['2026-11-20', '2026-12-02', '2026-12-05', '2026-12-09'], arrived: '2026-12-01', left: 'nonsense' }));
+  const c = createElfLog({ now: () => dec(24) });
+  check(c.foundCount('2026-12-24') === 3, `foundCount: ${c.foundCount('2026-12-24')}`);
+  check(!c.saidGoodbye('girl') && !c.hasLeft(), 'a broken left reads as no goodbyes');
+  const sc = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  check(JSON.stringify(c.foundScenes('2026-12-24', sc, on)) === JSON.stringify(['b', 'b', 'c']), `foundScenes: ${c.foundScenes('2026-12-24', sc, on)}`);
+  check(JSON.stringify(trailScenes(['a', 'b', 'a', 'c', 'd'])) === '["a","b","d"]', `trailScenes 4: ${trailScenes(['a', 'b', 'a', 'c', 'd'])}`);
+  check(JSON.stringify(trailScenes(['a', 'a'])) === '["a"]', 'trailScenes 1');
+  check(JSON.stringify(trailScenes([])) === '[]', 'trailScenes 0');
+  check(JSON.stringify(trailScenes(['a', 'b'])) === '["a","b"]', 'trailScenes 2');
+}
 
 if (fail.length) { console.error('elf: FAIL\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log('elf: ok');

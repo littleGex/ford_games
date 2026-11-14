@@ -6,7 +6,7 @@ export const S = {
   laptop: false,   // the laptop close-up is open (3D printing)
   quiz: false,            // a lesson card is open at school (ui/quiz.js)
   calendar: false,        // the Advent calendars are open up close (ui/advent.js)
-  elfCard: null,          // the elf's letter or name card is open: 'letter' | 'name' (ui/elfcards.js)
+  elfCard: null,          // an elf card is open: 'letter' | 'name' | 'note' | 'goodbye' (ui/elfcards.js)
   settings: false,        // the jobs and sharing card, or the card about settings from a link (ui/settings.js)
   mission: null,          // a mission in progress: { id, who, clock, t, done } (missions/missions.js)
   menuOpen: true,         // the home screen is open (ui/home.js); the game is paused        // the sort-the-washing card is open (ui/sorting.js)

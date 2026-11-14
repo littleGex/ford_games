@@ -1172,3 +1172,68 @@ test("the elf's name card takes any name typed on a keyboard, and Escape closes 
   await page.evaluate(() => window.house.missions.start('print3d', 'dad'));
   await expect(page.locator('#elfLetter')).toBeHidden();
 });
+
+test("where's the elf: a clue under Find the elf after a minute, readable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('fordHouse.elf.v1', JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' })));
+  await page.goto('/house/?date=2026-12-02');
+  await play(page);
+  const hint = await page.evaluate(() => { const G = window.house; G.days.setCharacter('girl'); G.player.setCharacter('girl'); G.days.next(); G.elf.update(61); return G.elf.scene.hint[0]; });
+  await expect(page.locator('#taskList')).toContainText(hint);
+  await expect(page.locator('#toast')).toContainText(hint);   // the list is folded away on a phone: it pops up too
+  await page.screenshot({ path: 'test-results/elf-clue-phone.png' });
+});
+
+test("the elf's goodbye notes and letter: readable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('fordHouse.elf.v1', JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' })));
+  await page.goto('/house/?date=2026-12-24');
+  await play(page);
+  const card = page.locator('#elfLetter');
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'note', text: ['Remember my zip wire?', 'Next clue: …'] }));
+  await expect(card).toBeVisible();
+  await expect(page.locator('#elfLetterTitle')).toContainText('A note from Holly');
+  await expect(card).toContainText('Remember my zip wire?');
+  expect(await page.locator('#elfLetterText').evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
+  await card.evaluate(e => Promise.all(e.getAnimations({ subtree: true }).map(a => a.finished)));
+  const box = await page.locator('#elfLetter .elf-card').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.locator('#elfLetterClose').click();
+  await expect(card).toBeHidden();
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'goodbye', who: 'girl' }));
+  await expect(page.locator('#elfLetterTitle')).toContainText('Goodbye');
+  await expect(card).toContainText('Dear P,');
+  await expect(card).toContainText('See you next December!');
+  await expect(card).toContainText('Love from Holly');
+  await page.keyboard.press('Escape');
+  await expect(card).toBeHidden();
+  // a letter after a goodbye still has its own heading
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
+  await expect(page.locator('#elfLetterTitle')).toContainText('A letter for you');
+});
+
+test("the elf says goodbye: the card on Christmas Eve, a button for each child still to say it", async ({ page }) => {
+  test.setTimeout(120000);   // seven page loads
+  const card = page.locator('#missionElfGoodbye'), girl = card.locator('[data-kid="girl"]'), boy = card.locator('[data-kid="boy"]');
+  const at = async (date, store) => {
+    await page.goto(`/house/?date=${date}`);
+    await page.evaluate(s => { if (s) localStorage.setItem('fordHouse.elf.v1', JSON.stringify(s)); else localStorage.removeItem('fordHouse.elf.v1'); }, store);
+    await page.goto(`/house/?date=${date}`);
+    await expect(page.locator('#homePlay')).toBeVisible();
+  };
+  await at('2026-12-23', { found: [], arrived: '2026-12-01' });
+  await expect(card).toBeHidden();
+  await at('2026-12-24', { found: [], arrived: '2026-12-01' });
+  await expect(card).toBeVisible(); await expect(girl).toBeVisible(); await expect(boy).toBeVisible();
+  await at('2026-12-24', { found: [], arrived: '2026-12-01', left: { girl: '2026-12-24' } });
+  await expect(card).toBeVisible(); await expect(girl).toBeHidden(); await expect(boy).toBeVisible();
+  await at('2026-12-24', { found: [], arrived: '2026-12-01', left: { girl: '2026-12-24', boy: '2026-12-24' } });
+  await expect(card).toBeHidden();
+  await at('2026-12-24', null);   // he never came
+  await expect(card).toBeHidden();
+  await at('2026-12-24', { found: [], arrived: '2026-12-01' });
+  await page.evaluate(() => window.house.settings.set('christmas', false));
+  await page.reload();
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(card).toBeHidden();
+});

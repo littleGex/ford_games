@@ -153,6 +153,12 @@ with the day.
   the next morning ("Find the elf"), and his name is in every label. Each December after, the same elf comes
   back: a welcome-back letter with his name, no naming. Saved on the device (`fordHouse.elf.v1`). A device that
   had the elf out before this mission existed counts him as arrived. Try it with `?date=2026-12-01`.
+- **The elf says goodbye** (P and Dude, each once, on Christmas Eve): instead of a morning's mischief, he leaves
+  a trail. A note by the Advent calendars, then three notes where he got up to mischief this December (the first,
+  one from the middle, the latest; the tree, the dining room windowsill and the kitchen worktop when they found
+  fewer), each remembering that morning and giving a clue to the next. The last sends you to his door, where he's
+  waiting with a goodbye letter; he waves and goes through. His door goes once both children have said goodbye;
+  his name is kept for next December. Try it with `?date=2026-12-24` after the elf arrives.
 - **3D printing** (Dad, no clock, just for fun): open the laptop at your desk and pick a design (a dragon
   for P, a plant pot, a phone stand, a rocket for Dude), then order a spool of filament in a colour you
   pick. A courier brings it to the front door; load it into the printer in the light-box cupboard by the
@@ -265,7 +271,11 @@ marker shows where he is, so they have to look. Then they put the mess right and
 scene a day, in order, picked from the date, so every device has the same one. He's found once a real day (saved
 on the device: playing another day on the same date doesn't bring him back), whichever of P or Dude finds him,
 and swapping player halfway carries on where they were. Switching Christmas off switches him off too. Try it
-with `?date=2026-12-03` (after playing the elf arrives). More elf missions to come: #158-#160.
+with `?date=2026-12-03` (after playing the elf arrives). He comes out once a real day, so `?holiday=christmas`
+(which keeps today's date) shows him only until he's been found today; a new `?date=` is a new morning. Finding
+him in November never counts as his arrival. "Start over from day 1" brings him back out that morning (his arrival and name are
+kept). Can't find him? After a minute of looking a clue pops up and shows next to "Find the elf" ("I can hear
+giggling in the hall…"), and a minute later a closer one ("…somewhere by the coats!"): `hint` in each scene. More elf missions to come: #159, #160.
 
 Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
 `?holiday=christmas` for a day like 15 December.
