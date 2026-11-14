@@ -43,7 +43,7 @@ export function createElf(ctx) {
       hideAll(); hideElf();
       looking = 0; clue(undefined);
       day = params.elfDate;
-      door.visible = tags.includes('advent') && ctx.elfLog.hasArrived(day);   // his door: from the day he arrived
+      door.visible = tags.includes('advent') && ctx.elfLog.hasArrived(day) && !ctx.elfLog.hasLeft(day);   // his door: from the day he arrived until both have said goodbye
       scene = ELF_SCENES.find(s => s.id === params.elfScene) || null;
       if (!door.visible || !scene || !ctx.elfLog.waiting(tags, day)) return;
       const { place, level, rotY = 0 } = scene.elf, elf = items.elf;

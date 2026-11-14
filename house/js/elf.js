@@ -26,7 +26,9 @@ export function createElfLog({ now = today } = {}) {
     let d = null;
     try { d = JSON.parse(localStorage.getItem(ELF_KEY)); } catch (e) { d = null; }
     d = d && typeof d === 'object' ? d : {};
-    return { found: Array.isArray(d.found) ? d.found.filter(x => typeof x === 'string') : [], arrived: typeof d.arrived === 'string' ? d.arrived : null, name: typeof d.name === 'string' ? d.name : null };
+    const left = d.left && typeof d.left === 'object' && !Array.isArray(d.left) ? d.left : {};
+    return { found: Array.isArray(d.found) ? d.found.filter(x => typeof x === 'string') : [], arrived: typeof d.arrived === 'string' ? d.arrived : null, name: typeof d.name === 'string' ? d.name : null,
+             left: { ...(typeof left.girl === 'string' ? { girl: left.girl } : {}), ...(typeof left.boy === 'string' ? { boy: left.boy } : {}) } };
   }
   function write(d) { try { localStorage.setItem(ELF_KEY, JSON.stringify(d)); } catch (e) { /* private mode */ } }
   const load = () => read().found;
@@ -58,13 +60,31 @@ export function createElfLog({ now = today } = {}) {
     /** He's arrived (the mission): never moves an arrival this Advent later. */
     arrive(day = key()) { if (!api.hasArrived(day)) write({ ...read(), arrived: day }); },
     /** Is he out that day, waiting to be found (an Advent day, arrived before it, and not found yet)? */
-    waiting: (tags, day = key()) => [].concat(tags || []).includes('advent') && api.out(day) && !api.found(day),
+    waiting: (tags, day = key()) => { const t = [].concat(tags || []); return t.includes('advent') && !t.includes('christmasEve') && api.out(day) && !api.found(day); },   // Christmas Eve: the goodbye instead
+    /** A child said goodbye to him on Christmas Eve (the elf says goodbye mission), that day. */
+    leave(who, day = key()) { const d = read(); write({ ...d, left: { ...d.left, [who]: day } }); },
+    /** Has this child said goodbye to him in `day`'s Advent (on or before it)? */
+    saidGoodbye(who, day = key()) { const l = read().left[who]; return !!l && adventOf(l) === adventOf(day) && l <= day; },
+    /** Has he gone back to the North Pole (both children said goodbye this Advent)? */
+    hasLeft: (day = key()) => api.saidGoodbye('girl', day) && api.saidGoodbye('boy', day),
+    /** The December days he was found this Advent, oldest first. */
+    foundDays: (day = key()) => read().found.filter(x => adventOf(x) === adventOf(day) && x.slice(5, 7) === '12').sort(),
+    foundCount: (day = key()) => api.foundDays(day).length,
+    /** The scene he was in each December morning he was found this Advent (oldest first). */
+    foundScenes: (day, scenes, isOn) => api.foundDays(day).map(x => pickScene(new Date(+x.slice(0, 4), +x.slice(5, 7) - 1, +x.slice(8, 10), 12), scenes, isOn)).filter(Boolean),
     name: () => cleanName(read().name) || DEFAULT_ELF_NAME,
     /** Has he been given a name yet (the first arrival asks for one)? */
     named: () => !!cleanName(read().name),
     setName(text) { const n = cleanName(text); if (n) write({ ...read(), name: n }); },
   };
   return api;
+}
+
+/** The goodbye trail's scenes: distinct, in the order found, then the first, the middle and the latest. */
+export function trailScenes(ids) {
+  const d = [...new Set(ids)];
+  if (d.length <= 3) return d;
+  return [d[0], d[Math.floor((d.length - 1) / 2)], d[d.length - 1]];
 }
 
 /** The elf's name now (Pip until the children choose one). */
