@@ -31,7 +31,7 @@ export function createHome(ctx) {
     if (elfCard) elfCard.hidden = !elfOffered();
     showNames();   // the players' names on the buttons and mission cards
     const bye = document.getElementById('missionElfGoodbye');
-    if (bye) {   // after showNames, which shows every child's button
+    if (bye && bye.querySelectorAll) {   // after showNames, which shows every child's button
       const kids = goodbyeFor();
       bye.hidden = !kids.length;
       bye.querySelectorAll('[data-kid]').forEach(b => { b.dataset.played = kids.includes(b.dataset.kid) ? '' : 'yes'; });
