@@ -50,8 +50,8 @@ Alan picked A.
 - **One elf per device, shared by the players on it.** Whichever of P or Dude finds him does the clean-up; the
   job is then done for the day for both on that device. *(Claude's call, offered to Alan; not contested.)*
 - **Dates:** 1-24 December, real days only (`today()`, so `?date=` works for testing).
-- **The elf door:** a small door on the skirting board in the hall (`world/rooms/flur.js`), near the Advent
-  calendars. It's there all of December, from the same day the calendars go up. *(Claude's call.)*
+- **The elf door:** a small door on the skirting board in the hall, on the kitchen wall by the kitchen door
+  (the Advent calendars are on the living-room TV wall). It's there all of December, from the same day the calendars go up. *(Claude's call.)*
 
 - **Once per real day, not per game day.** *(Claude's call, from the builder check.)* "Start day N+1" can be
   pressed several times on one date; the elf must not come back. Like the Advent door (`advent.hasNew()` adding

@@ -10,6 +10,11 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **the naughty elf**. From 1 to 24 December, P and Dude find Pip the elf somewhere in the house each
+  morning (no marker), put his mischief right and take him back to his little door in the hall. Ten scenes, one a
+  day; he's found once a real day on each device, and goes with the Christmas switch.
+
 ## [4.20.0] - 2026-11-07
 
 ### Added

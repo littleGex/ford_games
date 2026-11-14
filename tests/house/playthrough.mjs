@@ -721,6 +721,30 @@ for (const who of ['dad', 'girl']) {
   G.days.next();
   if (G.board.find('elf') || G.elf.door.visible || G.items.elf.visible) errors.push('Christmas switched off: the elf is still about');
   G.settings.set('christmas', true);
+  // every scene: found, put right and home again; one scene's mess at a time; none needing the dragon when it's off
+  const { pickScene, ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  const anyProps = id => G.elf.propsOf(id).some(p => p.visible);
+  const dec = d => `?season=winter&date=2026-12-${String(d).padStart(2, '0')}`;
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = dec(3); G.days.next(); const s3 = G.elf.scene.id;
+  globalThis.location.search = dec(4); G.days.next(); const s4 = G.elf.scene.id;
+  if (s3 === s4 || anyProps(s3) || !shown(s4)) errors.push(`3 then 4 December: yesterday's mess (${s3}) still out, or today's (${s4}) isn't`);
+  const seen = new Set();
+  for (let d = 1; d <= ELF_SCENES.length; d++) {
+    globalThis.location.search = dec(d);
+    G.days.next();
+    const want = pickScene(new Date(2026, 11, d, 12), ELF_SCENES, () => true);
+    if (!G.elf.scene || G.elf.scene.id !== want) { errors.push(`${d} December: scene ${G.elf.scene && G.elf.scene.id}, want ${want}`); continue; }
+    seen.add(want);
+    G.days.plan(['elf']);
+    playDay(`the elf: ${want}`);
+    if (G.items.elf.visible || ELF_SCENES.some(s => anyProps(s.id)) || !G.elfLog.found()) errors.push(`the elf (${want}): not home, or mess left out`);
+  }
+  if (seen.size !== ELF_SCENES.length || ELF_SCENES.length < 10) errors.push(`elf scenes played: ${[...seen]} of ${ELF_SCENES.length} (want at least 10)`);
+  localStorage.removeItem(ELF_KEY);
+  G.settings.set('dragon', false);
+  for (let d = 1; d <= 24; d++) { globalThis.location.search = dec(d); G.days.next(); if (G.elf.scene && G.elf.scene.needs === 'dragon') errors.push(`dragon off, ${d} December: the terrarium scene`); }
+  G.settings.set('dragon', true);
   globalThis.location.search = '?season=autumn&date=2026-11-20';
   G.days.next();
   if (G.elf.door.visible || G.items.elf.visible || ELF_SCENES.some(s => G.elf.propsOf(s.id).some(p => p.visible))) errors.push('20 November: the elf, his door or his mess is out');
