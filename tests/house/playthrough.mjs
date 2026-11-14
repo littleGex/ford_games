@@ -306,6 +306,12 @@ function doStep(job) {
     frame();
     return job.steps[job.i] !== s || 'nothing was chosen on the laptop';
   }
+  if (s.kind === 'card') {   // the elf's letter (read it, close it) or name card (type a name)
+    if (S.elfCard !== s.card) return `the ${s.card} card never opened`;
+    if (s.card === 'letter') G.elfCards.close(); else G.elfCards.submit(elfNameToType);
+    frame();
+    return job.steps[job.i] !== s || `the ${s.card} card never finished`;
+  }
   if (s.kind === 'wipe') {   // circles with the stick
     for (let k = 0; k < 400 && S.wiping; k++) G.wiping.feed({ x: Math.cos(k * 0.4), y: Math.sin(k * 0.4), len: 1 });
     frame();
@@ -335,6 +341,7 @@ const stepAt = s => s.at || (s.kind === 'drop' && s.home
   : (() => { const v = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }; G.items[s.item].getWorldPosition(v); return [v.x, v.z]; })());
 
 let laptopPick = 1;
+let elfNameToType = 'Holly';   // what the children type on the elf's name card
 /** Play every job on today's list (and any that pop up) until the Day complete screen shows. */
 const events = {};
 function playDay(label) {

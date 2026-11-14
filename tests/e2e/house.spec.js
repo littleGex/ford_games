@@ -1106,3 +1106,28 @@ test('the next flight takes you from the first floor up to the attic and back', 
   await expect(page.locator('#floorName')).toHaveText('Obergeschoss');
   expect(await page.evaluate(() => window.house.world.attic.visible)).toBe(false);
 });
+
+test("the elf's letter and name cards: big enough to read on a phone, and the name he's given", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/house/?date=2026-12-01');
+  await play(page);
+  const letter = page.locator('#elfLetter');
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
+  await expect(letter).toBeVisible();
+  await expect(letter).toContainText('Dear P and Dude');
+  await expect(letter).toContainText('But first I need a name');
+  expect(await page.locator('#elfLetterText').evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
+  await letter.evaluate(e => Promise.all(e.getAnimations({ subtree: true }).map(a => a.finished)));   // after the card pops in
+  const box = await page.locator('#elfLetter .elf-card').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.locator('#elfLetterClose').click();
+  await expect(letter).toBeHidden();
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'name' }));
+  await expect(page.locator('#elfNameInput')).toHaveValue('Pip');
+  await page.locator('#elfNameInput').fill('Holly');
+  await page.locator('#elfNameOk').click();
+  await expect(page.locator('#elfName')).toBeHidden();
+  expect(await page.evaluate(() => window.house.elfLog.name())).toBe('Holly');
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
+  await expect(letter).toContainText("It's me, Holly!");
+});

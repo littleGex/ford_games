@@ -48,6 +48,7 @@ import { createChristmas } from './systems/christmas.js';
 import { createAdvent } from './advent.js';
 import { createElfLog } from './elf.js';
 import { createElf } from './systems/elf.js';
+import { createElfCards } from './ui/elfcards.js';
 import { createAdventCard } from './ui/advent.js';
 import { createSettings } from './settings.js';
 import { createSettingsCard } from './ui/settings.js';
@@ -103,6 +104,7 @@ ctx.christmas = createChristmas(ctx);
 ctx.christmas.useAdvent(ctx.advent);
 ctx.elfLog = createElfLog();   // the days the naughty elf has been found (saved on this device)
 ctx.elf = createElf(ctx);
+ctx.elfCards = createElfCards(ctx);   // the elf's letter and name cards (the elf arrives mission)
 board.setContext(ctx);
 ctx.days = createDays(ctx);
 ctx.adventCard = createAdventCard(ctx);
@@ -114,7 +116,7 @@ const systems = [ctx.power, ctx.deliveries, ctx.dragon, ctx.mowing, ctx.hooverin
 preventZoom();
 const turnView = () => { yawTarget += Math.PI / 2; };
 const doAction = () => {
-  if (S.dayOver || S.sorting || S.laptop || S.quiz || S.calendar || S.menuOpen) return;
+  if (S.dayOver || S.sorting || S.laptop || S.quiz || S.calendar || S.elfCard || S.menuOpen) return;
   if (S.wiping) { ctx.wiping.stop(); return; }
   board.act(nearest);
 };
@@ -167,7 +169,7 @@ function frame() {
   let walking = false;
   if (S.dayOver) { /* the Day complete screen is up */ }
   else if (S.sitting) { if (axis.len > 0.3) ctx.sitting.standUp(); }
-  else if (S.wiping || S.sorting || S.laptop || S.quiz || S.calendar) { /* wiping a window uses the stick; sorting has its own card */ }
+  else if (S.wiping || S.sorting || S.laptop || S.quiz || S.calendar || S.elfCard) { /* wiping a window uses the stick; sorting has its own card */ }
   else if (axis.len > 0.08) walking = player.stepFromInput(axis, yaw, dt);
   player.animate(dt, walking);
   if (S.wiping) ctx.wiping.feed(axis, dt);
@@ -177,7 +179,7 @@ function frame() {
   const pos = player.group.position;
   room = roomAt(pos.x, pos.z, S.level, room);
   hud.setRoom(room);
-  nearest = S.dayOver || S.sorting || S.laptop || S.quiz || S.calendar || S.wiping ? null : board.nearestAction(pos);
+  nearest = S.dayOver || S.sorting || S.laptop || S.quiz || S.calendar || S.elfCard || S.wiping ? null : board.nearestAction(pos);
   hud.setAction(S.wiping ? 'Stop wiping' : nearest ? nearest.step.label : null);
   hud.banner(S.dayOver ? null : ctx.missions.banner() || ctx.weather.banner() || ctx.deliveries.banner() || ctx.wiping.banner() || ctx.sitting.banner());
   board.updateMarkers(time);

@@ -192,6 +192,23 @@
     </div>
   </div>
 
+  <div class="advent elf-overlay" id="elfLetter" role="dialog" aria-modal="true" aria-labelledby="elfLetterTitle" hidden>
+    <div class="elf-card elf-paper">
+      <h1 id="elfLetterTitle">A letter for you ✉️</h1>
+      <div class="elf-letter" id="elfLetterText"></div>
+      <div class="advent-actions"><button class="btn" id="elfLetterClose">Close</button></div>
+    </div>
+  </div>
+
+  <div class="advent elf-overlay" id="elfName" role="dialog" aria-modal="true" aria-labelledby="elfNameTitle" hidden>
+    <div class="elf-card elf-paper">
+      <h1 id="elfNameTitle">What's my name?</h1>
+      <label class="elf-name-label" for="elfNameInput">Give your elf a name</label>
+      <input class="elf-name-input" id="elfNameInput" type="text" autocomplete="off" spellcheck="false" maxlength="16">
+      <div class="advent-actions"><button class="btn" id="elfNameOk">That's his name</button></div>
+    </div>
+  </div>
+
   <div class="avatar" id="avatar" role="dialog" aria-modal="true" aria-labelledby="avatarTitle" hidden>
     <div class="avatar-card">
       <h1 id="avatarTitle">Names, looks and birthdays</h1>
