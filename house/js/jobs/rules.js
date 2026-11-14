@@ -76,6 +76,7 @@ export const POOL_RULES = [
   { id: 'bdayGuests', every: 1, must: true, holiday: 'birthday' },
   // Christmas (holidays.js): decorations from 12 December to 5 January, and P and Dude's Advent calendars
   { id: 'adventDoor', every: 1, must: true, who: ['girl', 'boy'], holiday: 'adventDoor' },   // a door to open (real days only)
+  { id: 'elf', every: 1, must: true, who: ['girl', 'boy'], holiday: 'elf' },   // find the naughty elf, tidy his mess, take him home (once a real day)
   { id: 'xmasTree', every: 10, must: true, holiday: 'christmasTime' },   // fetch the decorations and do the tree (the first day, then now and then)
   { id: 'biscuits', every: 4, holiday: 'christmasTime' },         // bake Christmas biscuits
   { id: 'xmasGift', every: 3, holiday: 'beforeChristmas' },       // wrap a present (or make one, for the kids)

@@ -194,7 +194,7 @@ export function createJobBoard({ scene, items, hud, levels }) {
   function updateMarkers(time) {
     jobs.forEach((job, k) => {
       const m = markers[k], s = step(job), p = s && at(s);
-      if (!p || !canDo(s)) { m.visible = false; return; }
+      if (!p || !canDo(s) || s.hidden) { m.visible = false; return; }   // hidden: you have to find it (the elf)
       const lvl = levelOf(s);
       m.visible = lvl === S.level;
       m.position.set(p[0], lvl * LEVEL_HEIGHT, p[1]);

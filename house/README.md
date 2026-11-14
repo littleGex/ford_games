@@ -247,6 +247,18 @@ whose day hasn't come). P and Dude get "Open your Advent calendar" on their list
 can look at both calendars on the wall or from the home screen, and the card lists every gift found so far.
 What's been opened is saved on the device; a new Advent starts with the doors shut.
 
+**The naughty elf** (`js/elf.js`, `js/systems/elf.js`, scenes in `js/pack/elfscenes.js`): from 1 to 24 December
+Pip the elf has a little green door on the skirting in the hall, by the kitchen door. Each night he gets up to
+something somewhere in the house: loo roll round the coats, the biscuit tin raided, tinsel on the bearded
+dragon's terrarium (only while the dragon is switched on), the porch full of shoes, a zip wire across the living
+room, a flour snow angel on the dining table, a Lego sleigh in the attic, a cushion fort, fishing in the kitchen
+sink, or a marshmallow fight with the teddies on the big bed. P and Dude get "Find the elf" on their list: no
+marker shows where he is, so they have to look. Then they put the mess right and take him back to his door. One
+scene a day, in order, picked from the date, so every device has the same one. He's found once a real day (saved
+on the device: playing another day on the same date doesn't bring him back), whichever of P or Dude finds him,
+and swapping player halfway carries on where they were. Switching Christmas off switches him off too. Try it
+with `?date=2026-12-03`. Elf missions to come: #157-#160.
+
 Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
 `?holiday=christmas` for a day like 15 December.
 
