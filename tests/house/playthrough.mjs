@@ -803,6 +803,27 @@ for (const who of ['dad', 'girl']) {
   console.log('the elf: found by P and Dude on 3 December, once a day, off with Christmas, away in November');
 }
 
+// --- the elf's goodbye trail (#158): a memory for every scene, three different stops, all reachable
+{
+  const { ELF_SCENES, ELF_FAREWELL_SPOTS, trailStops, CALENDAR_NOTE } = await import(new URL('../../house/js/pack/elfscenes.js', import.meta.url));
+  for (const sc of ELF_SCENES) {
+    const m = typeof sc.memory === 'function' && sc.memory('Holly');
+    if (!m || /</.test(m)) errors.push(`goodbye trail: ${sc.id} has no memory line`);
+  }
+  for (const sp of [...ELF_FAREWELL_SPOTS, { id: 'calendar', ...CALENDAR_NOTE }]) {
+    if (standNear(sp.at, sp.level).dist > REACH - 0.02) errors.push(`goodbye trail: can't get within reach of the ${sp.id} note`);
+    if (sp.memory && (!sp.memory('Holly') || !sp.hint || !sp.hint[0])) errors.push(`goodbye trail: ${sp.id} needs a memory and a clue`);
+  }
+  const ids = list => trailStops(list).map(x => x.id).join(',');
+  if (ids([]) !== 'tree,windowsill,worktop') errors.push(`goodbye trail, nothing found: ${ids([])}`);
+  if (ids(['biscuitRaid']) !== 'biscuitRaid,tree,windowsill') errors.push(`goodbye trail, biscuits only: ${ids(['biscuitRaid'])}`);
+  const four = trailStops(['looRoll', 'zipWire', 'legoSleigh', 'sinkFishing']);
+  if (four.map(x => x.id).join(',') !== 'looRoll,zipWire,sinkFishing' || new Set(four.map(x => x.at.join())).size !== 3) errors.push(`goodbye trail, four found: ${four.map(x => x.id)}`);
+  const lego = trailStops(['legoSleigh']).find(x => x.id === 'legoSleigh');
+  if (!lego || lego.level !== 2 || lego.place !== ELF_SCENES.find(x => x.id === 'legoSleigh').elf.place) errors.push('goodbye trail: the Lego stop is not up in the attic where he sat');
+  console.log(`the elf's goodbye trail: ${ELF_SCENES.length} memories, stops ${ids([])} when nothing was found`);
+}
+
 // --- the elf arrives (#157): the courier's parcel, his letter, his door and (the first year) his name; out the
 // next real morning; the next December a welcome back, no naming
 {
