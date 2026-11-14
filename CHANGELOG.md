@@ -10,6 +10,22 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.22.0] - 2026-11-14
+
+### Added
+- Ford House: **the elf arrives** (#157), a mission for P or Dude once a December. A parcel from the North Pole
+  brings the elf's door and a letter, shown on screen for the children to read; fix his door in the hall and,
+  the first year, give him a name (Pip until then). He's out from the next morning, with his name everywhere,
+  and comes back each December with a welcome-back letter.
+- Ford House: **the elf says goodbye** (#158) on Christmas Eve, for P and Dude each: a trail of notes about the
+  mischief they found this December, ending at his little door with a goodbye letter and a wave.
+- Ford House: where's the elf? After a minute of looking, a clue says which room he's in, and a minute later
+  a closer one.
+
+### Fixed
+- Ford House: starting over from day 1 brings the elf back out that morning; finding him in November (testing
+  with `?holiday=christmas`) no longer counts as his arrival; the elf's name box takes every letter.
+
 ## [4.21.1] - 2026-11-14
 
 ### Fixed
@@ -491,7 +507,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.21.1...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.22.0...HEAD
+[4.22.0]: https://github.com/littleGex/ford_games/compare/v4.21.1...v4.22.0
 [4.21.1]: https://github.com/littleGex/ford_games/compare/v4.21.0...v4.21.1
 [4.21.0]: https://github.com/littleGex/ford_games/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/littleGex/ford_games/compare/v4.19.0...v4.20.0

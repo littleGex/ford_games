@@ -25,6 +25,15 @@ export function makeElf(g = new THREE.Group()) {
   return g;
 }
 
+/** One of his goodbye notes: a little folded card, cream with a red wax seal (origin at its bottom). */
+export function makeNote(g = new THREE.Group()) {
+  const paper = mat('#fff8e7');
+  add(g, new THREE.BoxGeometry(0.14, 0.004, 0.1), paper, [0, 0.002, 0]);
+  add(g, new THREE.BoxGeometry(0.14, 0.004, 0.1), paper, [0, 0.03, -0.035], null, [-1.1, 0, 0]);   // the folded half, standing up
+  add(g, new THREE.CylinderGeometry(0.014, 0.014, 0.006, 12), mat('#c62828'), [0, 0.035, -0.02], null, [0.47, 0, 0]);   // seal
+  return g;
+}
+
 /** His door, flat against the wall (origin on the floor at the wall face, facing +z). */
 export function makeElfDoor(g = new THREE.Group()) {
   add(g, new THREE.BoxGeometry(0.15, 0.2, 0.012), mat('#7a4a26'), [0, 0.1, 0.006]);           // frame

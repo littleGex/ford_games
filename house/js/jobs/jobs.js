@@ -19,7 +19,8 @@ import { HALLOWEEN as HW } from '../world/halloween.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
 import { BD, NAMES as BD_NAMES, GIFTS } from '../systems/birthday.js';
 import { XMAS, XMAS_GIFTS } from '../world/christmas.js';
-import { ELF_SCENES, ELF_NAME } from '../pack/elfscenes.js';
+import { ELF_SCENES } from '../pack/elfscenes.js';
+import { elfName } from '../elf.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -490,12 +491,12 @@ function christmasJobs(character, grownUp, tags, elfScene) {
   // the naughty elf (systems/elf.js): find him in today's scene (no marker), put his mess right, take him home.
   // He's the same for P and Dude (keep: swapping player carries on); systems/elf.js sets him out each morning,
   // so the job has nothing of its own to set up or tidy away.
-  const scene = ELF_SCENES.find(s => s.id === elfScene);
+  const scene = ELF_SCENES.find(s => s.id === elfScene), E = elfName();
   if (scene) jobs.push({ id: 'elf', title: 'Find the elf', keep: true, steps: [
-    { kind: 'use', hidden: true, level: scene.elf.level, at: scene.elf.at, label: `Is that ${ELF_NAME}?`, onDone: c => c.elf.found() },
+    { kind: 'use', hidden: true, level: scene.elf.level, at: scene.elf.at, label: `Is that ${E}?`, onDone: c => c.elf.found() },
     ...scene.tidy(),
-    { kind: 'pick', item: 'elf', label: `Pick ${ELF_NAME} up` },
-    { kind: 'drop', item: 'elf', home: true, label: `Take ${ELF_NAME} back to his door in the hall`, onDone: c => c.elf.home() }],
+    { kind: 'pick', item: 'elf', label: `Pick ${E} up` },
+    { kind: 'drop', item: 'elf', home: true, label: `Take ${E} back to his door in the hall`, onDone: c => c.elf.home() }],
     setup: () => {}, tidy: () => {} });
   // only the jobs whose day it is (the Advent calendar door: in Advent and over Christmas, for missed doors; the
   // elf: in Advent, and days.js only plans him while he's still to be found)

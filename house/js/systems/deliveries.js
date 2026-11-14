@@ -85,12 +85,13 @@ export function createDeliveries({ stage, items, board, hud }) {
   const orderCourier = walker(COURIER, stage.scene);
 
   // Things that were ordered and come to the door when a 'wait' step with `delivery` is nearly over: the food
-  // shopping (the supermarket van, up the street) and the 3D printer filament (a parcel courier).
+  // shopping (the supermarket van, up the street), the 3D printer filament and the elf's parcel (a parcel courier).
   const pathTime = (from, path) => { let d = 0, p = from; for (const q of path) { d += Math.hypot(q[0] - p[0], q[1] - p[1]); p = q; } return d / 1.6 + 0.5; };
   const ORDERS = {
     food: { item: 'shopping', who: foodDriver, van: foodVan, from: [FOOD_VAN[0] + 1.4, 13.6], path: FOOD_WALK, bye: 'Enjoy your food, bye!',
             prep: it => { it.getObjectByName('food').visible = true; } },
     filament: { item: 'filamentBox', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: [[3.7, 12.3], FOOD_DELIVERY.door], bye: 'Here you go, happy printing!' },
+    elfParcel: { item: 'elfParcel', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: [[3.7, 12.3], FOOD_DELIVERY.door], bye: 'Special delivery from the North Pole!' },
   };
   Object.values(ORDERS).forEach(o => { o.state = 'gone'; o.time = pathTime(o.from, o.path); });
   const waitingFor = kind => board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === kind; });
@@ -318,6 +319,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       if (nb && nb.state === 'waiting') return 'Ding-dong! The neighbours are at the front door';
       if (ORDERS.food.state === 'waiting') return 'Ding-dong! The food delivery is at the front door';
       if (ORDERS.filament.state === 'waiting') return 'Ding-dong! Your filament is at the front door';
+      if (ORDERS.elfParcel.state === 'waiting') return 'Ding-dong! A parcel for you at the front door';
       return null;
     },
     /** Send a driver with a parcel for the neighbours right now (tests, and trying it out). */
