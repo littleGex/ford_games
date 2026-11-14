@@ -1183,3 +1183,31 @@ test("where's the elf: a clue under Find the elf after a minute, readable on a p
   await expect(page.locator('#toast')).toContainText(hint);   // the list is folded away on a phone: it pops up too
   await page.screenshot({ path: 'test-results/elf-clue-phone.png' });
 });
+
+test("the elf's goodbye notes and letter: readable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('fordHouse.elf.v1', JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' })));
+  await page.goto('/house/?date=2026-12-24');
+  await play(page);
+  const card = page.locator('#elfLetter');
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'note', text: ['Remember my zip wire?', 'Next clue: …'] }));
+  await expect(card).toBeVisible();
+  await expect(page.locator('#elfLetterTitle')).toContainText('A note from Holly');
+  await expect(card).toContainText('Remember my zip wire?');
+  expect(await page.locator('#elfLetterText').evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
+  await card.evaluate(e => Promise.all(e.getAnimations({ subtree: true }).map(a => a.finished)));
+  const box = await page.locator('#elfLetter .elf-card').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.locator('#elfLetterClose').click();
+  await expect(card).toBeHidden();
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'goodbye', who: 'girl' }));
+  await expect(page.locator('#elfLetterTitle')).toContainText('Goodbye');
+  await expect(card).toContainText('Dear P,');
+  await expect(card).toContainText('See you next December!');
+  await expect(card).toContainText('Love from Holly');
+  await page.keyboard.press('Escape');
+  await expect(card).toBeHidden();
+  // a letter after a goodbye still has its own heading
+  await page.evaluate(() => window.house.elfCards.open(null, { card: 'letter' }));
+  await expect(page.locator('#elfLetterTitle')).toContainText('A letter for you');
+});

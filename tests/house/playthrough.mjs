@@ -308,7 +308,7 @@ function doStep(job) {
   }
   if (s.kind === 'card') {   // the elf's letter (read it, close it) or name card (type a name)
     if (S.elfCard !== s.card) return `the ${s.card} card never opened`;
-    if (s.card === 'letter') G.elfCards.close(); else G.elfCards.submit(elfNameToType);
+    if (s.card === 'name') G.elfCards.submit(elfNameToType); else G.elfCards.close();   // letter, note, goodbye: read and closed
     frame();
     return job.steps[job.i] !== s || `the ${s.card} card never finished`;
   }
