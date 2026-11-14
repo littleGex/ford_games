@@ -267,7 +267,8 @@ on the device: playing another day on the same date doesn't bring him back), whi
 and swapping player halfway carries on where they were. Switching Christmas off switches him off too. Try it
 with `?date=2026-12-03` (after playing the elf arrives). He comes out once a real day, so `?holiday=christmas`
 (which keeps today's date) shows him only until he's been found today; a new `?date=` is a new morning. Finding
-him in November never counts as his arrival. More elf missions to come: #158-#160.
+him in November never counts as his arrival. "Start over from day 1" brings him back out that morning (his arrival and name are
+kept). More elf missions to come: #158-#160.
 
 Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
 `?holiday=christmas` for a day like 15 December.

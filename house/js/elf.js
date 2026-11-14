@@ -41,6 +41,8 @@ export function createElfLog({ now = today } = {}) {
       found.push(day);
       write({ ...d, found: found.slice(-KEEP) });
     },
+    /** Forget he was found that day ("Start over from day 1": a fresh game gets him back out). */
+    unfind(day = key()) { const d = read(); if (d.found.includes(day)) write({ ...d, found: d.found.filter(x => x !== day) }); },
     /** The day he arrived in `day`'s Advent: the mission's date, or (an elf already out before the mission
      *  existed) the first December day he was found that Advent (not November: that was ?holiday=christmas
      *  testing); null if he hasn't come yet. */

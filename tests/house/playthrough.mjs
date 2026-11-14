@@ -848,6 +848,13 @@ for (const who of ['dad', 'girl']) {
   G.days.next();
   const job = G.board.find('elf');
   if (!job || !job.steps.some(st => /Holly/.test(st.label))) errors.push(`the morning after he arrives: no "Find the elf" with Holly (${G.board.jobs.map(j => j.id)})`);
+  // found and taken home, then "Start over from day 1": he's back out (a fresh game), still Holly, still arrived
+  if (job) { let guard = 0; while (job.i < job.steps.length && guard++ < 20) { const r = doStep(job); if (r !== true) { errors.push(`finding Holly: ${r}`); break; } } }
+  if (!G.elfLog.found('2026-12-02')) errors.push('finding Holly: never marked found');
+  G.days.restart();
+  const back = G.board.find('elf');
+  if (!back || back.i !== 0 || !G.items.elf.visible || G.elfLog.name() !== 'Holly' || !G.elfLog.hasArrived('2026-12-02'))
+    errors.push(`start over from day 1: want Holly back out to find (job ${back && back.i}, visible ${G.items.elf.visible}, ${G.elfLog.name()})`);
   // next December: the same elf, welcome back, no name card
   globalThis.location.search = '?season=winter&date=2027-12-01';
   G.days.next();
