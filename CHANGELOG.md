@@ -10,6 +10,8 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.22.0] - 2026-11-14
+
 ### Added
 - Ford House: **the elf arrives** (#157), a mission for P or Dude once a December. A parcel from the North Pole
   brings the elf's door and a letter, shown on screen for the children to read; fix his door in the hall and,
@@ -505,7 +507,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.21.1...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.22.0...HEAD
+[4.22.0]: https://github.com/littleGex/ford_games/compare/v4.21.1...v4.22.0
 [4.21.1]: https://github.com/littleGex/ford_games/compare/v4.21.0...v4.21.1
 [4.21.0]: https://github.com/littleGex/ford_games/compare/v4.20.0...v4.21.0
 [4.20.0]: https://github.com/littleGex/ford_games/compare/v4.19.0...v4.20.0
