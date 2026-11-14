@@ -42,11 +42,12 @@ export function createElfLog({ now = today } = {}) {
       write({ ...d, found: found.slice(-KEEP) });
     },
     /** The day he arrived in `day`'s Advent: the mission's date, or (an elf already out before the mission
-     *  existed) the first day he was found that Advent; null if he hasn't come yet. */
+     *  existed) the first December day he was found that Advent (not November: that was ?holiday=christmas
+     *  testing); null if he hasn't come yet. */
     arrivedOn(day = key()) {
       const d = read(), year = adventOf(day);
       if (d.arrived && adventOf(d.arrived) === year) return d.arrived;
-      return d.found.filter(x => adventOf(x) === year).sort()[0] || null;
+      return d.found.filter(x => adventOf(x) === year && x.slice(5, 7) !== '11').sort()[0] || null;
     },
     /** Is his door up that day (he's arrived, that day or before)? */
     hasArrived(day = key()) { const a = api.arrivedOn(day); return a !== null && a <= day; },

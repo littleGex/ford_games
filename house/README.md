@@ -265,7 +265,9 @@ marker shows where he is, so they have to look. Then they put the mess right and
 scene a day, in order, picked from the date, so every device has the same one. He's found once a real day (saved
 on the device: playing another day on the same date doesn't bring him back), whichever of P or Dude finds him,
 and swapping player halfway carries on where they were. Switching Christmas off switches him off too. Try it
-with `?date=2026-12-03` (after playing the elf arrives). More elf missions to come: #158-#160.
+with `?date=2026-12-03` (after playing the elf arrives). He comes out once a real day, so `?holiday=christmas`
+(which keeps today's date) shows him only until he's been found today; a new `?date=` is a new morning. Finding
+him in November never counts as his arrival. More elf missions to come: #158-#160.
 
 Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
 `?holiday=christmas` for a day like 15 December.

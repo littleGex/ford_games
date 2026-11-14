@@ -54,6 +54,11 @@ store.clear();
 store.set(ELF_KEY, JSON.stringify({ found: ['2026-12-02'] }));
 const old = createElfLog({ now: () => dec(3) });
 check(old.arrivedOn('2026-12-03') === '2026-12-02' && old.waiting(['advent'], '2026-12-03'), 'old store: found on 2 December counts as arrived');
+// found in November (testing with ?holiday=christmas before December) isn't an arrival: the mission is still offered
+store.set(ELF_KEY, JSON.stringify({ found: ['2026-11-14'] }));
+const nov = createElfLog({ now: () => dec(1) });
+check(!nov.hasArrived('2026-12-01') && !nov.waiting(['advent'], '2026-12-02'), `found on 14 November: arrived ${nov.arrivedOn('2026-12-01')}`);
+store.set(ELF_KEY, JSON.stringify({ found: ['2026-12-02'] }));
 // his name
 old.setName('Holly');
 check(old.name() === 'Holly' && old.named() && elfName() === 'Holly', `name: ${old.name()}`);
