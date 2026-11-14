@@ -155,11 +155,16 @@ export const ELF_FAREWELL_SPOTS = [
     memory: () => 'I loved the smell of your Christmas baking. Save me a mince pie!' },
 ];
 
+// Where his note goes at a scene: where he sat, but on the floor when he sat on that morning's props (the loo
+// roll, the zip wire, the Lego sleigh), which aren't there on Christmas Eve.
+const ON_PROPS = new Set(['looRoll', 'zipWire', 'legoSleigh']);
+const notePlace = s => (ON_PROPS.has(s.id) ? [s.elf.place[0], 0, s.elf.place[2]] : s.elf.place);
+
 /** The three stops after the calendar note: the trail's scenes (where he sat that morning), then the spots above,
  *  skipping any spot already used, so always three different places. ids: the scenes found, oldest first. */
 export function trailStops(ids) {
   const stops = trailScenes(ids).map(id => ELF_SCENES.find(s => s.id === id)).filter(Boolean)
-    .map(s => ({ id: s.id, at: s.elf.at, level: s.elf.level, place: s.elf.place, hint: s.hint, memory: s.memory }));
+    .map(s => ({ id: s.id, at: s.elf.at, level: s.elf.level, place: notePlace(s), hint: s.hint, memory: s.memory }));
   for (const sp of ELF_FAREWELL_SPOTS) {
     if (stops.length >= 3) break;
     if (!stops.some(x => x.at[0] === sp.at[0] && x.at[1] === sp.at[1] && x.level === sp.level)) stops.push(sp);

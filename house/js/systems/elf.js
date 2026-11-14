@@ -88,6 +88,8 @@ export function createElf(ctx) {
         n.position.set(...st.place); n.visible = true;
       });
     },
+    /** How many of his notes are out (tests). */
+    notesOut: () => notes.filter(n => n.visible).length,
     /** A note picked up and read. */
     takeNote(i) { if (notes[i]) notes[i].visible = false; },
     /** He's sitting by his door, waiting to say goodbye. */

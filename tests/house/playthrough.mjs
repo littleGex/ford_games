@@ -820,7 +820,11 @@ for (const who of ['dad', 'girl']) {
   const four = trailStops(['looRoll', 'zipWire', 'legoSleigh', 'sinkFishing']);
   if (four.map(x => x.id).join(',') !== 'looRoll,zipWire,sinkFishing' || new Set(four.map(x => x.at.join())).size !== 3) errors.push(`goodbye trail, four found: ${four.map(x => x.id)}`);
   const lego = trailStops(['legoSleigh']).find(x => x.id === 'legoSleigh');
-  if (!lego || lego.level !== 2 || lego.place !== ELF_SCENES.find(x => x.id === 'legoSleigh').elf.place) errors.push('goodbye trail: the Lego stop is not up in the attic where he sat');
+  if (!lego || lego.level !== 2 || lego.place[0] !== ELF_SCENES.find(x => x.id === 'legoSleigh').elf.place[0]) errors.push('goodbye trail: the Lego stop is not up in the attic where he sat');
+  for (const id of ['looRoll', 'zipWire', 'legoSleigh']) {
+    const st = trailStops([id])[0];
+    if (st.place[1] !== 0) errors.push(`goodbye trail: the ${id} note floats ${st.place[1]} m up (his props are gone on Christmas Eve)`);
+  }
   console.log(`the elf's goodbye trail: ${ELF_SCENES.length} memories, stops ${ids([])} when nothing was found`);
 }
 
@@ -937,7 +941,7 @@ for (const who of ['dad', 'girl']) {
     G.days.setCharacter('girl'); G.player.setCharacter('girl');
     G.days.next();
   };
-  xmasEve(['2026-12-02', '2026-12-05', '2026-12-09']);
+  xmasEve(['2026-12-03', '2026-12-05', '2026-12-07']);   // the terrarium (upstairs), the zip wire, the Lego (attic)
   if (G.board.find('elf') || G.items.elf.visible) errors.push('Christmas Eve: "Find the elf" or the elf out as well as the goodbye');
   if (!G.elf.door.visible) errors.push('Christmas Eve: his door should be up before the goodbye');
   const p = goodbye('girl', 'the elf says goodbye (P)');
@@ -957,6 +961,13 @@ for (const who of ['dad', 'girl']) {
   if (!G.elfLog.hasLeft('2026-12-24') || G.elf.door.visible || G.items.elf.visible) errors.push(`after both goodbyes: want him gone and his door down (left ${G.elfLog.hasLeft('2026-12-24')}, door ${G.elf.door.visible})`);
   G.days.next();
   if (G.elf.door.visible || G.items.elf.visible || G.board.find('elf')) errors.push('the next game day on Christmas Eve: his door or the elf is back');
+  // leaving part-way: P starts the goodbye again (Dude's done it too, but test the clean-up), then plays another mission
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.missions.start('elfGoodbye', 'girl');
+  if (G.elf.notesOut() !== 4) errors.push(`goodbye part-way: want 4 notes out, got ${G.elf.notesOut()}`);
+  G.missions.start('print3d', 'dad');
+  if (G.elf.notesOut() !== 0 || G.items.elf.visible) errors.push(`goodbye left for another mission: ${G.elf.notesOut()} notes still out`);
+  G.missions.end();
   // nothing found all December (he came on the 23rd): the tree, the windowsill and the worktop
   xmasEve([]);
   const z = goodbye('girl', 'the elf says goodbye (nothing found)');
