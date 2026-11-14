@@ -581,7 +581,7 @@ test('the home screen: carry on, pick who plays, missions, back to Game Zone', a
   await expect(page.locator('#homePlay')).toHaveText('Start day 1');
   await expect(page.locator('#homeSub')).toHaveText(/^Day 1 · playing as Dad · 0 of \d+ jobs done$/);
   await expect(page.locator('#homeBack')).toHaveAttribute('href', '../');
-  await expect(page.locator('.mission')).toHaveCount(6);   // the school run, a day at school, work from home, the office, 3D printing, bedtime
+  await expect(page.locator('.mission:visible')).toHaveCount(6);   // the school run, a day at school, work from home, the office, 3D printing, bedtime (the elf arrives: only in December)
 
   // picking who plays here changes the player too
   await page.locator('.home-who button[data-c="mum"]').click();
