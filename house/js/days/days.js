@@ -44,7 +44,9 @@ export function createDays(ctx) {
   offTags = tags => (settings() ? settings().filterTags(tags) : [].concat(tags || []));
   offJobs = () => (settings() ? settings().offJobs() : new Set());
   groupOn = id => (settings() ? settings().isOn(id) : true);
-  tagsFor = (who, holiday) => offTags([...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : [])]);
+  const kid = who => who === 'girl' || who === 'boy';
+  tagsFor = (who, holiday) => offTags([...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : []),
+    ...(kid(who) && ctx.elfLog && ctx.elfLog.waiting(holiday) ? ['elf'] : [])]);
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
@@ -141,7 +143,7 @@ export function createDays(ctx) {
       if (!today.plan.includes(job.id) || today.done.includes(job.id)) continue;
       if (S.sitting && S.sitting.job.id === job.id) ctx.sitting.standUp();
       // still theirs (and their special day: P's Advent door isn't Dude's), but maybe somewhere else: start it afresh
-      if (isFor(job, who, stageOf(who)) && onHoliday(job, tagsFor(who, today.params.holiday), today.params.birthday)) { board.replace(job); continue; }
+      if (isFor(job, who, stageOf(who)) && onHoliday(job, tagsFor(who, today.params.holiday), today.params.birthday)) { if (!job.keep) board.replace(job); continue; }   // keep: the same for both (the elf), carry on
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }

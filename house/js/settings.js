@@ -26,7 +26,7 @@ export const JOB_GROUPS = [
   { id: 'loft', icon: '📦', label: 'Boxes up and down the loft', jobs: ['loftUp', 'loftDown'] },
   { id: 'halloween', icon: '🎃', label: 'Halloween', tags: ['halloween'] },
   { id: 'christmas', icon: '🎄', label: 'Christmas and the Advent calendars',
-    tags: ['advent', 'adventDoor', 'christmas', 'christmasTime', 'beforeChristmas', 'christmasEve', 'christmasEnd'] },
+    tags: ['advent', 'adventDoor', 'elf', 'christmas', 'christmasTime', 'beforeChristmas', 'christmasEve', 'christmasEnd'] },
   { id: 'birthdays', icon: '🎂', label: 'Birthday parties', birthdays: true },
 ];
 const GROUP_IDS = JOB_GROUPS.map(g => g.id);

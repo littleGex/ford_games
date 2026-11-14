@@ -19,6 +19,7 @@ import { HALLOWEEN as HW } from '../world/halloween.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
 import { BD, NAMES as BD_NAMES, GIFTS } from '../systems/birthday.js';
 import { XMAS, XMAS_GIFTS } from '../world/christmas.js';
+import { ELF_SCENES, ELF_NAME } from '../pack/elfscenes.js';
 
 export const BIN_PAIRS = [[['binBlue', 'blue'], ['binYellow', 'yellow']], [['binBlack', 'black'], ['binBrown', 'brown']]];
 const KERB = [[3.9, 13.05], [4.6, 13.05]];
@@ -46,7 +47,7 @@ const LOFT_AT = [3.75, 6.75];   // standing under the loft hatch in the attic ha
  * @param holiday  today's tags (holidays.js): 'halloween' adds that day's jobs, the Christmas ones Christmas's
  * @param birthday whose birthday it is today ('girl'...), or null: adds the party jobs
  */
-export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null, birthday = null } = {}) {
+export function createJobs({ binPair = 0, binsBack = null, character = 'dad', day = 1, holiday = null, birthday = null, elfScene = null } = {}) {
   const grownUp = character === 'dad' || character === 'mum';
   // P's bike and P's bearded dragon: "your" when P does the job, "P's" for whoever else does it (settings.js)
   const bikeOf = character === 'girl' ? 'your' : possessive('girl'), dragonOf = bikeOf;
@@ -336,7 +337,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
   ];
   const tags = [].concat(holiday || []);
   if (tags.includes('halloween')) jobs.push(...halloweenJobs(character, grownUp));
-  if (tags.includes('advent') || tags.includes('christmas')) jobs.push(...christmasJobs(character, grownUp, tags));
+  if (tags.includes('advent') || tags.includes('christmas')) jobs.push(...christmasJobs(character, grownUp, tags, elfScene));
   if (birthday) jobs.push(...birthdayJobs(character, birthday, grownUp));
   return jobs.map(job => ({ ...rulesFor(job.id), ...job }));
 }
@@ -423,7 +424,7 @@ function birthdayJobs(character, who, grownUp) {
  *  wrap (or make), the kids' wish list, the Christmas bell and presents on Christmas Eve, and taking it all down
  *  on 5 January. Only the ones whose day it is go in the pool (so their tidy doesn't run on other days).
  *  systems/christmas.js does the rest. */
-function christmasJobs(character, grownUp, tags) {
+function christmasJobs(character, grownUp, tags, elfScene) {
   const desk = deskFor(character), deskPlace = HW.room[character] || HW.room.girl, t = XMAS.table, tree = XMAS.tree.at;
   const jobs = [
     { id: 'adventDoor', title: 'Open your Advent calendar', personal: true, steps: [
@@ -486,7 +487,18 @@ function christmasJobs(character, grownUp, tags) {
       { kind: 'use', at: XMAS.kerb, label: 'Leave it by the street for the Christmas tree collection', onDone: c => c.christmas.treeAtKerb() }],
       tidy: c => c.christmas.allDown() },
   ];
-  // only the jobs whose day it is (the Advent calendar door: in Advent and over Christmas, for missed doors)
-  const today = id => (id === 'adventDoor' ? tags.includes('advent') || tags.includes('christmas') : tags.includes(rulesFor(id).holiday));
+  // the naughty elf (systems/elf.js): find him in today's scene (no marker), put his mess right, take him home.
+  // He's the same for P and Dude (keep: swapping player carries on); systems/elf.js sets him out each morning,
+  // so the job has nothing of its own to set up or tidy away.
+  const scene = ELF_SCENES.find(s => s.id === elfScene);
+  if (scene) jobs.push({ id: 'elf', title: 'Find the elf', keep: true, steps: [
+    { kind: 'use', hidden: true, level: scene.elf.level, at: scene.elf.at, label: `Is that ${ELF_NAME}?`, onDone: c => c.elf.found() },
+    ...scene.tidy(),
+    { kind: 'pick', item: 'elf', label: `Pick ${ELF_NAME} up` },
+    { kind: 'drop', item: 'elf', home: true, label: `Take ${ELF_NAME} back to his door in the hall`, onDone: c => c.elf.home() }],
+    setup: () => {}, tidy: () => {} });
+  // only the jobs whose day it is (the Advent calendar door: in Advent and over Christmas, for missed doors; the
+  // elf: in Advent, and days.js only plans him while he's still to be found)
+  const today = id => (id === 'adventDoor' ? tags.includes('advent') || tags.includes('christmas') : id === 'elf' ? tags.includes('advent') : tags.includes(rulesFor(id).holiday));
   return jobs.filter(job => today(job.id));
 }

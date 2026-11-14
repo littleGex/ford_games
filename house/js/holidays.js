@@ -7,7 +7,8 @@
 //   beforeChristmas  12-23 December: presents to wrap or make, wish lists
 //   christmasEve     24 December: the Christmas bell and presents under the tree
 //   christmasEnd     5 January: the decorations come down
-// (and for P and Dude, 'adventDoor' while there's a door on their Advent calendar to open; days.js adds it).
+// (and for P and Dude, 'adventDoor' while there's a door on their Advent calendar to open, and 'elf' while the
+// naughty elf is out waiting to be found today; days.js adds them).
 //
 // Trying things out: ?date=2026-12-24 pretends it's that day (seasons, Christmas, Advent calendar doors,
 // birthdays); ?holiday=halloween or ?holiday=christmas switches one on today; ?holiday=none switches them off.

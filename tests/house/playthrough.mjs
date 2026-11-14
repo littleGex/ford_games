@@ -688,18 +688,46 @@ for (const who of ['dad', 'girl']) {
   const { ELF_SCENES } = await import(new URL('../../house/js/pack/elfscenes.js', import.meta.url));
   const near = (o, [x, , z]) => Math.hypot(o.position.x - x, o.position.z - z) < 0.01;
   const shown = id => G.elf.propsOf(id).every(p => p.visible) && G.elf.propsOf(id).length > 0;
-  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  const { ELF_DOOR } = await import(new URL('../../house/js/world/elf.js', import.meta.url));
+  const markersShown = () => G.stage.scene.children.filter(o => o.isGroup && o.visible && o.children[0] && o.children[0].geometry && o.children[0].geometry.type === 'OctahedronGeometry').length;
   globalThis.location.search = '?season=winter&date=2026-12-03';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
+  if (G.board.find('elf')) errors.push("3 December: the elf is on Dad's list");
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  if (!G.board.find('elf') || G.board.find('elf').title !== 'Find the elf') errors.push(`3 December: no "Find the elf" on P's list (${G.board.jobs.map(j => j.id)})`);
+  G.days.plan(['elf']);
   const scene = ELF_SCENES.find(s => s.id === G.elf.scene.id);
   if (!G.elf.door.visible || !G.items.elf.visible || !near(G.items.elf, scene.elf.place) || !shown(scene.id)) errors.push(`3 December: the elf isn't out in his scene (${scene && scene.id}), or his door isn't there`);
+  // no marker shows where he is
+  G.player.group.position.set(scene.elf.at[0], 0, scene.elf.at[1]); S.level = scene.elf.level;
+  G.board.updateMarkers(0);
+  if (markersShown()) errors.push('finding the elf: a marker shows where he is');
+  // P finds him and starts tidying, then Dude carries on from the same step
+  const job = G.board.find('elf');
+  doStep(job); doStep(job);
+  G.days.setCharacter('boy'); G.player.setCharacter('boy');
+  if (G.board.find('elf') !== job || job.i !== 2) errors.push(`swapping to Dude halfway: the elf job restarted or went (step ${G.board.find('elf') && G.board.find('elf').i})`);
+  playDay('the elf (Dude finishing what P started)');
+  if (G.items.elf.visible || !near(G.items.elf, ELF_DOOR.place) || ELF_SCENES.some(s => G.elf.propsOf(s.id).some(p => p.visible)) || !G.elfLog.found()) errors.push("the elf isn't home behind his door with the mess put right");
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  const again = G.board.find('elf');
+  if (again && again.i < again.steps.length) errors.push('found today: the elf job came back undone for P');
+  G.days.next();
+  if (G.board.find('elf') || G.items.elf.visible) errors.push('found today: the elf is out again on the next game day');
+  // Christmas switched off: no elf, no door, no mess
+  globalThis.location.search = '?season=winter&date=2026-12-05';
+  G.settings.set('christmas', false);
+  G.days.next();
+  if (G.board.find('elf') || G.elf.door.visible || G.items.elf.visible) errors.push('Christmas switched off: the elf is still about');
+  G.settings.set('christmas', true);
   globalThis.location.search = '?season=autumn&date=2026-11-20';
   G.days.next();
   if (G.elf.door.visible || G.items.elf.visible || ELF_SCENES.some(s => G.elf.propsOf(s.id).some(p => p.visible))) errors.push('20 November: the elf, his door or his mess is out');
   globalThis.location.search = '?season=autumn';
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
-  console.log('the elf: out on 3 December, away in November');
+  console.log('the elf: found by P and Dude on 3 December, once a day, off with Christmas, away in November');
 }
 
 // --- names and switched-off jobs (#78): P called Pia and Dad called Alan show in job titles, labels, the room
