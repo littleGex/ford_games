@@ -14,7 +14,7 @@ export function createElf(ctx) {
   door.position.set(...ELF_DOOR.place); door.visible = false;
   stage.scene.add(door);
   const built = {};
-  let scene = null;
+  let scene = null, day;   // day: the date today's game day was planned for (days.js params.elfDate)
 
   /** A scene's mess, built the first time it's needed and added to the elf's floor (hidden). */
   function propsOf(id) {
@@ -36,8 +36,8 @@ export function createElf(ctx) {
       const tags = [].concat(params.holiday || []);
       hideAll(); hideElf();
       door.visible = tags.includes('advent');
-      scene = ELF_SCENES.find(s => s.id === params.elfScene) || null;
-      if (!door.visible || !scene || !ctx.elfLog.waiting(tags)) return;
+      scene = ELF_SCENES.find(s => s.id === params.elfScene) || null; day = params.elfDate;
+      if (!door.visible || !scene || !ctx.elfLog.waiting(tags, day)) return;
       const { place, level, rotY = 0 } = scene.elf, elf = items.elf;
       if (elf.parent !== floors()[level]) floors()[level].attach(elf);
       elf.position.set(...place); elf.rotation.set(0, rotY, 0);
@@ -48,7 +48,7 @@ export function createElf(ctx) {
     clear(i) { const p = scene && propsOf(scene.id)[i]; if (p) p.visible = false; },
     found() { bell(); hud.toast(`You found ${ELF_NAME}! ${scene ? scene.title : ''}`.trim()); },
     /** Back through his door: gone until tomorrow. */
-    home() { hideElf(); hideAll(); ctx.elfLog.markFound(); },
+    home() { hideElf(); hideAll(); ctx.elfLog.markFound(day); },
     /** Everything put away (the job's tidy, on a day it isn't done). */
     away() { hideElf(); hideAll(); },
   };

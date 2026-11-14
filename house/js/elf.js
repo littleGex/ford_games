@@ -20,15 +20,17 @@ export function createElfLog({ now = today } = {}) {
     try { const d = JSON.parse(localStorage.getItem(ELF_KEY)); return d && Array.isArray(d.found) ? d.found : []; } catch (e) { return []; }
   }
   const api = {
-    /** Has he been found and taken home today? */
-    found: () => load().includes(dateKey(now())),
-    markFound() {
-      const found = load().filter(d => d !== dateKey(now()));
-      found.push(dateKey(now()));
+    // `day`: the date ('YYYY-MM-DD') the game day was planned for (days.js params.elfDate), so a day played past
+    // midnight still counts for the day it was planned; today's real date if not given
+    /** Has he been found and taken home that day? */
+    found: (day = dateKey(now())) => load().includes(day),
+    markFound(day = dateKey(now())) {
+      const found = load().filter(d => d !== day);
+      found.push(day);
       try { localStorage.setItem(ELF_KEY, JSON.stringify({ found: found.slice(-KEEP) })); } catch (e) { /* private mode */ }
     },
-    /** Is he out today, waiting to be found (an Advent day, and not found yet)? */
-    waiting: tags => [].concat(tags || []).includes('advent') && !api.found(),
+    /** Is he out that day, waiting to be found (an Advent day, and not found yet)? */
+    waiting: (tags, day) => [].concat(tags || []).includes('advent') && !api.found(day),
   };
   return api;
 }

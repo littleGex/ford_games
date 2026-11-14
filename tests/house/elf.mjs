@@ -29,6 +29,12 @@ check(log.found() && !log.waiting(['advent']), 'found on 3 December: he should n
 check(createElfLog({ now: () => dec(3) }).found(), 'found on 3 December: a new log on the same day should know');
 check(createElfLog({ now: () => dec(4) }).waiting(['advent']), '4 December: he should be waiting again');
 
+// a day planned on 3 December and played past midnight: found counts for the day it was planned
+const late = createElfLog({ now: () => dec(4) });
+late.markFound('2026-12-03');
+check(late.found('2026-12-03') && !late.waiting(['advent'], '2026-12-03'), 'past midnight: found for 3 December');
+check(!late.found() && late.waiting(['advent']), 'past midnight: 4 December still to come');
+
 // a broken store reads as nothing found
 store.set(ELF_KEY, 'not json');
 let broken;

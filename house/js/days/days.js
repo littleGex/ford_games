@@ -7,7 +7,7 @@ import { createJobs } from '../jobs/jobs.js';
 import { planDay, personalDue, seededRandom, isFor, onHoliday } from './planner.js';
 import { currentSeason } from '../seasons.js';
 import { currentHolidays, currentBirthday, today as realToday } from '../holidays.js';
-import { pickScene } from '../elf.js';
+import { pickScene, dateKey } from '../elf.js';
 import { ELF_SCENES } from '../pack/elfscenes.js';
 import { loadSave, writeSave, clearSave, freshSave } from './save.js';
 
@@ -16,14 +16,14 @@ function binParams(save) {
   const last = save.lastBinPair, birthday = birthdayOf();
   // day: where the loft box is; holiday: today's tags, for Halloween and Christmas jobs and decorations (kept
   // for the day once it's planned)
-  // elfScene: the naughty elf's scene for today's date (kept for the day, like the tags)
-  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: offTags(currentHolidays()), birthday, elfScene: elfSceneFor() };
+  // elfScene, elfDate: the naughty elf's scene for today's date, and the date (kept for the day, like the tags)
+  return { binPair: last === null ? 0 : (last + 1) % 2, binsBack: last, day: save.day, holiday: offTags(currentHolidays()), birthday, elfScene: elfSceneFor(), elfDate: dateKey(realToday()) };
 }
 
 // a player's life stage (players.js: from their birthday), whose birthday it is today, and the day's tags for
 // one of the family (P or Dude get 'adventDoor' while there's a door on their Advent calendar to open); set up
 // by createDays
-let stageOf = () => undefined, birthdayOf = () => null, tagsFor = (who, holiday) => [].concat(holiday || []);
+let stageOf = () => undefined, birthdayOf = () => null, tagsFor = (who, holiday, elfDate) => [].concat(holiday || []);
 // the house settings (settings.js): jobs switched off, and special days switched off
 let offJobs = () => new Set(), offTags = tags => tags, groupOn = () => true;
 const elfSceneFor = () => pickScene(realToday(), ELF_SCENES, id => groupOn(id));
@@ -33,7 +33,7 @@ const poolFor = params => { const off = offJobs(); return createJobs(params).fil
 /** Today's plan for a save. Seeded by the day number so it's the same if worked out twice. */
 function planFor(save, params) {
   const pool = poolFor({ ...params, character: save.character });
-  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: tagsFor(save.character, params.holiday), birthday: params.birthday }, seededRandom(save.day * 7919 + 13));
+  return planDay(pool, { day: save.day, lastDone: save.lastDone, character: save.character, stage: stageOf(save.character), season: currentSeason(), holiday: tagsFor(save.character, params.holiday, params.elfDate), birthday: params.birthday }, seededRandom(save.day * 7919 + 13));
 }
 
 export function createDays(ctx) {
@@ -45,8 +45,8 @@ export function createDays(ctx) {
   offJobs = () => (settings() ? settings().offJobs() : new Set());
   groupOn = id => (settings() ? settings().isOn(id) : true);
   const kid = who => who === 'girl' || who === 'boy';
-  tagsFor = (who, holiday) => offTags([...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : []),
-    ...(kid(who) && ctx.elfLog && ctx.elfLog.waiting(holiday) ? ['elf'] : [])]);
+  tagsFor = (who, holiday, elfDate) => offTags([...[].concat(holiday || []), ...(ctx.advent && ctx.advent.hasNew(who) ? ['adventDoor'] : []),
+    ...(kid(who) && ctx.elfLog && ctx.elfLog.waiting(holiday, elfDate) ? ['elf'] : [])]);
   let save = loadSave();
   let today = null, dayStart = 0, completeAt = null, restored = false;
   const now = () => clock.elapsedTime;
@@ -143,11 +143,14 @@ export function createDays(ctx) {
       if (!today.plan.includes(job.id) || today.done.includes(job.id)) continue;
       if (S.sitting && S.sitting.job.id === job.id) ctx.sitting.standUp();
       // still theirs (and their special day: P's Advent door isn't Dude's), but maybe somewhere else: start it afresh
-      if (isFor(job, who, stageOf(who)) && onHoliday(job, tagsFor(who, today.params.holiday), today.params.birthday)) { if (!job.keep) board.replace(job); continue; }   // keep: the same for both (the elf), carry on
+      // something of this job's still in your hands (the elf on the way home): finish it whoever you are now
+      const live = board.find(job.id);
+      if (S.carrying && live && live.i > 0 && live.steps.some(st => st.item === S.carrying)) continue;
+      if (isFor(job, who, stageOf(who)) && onHoliday(job, tagsFor(who, today.params.holiday, today.params.elfDate), today.params.birthday)) { if (!job.keep) board.replace(job); continue; }   // keep: the same for both (the elf), carry on
       today.plan = today.plan.filter(id => id !== job.id);
       board.remove(job.id);
     }
-    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, stage: stageOf(who), season: currentSeason(), holiday: tagsFor(who, today.params.holiday), birthday: today.params.birthday })) {
+    for (const job of personalDue(pool, { day: save.day, lastDone: save.lastDone, character: who, stage: stageOf(who), season: currentSeason(), holiday: tagsFor(who, today.params.holiday, today.params.elfDate), birthday: today.params.birthday })) {
       if (today.plan.includes(job.id)) continue;
       today.plan.push(job.id);
       board.add(job);

@@ -745,6 +745,25 @@ for (const who of ['dad', 'girl']) {
   G.settings.set('dragon', false);
   for (let d = 1; d <= 24; d++) { globalThis.location.search = dec(d); G.days.next(); if (G.elf.scene && G.elf.scene.needs === 'dragon') errors.push(`dragon off, ${d} December: the terrarium scene`); }
   G.settings.set('dragon', true);
+  // a day planned on 6 December and played past midnight: found counts for 6 December; a reload after midnight
+  // doesn't bring him (or his mess) back out, and 7 December still has its own elf
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = dec(6); G.days.next(); G.days.plan(['elf']);
+  globalThis.location.search = dec(7);
+  playDay('the elf, past midnight');
+  if (!G.elfLog.found('2026-12-06') || G.elfLog.found('2026-12-07')) errors.push('past midnight: the elf was counted for the wrong day');
+  G.days.start();   // the page reloaded on 7 December, carrying on with 6 December's day
+  if (G.items.elf.visible || ELF_SCENES.some(s => anyProps(s.id))) errors.push('reload after midnight: the elf or his mess came back out');
+  G.days.next();
+  if (!G.board.find('elf')) errors.push("7 December: no elf (yesterday's late find used up today's)");
+  // P picks him up, then Mum takes over: Mum can still take him home, and the day finishes
+  G.days.plan(['elf']);
+  const carried = G.board.find('elf');
+  while (carried.steps[carried.i].kind !== 'drop') doStep(carried);
+  G.days.setCharacter('mum'); G.player.setCharacter('mum');
+  if (!G.board.find('elf') || S.carrying !== 'elf') errors.push("swapping to Mum while carrying the elf: the job went, or he's stuck in her hands");
+  playDay('the elf, Mum takes him home');
+  if (G.items.elf.visible || S.carrying) errors.push("Mum didn't take the elf home");
   globalThis.location.search = '?season=autumn&date=2026-11-20';
   G.days.next();
   if (G.elf.door.visible || G.items.elf.visible || ELF_SCENES.some(s => G.elf.propsOf(s.id).some(p => p.visible))) errors.push('20 November: the elf, his door or his mess is out');
