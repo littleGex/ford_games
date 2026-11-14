@@ -4,7 +4,8 @@
 // and takes him back through his door.
 import { bell } from '../core/audio.js';
 import { sendHome } from '../items.js';
-import { ELF_SCENES, ELF_NAME } from '../pack/elfscenes.js';
+import { ELF_SCENES } from '../pack/elfscenes.js';
+import { elfName } from '../elf.js';
 import { ELF_DOOR, makeElfDoor } from '../world/elf.js';
 
 export function createElf(ctx) {
@@ -35,8 +36,9 @@ export function createElf(ctx) {
     reset(params) {
       const tags = [].concat(params.holiday || []);
       hideAll(); hideElf();
-      door.visible = tags.includes('advent');
-      scene = ELF_SCENES.find(s => s.id === params.elfScene) || null; day = params.elfDate;
+      day = params.elfDate;
+      door.visible = tags.includes('advent') && ctx.elfLog.hasArrived(day);   // his door: from the day he arrived
+      scene = ELF_SCENES.find(s => s.id === params.elfScene) || null;
       if (!door.visible || !scene || !ctx.elfLog.waiting(tags, day)) return;
       const { place, level, rotY = 0 } = scene.elf, elf = items.elf;
       if (elf.parent !== floors()[level]) floors()[level].attach(elf);
@@ -46,10 +48,12 @@ export function createElf(ctx) {
     },
     /** Put one bit of today's mess right. */
     clear(i) { const p = scene && propsOf(scene.id)[i]; if (p) p.visible = false; },
-    found() { bell(); hud.toast(`You found ${ELF_NAME}! ${scene ? scene.title : ''}`.trim()); },
+    found() { const E = elfName(); bell(); hud.toast(`You found ${E}! ${scene ? scene.title(E) : ''}`.trim()); },
     /** Back through his door: gone until tomorrow. */
     home() { hideElf(); hideAll(); ctx.elfLog.markFound(day); },
-    /** Everything put away (the job's tidy, on a day it isn't done). */
-    away() { hideElf(); hideAll(); },
+    /** The elf arrives mission: nothing of his about until his door is fixed. */
+    prepareArrival() { hideElf(); hideAll(); door.visible = false; },
+    /** His door fixed to the skirting in the hall (the elf arrives mission). */
+    fixDoor() { door.visible = true; },
   };
 }

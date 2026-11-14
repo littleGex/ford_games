@@ -1,7 +1,7 @@
 // The naughty elf's scenes (house data): where in the Ford house he gets up to mischief each night, the mess he
 // leaves (props), and the steps to put it right (ordinary job steps; a `use` step that clears a bit of mess
 // calls c.elf.clear(i) for props()[i]). systems/elf.js shows one scene a day, picked by elf.js pickScene.
-//   id, title         the scene, and what the toast says when you find him
+//   id, title(name)   the scene, and what the toast says when you find him (with his name, elf.js elfName)
 //   needs             a job group (settings.js JOB_GROUPS) the scene needs switched on, e.g. 'dragon'
 //   elf               where he is: at [x, z] (where you stand to find him), place [x, y, z], level, rotY
 //   props()           the mess: THREE.Groups in plan coordinates on the elf's floor, built once
@@ -11,8 +11,6 @@ import { add, mat } from '../core/build.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { XMAS } from '../world/christmas.js';
 
-/** The elf's name (our own elf; the family can rename him one day). */
-export const ELF_NAME = 'Pip';
 
 const group = build => { const g = new THREE.Group(); build(g); return g; };
 const box = (g, size, colour, pos, rot) => add(g, new THREE.BoxGeometry(...size), mat(colour), pos, null, rot);
@@ -24,7 +22,7 @@ const looRoll = (g, pos) => {
 };
 
 export const ELF_SCENES = [
-  { id: 'looRoll', title: `${ELF_NAME} has wrapped the coats in loo roll`,
+  { id: 'looRoll', title: name => `${name} has wrapped the coats in loo roll`,
     elf: { at: [3.95, 6.35], place: [4.3, 0.11, 6.1], level: 0, rotY: -Math.PI / 2 },   // sitting on the loo roll
     props: () => [
       // paper wound round and round the coats on the rail
@@ -36,7 +34,7 @@ export const ELF_SCENES = [
       { kind: 'use', at: [3.95, 5.9], label: 'Unwind the loo roll from the coats', onDone: c => c.elf.clear(0) },
       { kind: 'use', at: [4.3, 5.7], label: 'Roll up the rest of the loo roll', onDone: c => c.elf.clear(1) }],
   },
-  { id: 'biscuitRaid', title: `${ELF_NAME} has raided the biscuit tin`,
+  { id: 'biscuitRaid', title: name => `${name} has raided the biscuit tin`,
     elf: { at: XMAS.counter.at, place: [3.75, 0.9, 2.45], level: 0, rotY: Math.PI / 2 },
     props: () => [
       group(g => { for (let i = 0; i < 14; i++) box(g, [0.025, 0.01, 0.02], '#c98a3d', [3.7 + (i % 5) * 0.05, 0.905, 1.95 + Math.floor(i / 5) * 0.08], [0, i, 0]); }),
@@ -46,7 +44,7 @@ export const ELF_SCENES = [
       { kind: 'use', at: XMAS.counter.at, label: 'Wipe the biscuit crumbs off the worktop', onDone: c => c.elf.clear(0) },
       { kind: 'use', at: XMAS.counter.at, label: 'Put the lid back on the biscuit tin', onDone: c => c.elf.clear(1) }],
   },
-  { id: 'terrarium', needs: 'dragon', title: `${ELF_NAME} has decorated the bearded dragon's terrarium with tinsel`,
+  { id: 'terrarium', needs: 'dragon', title: name => `${name} has decorated the bearded dragon's terrarium with tinsel`,
     elf: { at: TERRARIUM.at, place: [2.05, 0, 6.05], level: 1, rotY: -Math.PI / 2 },
     props: () => [
       group(g => [0.62, 0.78, 0.94].forEach((y, i) => box(g, [0.95, 0.03, 0.03], ['#d4af37', '#c0c0c0', '#c62828'][i], [(TERRARIUM.x1 + TERRARIUM.x2) / 2, y, TERRARIUM.z2 + 0.03], [0, 0, (i - 1) * 0.06]))),
@@ -54,7 +52,7 @@ export const ELF_SCENES = [
     tidy: () => [
       { kind: 'use', level: 1, at: TERRARIUM.at, label: 'Take the tinsel off the terrarium', onDone: c => c.elf.clear(0) }],
   },
-  { id: 'shoeSwap', title: `${ELF_NAME} has thrown everyone's shoes round the porch`,
+  { id: 'shoeSwap', title: name => `${name} has thrown everyone's shoes round the porch`,
     elf: { at: [3.9, 7.35], place: [4.15, 0, 8.3], level: 0, rotY: Math.PI },
     props: () => [
       group(g => [[3.6, 7.6, '#1d1f24'], [3.75, 8.4, '#e04848'], [4.2, 7.9, '#48a0e0'], [3.55, 8.15, '#f2d22e'], [4.05, 7.5, '#6cc070']]
@@ -64,7 +62,7 @@ export const ELF_SCENES = [
       { kind: 'use', at: [3.9, 7.35], label: 'Pair up the shoes', onDone: c => c.elf.clear(0) },
       { kind: 'use', at: [3.56, 6.4], label: 'Put them back on the shoe bench' }],
   },
-  { id: 'zipWire', title: `${ELF_NAME} has made a zip wire across the living room`,
+  { id: 'zipWire', title: name => `${name} has made a zip wire across the living room`,
     elf: { at: [2.3, 2.2], place: [1.7, 1.45, 1.4], level: 0, rotY: Math.PI / 2 },
     props: () => [
       group(g => { box(g, [3.0, 0.008, 0.008], '#e8e2d0', [1.7, 1.72, 1.4]); box(g, [0.02, 0.25, 0.02], '#8a5a2b', [1.7, 1.6, 1.4]); }),
@@ -72,7 +70,7 @@ export const ELF_SCENES = [
     tidy: () => [
       { kind: 'use', at: [2.3, 2.2], label: 'Take down the zip wire', onDone: c => c.elf.clear(0) }],
   },
-  { id: 'flourAngel', title: `${ELF_NAME} has made a snow angel in flour on the dining table`,
+  { id: 'flourAngel', title: name => `${name} has made a snow angel in flour on the dining table`,
     elf: { at: XMAS.table.at, place: [1.85, 0.75, 7.05], level: 0, rotY: Math.PI / 2 },
     props: () => [
       group(g => { box(g, [0.55, 0.006, 0.45], '#f7f5ef', [1.85, 0.753, 7.05]); for (let i = 0; i < 6; i++) ball(g, 0.02, '#f7f5ef', [1.5 + i * 0.12, 0.75, 6.75 + (i % 2) * 0.1]); }),
@@ -82,7 +80,7 @@ export const ELF_SCENES = [
       { kind: 'use', at: XMAS.table.at, label: 'Wipe the flour off the table', onDone: c => c.elf.clear(0) },
       { kind: 'use', at: XMAS.counter.at, label: 'Put the flour back in the kitchen', onDone: c => c.elf.clear(1) }],
   },
-  { id: 'legoSleigh', title: `${ELF_NAME} has built a sleigh out of the Lego`,
+  { id: 'legoSleigh', title: name => `${name} has built a sleigh out of the Lego`,
     elf: { at: [2.1, 1.95], place: [2.75, 0.06, 2.3], level: 2, rotY: 0 },
     props: () => [
       group(g => {
@@ -93,7 +91,7 @@ export const ELF_SCENES = [
     tidy: () => [
       { kind: 'use', level: 2, at: [2.1, 1.95], label: 'Take the Lego sleigh apart and put it in the drawer', onDone: c => c.elf.clear(0) }],
   },
-  { id: 'cushionFort', title: `${ELF_NAME} has built a cushion fort in front of the sofa`,
+  { id: 'cushionFort', title: name => `${name} has built a cushion fort in front of the sofa`,
     elf: { at: [1.6, 2.4], place: [1.15, 0, 2.4], level: 0, rotY: Math.PI / 2 },
     props: () => [
       group(g => [[1.15, 0.1, 2.05, 0], [1.15, 0.1, 2.75, 0], [1.4, 0.1, 2.4, Math.PI / 2], [1.15, 0.32, 2.4, Math.PI / 2]]
@@ -102,7 +100,7 @@ export const ELF_SCENES = [
     tidy: () => [
       { kind: 'use', at: [1.6, 2.4], label: 'Put the cushions back on the sofa', onDone: c => c.elf.clear(0) }],
   },
-  { id: 'sinkFishing', title: `${ELF_NAME} has gone fishing in the kitchen sink`,
+  { id: 'sinkFishing', title: name => `${name} has gone fishing in the kitchen sink`,
     elf: { at: [5.32, 0.9], place: [5.0, 0.9, 0.45], level: 0, rotY: Math.PI / 2 },
     props: () => [
       group(g => { add(g, new THREE.CylinderGeometry(0.005, 0.007, 0.45, 6), mat('#8a5a2b'), [5.2, 1.12, 0.5], null, [0, 0, -0.9]); box(g, [0.004, 0.2, 0.004], '#e8e2d0', [5.38, 1.12, 0.5]); }),
@@ -112,7 +110,7 @@ export const ELF_SCENES = [
       { kind: 'use', at: [5.32, 0.9], label: 'Fish the jelly sweets out of the sink', onDone: c => c.elf.clear(1) },
       { kind: 'use', at: [5.32, 0.9], label: 'Take away the fishing rod', onDone: c => c.elf.clear(0) }],
   },
-  { id: 'marshmallowFight', title: `${ELF_NAME} and the teddies have had a marshmallow snowball fight`,
+  { id: 'marshmallowFight', title: name => `${name} and the teddies have had a marshmallow snowball fight`,
     elf: { at: [2.35, 1.9], place: [1.7, 0.55, 2.6], level: 1, rotY: -Math.PI / 2 },
     props: () => [
       group(g => [['#a0703c', 1.0], ['#d9c3a0', 1.6], ['#7a5230', 2.2]].forEach(([c, z]) => teddy(g, c, [1.0, 0.55, z]))),

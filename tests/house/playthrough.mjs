@@ -690,6 +690,17 @@ for (const who of ['dad', 'girl']) {
   const shown = id => G.elf.propsOf(id).every(p => p.visible) && G.elf.propsOf(id).length > 0;
   const { ELF_DOOR } = await import(new URL('../../house/js/world/elf.js', import.meta.url));
   const markersShown = () => G.stage.scene.children.filter(o => o.isGroup && o.visible && o.children[0] && o.children[0].geometry && o.children[0].geometry.type === 'OctahedronGeometry').length;
+  const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  // he hasn't arrived: no door, no elf, no job; arriving puts his door up that day, and he's out the next morning
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = '?season=winter&date=2026-12-03';
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.next();
+  if (G.elf.door.visible || G.items.elf.visible || G.board.find('elf')) errors.push("3 December, he hasn't arrived: his door, him or the job is there");
+  G.elfLog.arrive('2026-12-03');
+  G.days.next();
+  if (!G.elf.door.visible || G.items.elf.visible || G.board.find('elf')) errors.push('3 December, arrived today: want his door up but him not out yet');
+  localStorage.removeItem(ELF_KEY); G.elfLog.arrive('2026-11-30');   // for the rest: he arrived before Advent
   globalThis.location.search = '?season=winter&date=2026-12-03';
   G.days.setCharacter('dad'); G.player.setCharacter('dad');
   G.days.next();
@@ -722,10 +733,10 @@ for (const who of ['dad', 'girl']) {
   if (G.board.find('elf') || G.elf.door.visible || G.items.elf.visible) errors.push('Christmas switched off: the elf is still about');
   G.settings.set('christmas', true);
   // every scene: found, put right and home again; one scene's mess at a time; none needing the dragon when it's off
-  const { pickScene, ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  const { pickScene } = await import(new URL('../../house/js/elf.js', import.meta.url));
   const anyProps = id => G.elf.propsOf(id).some(p => p.visible);
   const dec = d => `?season=winter&date=2026-12-${String(d).padStart(2, '0')}`;
-  localStorage.removeItem(ELF_KEY);
+  localStorage.removeItem(ELF_KEY); G.elfLog.arrive('2026-11-30');
   globalThis.location.search = dec(3); G.days.next(); const s3 = G.elf.scene.id;
   globalThis.location.search = dec(4); G.days.next(); const s4 = G.elf.scene.id;
   if (s3 === s4 || anyProps(s3) || !shown(s4)) errors.push(`3 then 4 December: yesterday's mess (${s3}) still out, or today's (${s4}) isn't`);
@@ -741,13 +752,13 @@ for (const who of ['dad', 'girl']) {
     if (G.items.elf.visible || ELF_SCENES.some(s => anyProps(s.id)) || !G.elfLog.found()) errors.push(`the elf (${want}): not home, or mess left out`);
   }
   if (seen.size !== ELF_SCENES.length || ELF_SCENES.length < 10) errors.push(`elf scenes played: ${[...seen]} of ${ELF_SCENES.length} (want at least 10)`);
-  localStorage.removeItem(ELF_KEY);
+  localStorage.removeItem(ELF_KEY); G.elfLog.arrive('2026-11-30');
   G.settings.set('dragon', false);
   for (let d = 1; d <= 24; d++) { globalThis.location.search = dec(d); G.days.next(); if (G.elf.scene && G.elf.scene.needs === 'dragon') errors.push(`dragon off, ${d} December: the terrarium scene`); }
   G.settings.set('dragon', true);
   // a day planned on 6 December and played past midnight: found counts for 6 December; a reload after midnight
   // doesn't bring him (or his mess) back out, and 7 December still has its own elf
-  localStorage.removeItem(ELF_KEY);
+  localStorage.removeItem(ELF_KEY); G.elfLog.arrive('2026-11-30');
   globalThis.location.search = dec(6); G.days.next(); G.days.plan(['elf']);
   globalThis.location.search = dec(7);
   playDay('the elf, past midnight');
@@ -764,6 +775,18 @@ for (const who of ['dad', 'girl']) {
   if (!G.board.find('elf') || S.carrying !== 'elf') errors.push("swapping to Mum while carrying the elf: the job went, or he's stuck in her hands");
   playDay('the elf, Mum takes him home');
   if (G.items.elf.visible || S.carrying) errors.push("Mum didn't take the elf home");
+  // named Holly: his name in the job and when you find him
+  G.elfLog.setName('Holly');
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  globalThis.location.search = dec(8); G.days.next(); G.days.plan(['elf']);
+  const named = G.board.find('elf'), labels = named.steps.map(st => st.label).join(' / ');
+  if (!/Holly/.test(labels) || /Pip/.test(labels)) errors.push(`named Holly: the job says ${labels}`);
+  let toasted = '';
+  const realToast = G.hud.toast; G.hud.toast = m => { toasted = m; realToast(m); };
+  doStep(named);
+  G.hud.toast = realToast;
+  if (!toasted.startsWith('You found Holly!')) errors.push(`named Holly: finding him says "${toasted}"`);
+  localStorage.removeItem(ELF_KEY); G.elfLog.arrive('2026-11-30');
   globalThis.location.search = '?season=autumn&date=2026-11-20';
   G.days.next();
   if (G.elf.door.visible || G.items.elf.visible || ELF_SCENES.some(s => G.elf.propsOf(s.id).some(p => p.visible))) errors.push('20 November: the elf, his door or his mess is out');
