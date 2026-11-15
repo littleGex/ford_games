@@ -159,6 +159,10 @@ with the day.
   report on the dining room windowsill, or keep going. ★★★ all five and posted in time, ★★ four, ★ otherwise;
   then his report comes up with each deed ticked. "Try again" deals a new five. If the day's elf has been found,
   he sits on the windowsill writing; if not, he stays hidden and the day's find carries on afterwards.
+- **Catch the elf** (P or Dude, 20:00 to 20:30, the same days as the report): the house is dark and the elf
+  creeps between hiding spots (`js/pack/elfspots.js`), staying a few seconds at each. A hint says where he's landed;
+  walk there and spot him. Three sightings ★★★, two ★★, otherwise ★; the best shows how many you spotted. Wait
+  where he's about to land and he freezes stiff as a toy and hops on. He never goes near tomorrow's mischief.
 - **The elf says goodbye** (P and Dude, each once, on Christmas Eve): instead of a morning's mischief, he leaves
   a trail. A note by the Advent calendars, then three notes where he got up to mischief this December (the first,
   one from the middle, the latest; the tree, the dining room windowsill and the kitchen worktop when they found
@@ -281,7 +285,7 @@ with `?date=2026-12-03` (after playing the elf arrives). He comes out once a rea
 (which keeps today's date) shows him only until he's been found today; a new `?date=` is a new morning. Finding
 him in November never counts as his arrival. "Start over from day 1" brings him back out that morning (his arrival and name are
 kept). Can't find him? After a minute of looking a clue pops up and shows next to "Find the elf" ("I can hear
-giggling in the hall…"), and a minute later a closer one ("…somewhere by the coats!"): `hint` in each scene. More elf missions to come: #159.
+giggling in the hall…"), and a minute later a closer one ("…somewhere by the coats!"): `hint` in each scene.
 
 Add `?date=2026-12-24` to the address to pretend it's that day (Christmas, the Advent doors, the season), or
 `?holiday=christmas` for a day like 15 December.

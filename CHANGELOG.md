@@ -11,6 +11,10 @@ pull request; at release time that section becomes the new version (see "Releasi
 ## [Unreleased]
 
 ### Added
+- Ford House: **catch the elf** (#159), an evening hide-and-seek for P and Dude: the house is dark, the elf hops
+  between hiding spots until half past eight, spot him for up to three stars; wait where he lands and he freezes.
+
+### Added
 - Ford House: **the elf's report to Father Christmas** (#160), a game for P and Dude to replay: five good deeds
   dealt fresh each go, half an hour on the clock, post his report on the windowsill for up to three stars.
 

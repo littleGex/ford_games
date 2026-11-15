@@ -2,7 +2,7 @@
 // you stand to spot him (a `use` step), `place` where he sits (on the floor beside things, so he's never inside
 // furniture). Plain data, no three.js, so tests/house/elf.mjs can load it in Node.
 const FLOOR = ['downstairs', 'upstairs', 'up in the attic'];
-const spot = (id, level, at, place, room, by) => ({ id, level, at, place, room, hint: `A giggle ${FLOOR[level]}… ${room}, ${by}?` });
+const spot = (id, level, at, place, room, by) => ({ id, level, at, place, room, where: `${room}, ${by}`, hint: `A giggle ${FLOOR[level]}… ${room}, ${by}?` });
 
 export const EVENING_SPOTS = [
   spot('sofa', 0, [1.1, 1.8], [0.75, 0, 1.45], 'in the living room', 'by the sofa'),

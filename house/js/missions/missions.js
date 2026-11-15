@@ -715,7 +715,7 @@ export const MISSIONS = {
       }
       const stay = prev && prev.level !== spot.level ? 14 : 9;
       const job = c.missions.add({ key: `spot-${mission.n++}`, title: 'Spot the elf!', status: spot.hint,
-        steps: [{ kind: 'use', hidden: true, level: spot.level, at: spot.at, label: 'Spot him!' }] }, { optional: true });
+        steps: [{ kind: 'use', hidden: true, level: spot.level, at: spot.at, label: `Spot him ${spot.where}!` }] }, { optional: true });
       mission.hop = { spot, until: t + stay, job };
       c.hud.toast(spot.hint);
     },

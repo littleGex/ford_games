@@ -1281,3 +1281,22 @@ test("the elf's report: offered from the day after he arrives to 23 December", a
   await expect(page.locator('#homePlay')).toBeVisible();
   await expect(card).toBeHidden();
 });
+
+test('catch the elf: offered on the report days, best shows sightings', async ({ page }) => {
+  test.setTimeout(120000);   // several page loads
+  const card = page.locator('#missionElfCatch');
+  const at = async date => {
+    await page.goto(`/house/?date=${date}`);
+    await page.evaluate(() => {
+      localStorage.setItem('fordHouse.elf.v1', JSON.stringify({ found: [], arrived: '2026-12-01' }));
+      localStorage.setItem('fordHouse.missions.v1', JSON.stringify({ elfCatch: { girl: { stars: 3, minutes: 1230, count: 5 } } }));
+    });
+    await page.goto(`/house/?date=${date}`);
+    await expect(page.locator('#homePlay')).toBeVisible();
+  };
+  await at('2026-12-01'); await expect(card).toBeHidden();
+  await at('2026-12-02'); await expect(card).toBeVisible();
+  await expect(card.locator('[data-mission="elfCatch"][data-kid="boy"]')).toBeVisible();
+  await expect(card.locator('.mission-best')).toHaveText('P ★★★ 5 spotted');
+  await at('2026-12-24'); await expect(card).toBeHidden();
+});
