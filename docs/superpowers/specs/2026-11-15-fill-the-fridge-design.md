@@ -57,6 +57,22 @@ About 25, each with a picture (an emoji), a name, its place and a reason: milk, 
 carrots, lettuce, broccoli, peppers, cucumber (salad drawer); bread, pasta, rice, a tin of beans, cereal, bananas,
 potatoes, onions (cupboard). Each delivery's eight have at least one from every place.
 
+## Right, also fine, and wrong (Claude's calls after the builder check)
+
+- **Best and also fine.** Each item has one *best* place and may have *also fine* places, so the card never calls a
+  place wrong that's actually fine (milk on a shelf, cheese in the door, carrots on a shelf, onions in a veg rack…).
+  An also-fine place counts as right (first time too) and the line says so and names the best: "That's fine — but
+  the door is the best place for milk." Only places that are really wrong are wrong (raw meat anywhere but the
+  bottom shelf; chilled food in the cupboard; cupboard food that spoils or goes stale in the fridge).
+- **Why it's wrong**, by kind, not one line per item: each item has a kind (`drink`, `chilled`, `raw`, `veg`,
+  `cupboard`) and the wrong-place line comes from the kind and where it was put (raw food not on the bottom shelf:
+  "Raw meat goes at the bottom, so drips can't land on other food"; anything chilled in the cupboard: "This needs
+  to stay cold — it goes in the fridge"). An item can have its own line instead where the kind's line doesn't fit
+  (bananas: "Bananas go brown in the fridge!"; bread: "Bread goes stale faster in the fridge").
+- **After a miss:** the first wrong try gives the reason and "Try again"; a second wrong try names the place and
+  lights its button, so no one gets stuck. The score counts items right (best or also fine) on the first try.
+- Lines are short, for children to read (no read-aloud in the game).
+
 ## How it fits the code
 
 - **The card** in a new `ui/fridge.js`, built like `ui/sorting.js`: one item at a time, the five place buttons (keys
