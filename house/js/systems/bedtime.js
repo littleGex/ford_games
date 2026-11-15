@@ -278,6 +278,8 @@ export function createBedtime(ctx) {
         place(who, s.level, s.seat, 'sofa');
       }
     },
+    /** Catch the elf: just the dark house, no children (end() puts the daylight back). */
+    dark() { if (on) this.end(); on = true; night(); },
     /** Into pyjamas. */
     pyjamas(who) { dressUp(k(who).c, `pyjamas-${who}`); k(who).dressed = true; },
     /** Going downstairs at the end: the hall light goes off and the little stair light comes on. */
