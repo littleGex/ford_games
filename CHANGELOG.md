@@ -10,6 +10,11 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+### Added
+- Ford House: **fill the fridge** (#166): the food delivery ends with a card to put each food in its place (the
+  door, the shelves, the bottom shelf, the salad drawer or the cupboard), with a short why every time, so P and
+  Dude learn where food goes.
+
 ## [4.23.0] - 2026-11-15
 
 ### Added

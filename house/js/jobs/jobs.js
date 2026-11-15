@@ -118,7 +118,8 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
         doneMessage: 'Ding-dong! The food delivery is here' },
       { kind: 'pick', item: 'shopping', at: FOOD_DELIVERY.door, label: 'Answer the door and take the shopping' },
       { kind: 'drop', item: 'shopping', at: [3.95, 3.4], place: [4.2, 0, 3.05], label: 'Put it down by the fridge' },
-      { kind: 'use', at: [3.95, 3.4], label: 'Put the food in the fridge', onDone: c => { c.items.shopping.getObjectByName('food').visible = false; } }],
+      // fill the fridge (#166, ui/fridge.js): each food in its place, with why
+      { kind: 'fridge', at: [3.95, 3.4], label: 'Put the food away', onDone: c => { c.items.shopping.getObjectByName('food').visible = false; } }],
       tidy: c => { c.items.shopping.visible = false; } },
 
     // Flur, WC, under the stairs

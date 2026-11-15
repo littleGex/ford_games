@@ -6,7 +6,8 @@
 import { S } from '../state.js';
 import { FRIDGE_PLACES, dealFood, judge } from '../pack/fridgefood.js';
 
-export function createFridge({ board }) {
+export function createFridge(ctx) {
+  const { board } = ctx;
   const $ = id => document.getElementById(id);
   const el = { box: $('fridge'), card: $('fridgeCard'), emoji: $('fridgeEmoji'), name: $('fridgeName'), count: $('fridgeCount'), feedback: $('fridgeFeedback'), later: $('fridgeLater') };
   const buttons = [...document.querySelectorAll('#fridge [data-place]')];
@@ -46,6 +47,7 @@ export function createFridge({ board }) {
     step.done++; step.tries = 0;
     if (step.done < step.queue.length) { show(); return; }
     close();
+    if (step.onDone) step.onDone(ctx);   // the food out of the bag
     board.advance(job, `All put away! ${step.firstTime} of ${step.queue.length} right first time!`);
   }
 
