@@ -124,6 +124,28 @@
     </div>
   </div>
 
+  <div class="sort fridge" id="fridge" role="dialog" aria-modal="true" aria-labelledby="fridgeTitle" hidden>
+    <div class="sort-card fridge-card" id="fridgeCard">
+      <p class="daydone-eyebrow">The food delivery</p>
+      <h1 id="fridgeTitle">Put the food away</h1>
+      <div class="sort-item">
+        <span class="fridge-emoji" id="fridgeEmoji" aria-hidden="true"></span>
+        <p class="sort-name" id="fridgeName"></p>
+        <p class="sort-count" id="fridgeCount"></p>
+      </div>
+      <div class="fridge-places">
+        <div class="fridge-body">
+          <button class="fridge-place" data-place="shelves" style="grid-area:shelves">🧀 The shelves<kbd>2</kbd></button>
+          <button class="fridge-place" data-place="bottom" style="grid-area:bottom">🥩 The bottom shelf<kbd>3</kbd></button>
+          <button class="fridge-place" data-place="drawer" style="grid-area:drawer">🥕 The salad drawer<kbd>4</kbd></button>
+          <button class="fridge-place fridge-door" data-place="door" style="grid-area:door">🥛 The door<kbd>1</kbd></button>
+        </div>
+        <button class="fridge-place fridge-cupboard" data-place="cupboard">🍞 The cupboard<kbd>5</kbd></button>
+      </div>
+      <p class="sort-feedback fridge-feedback" id="fridgeFeedback" role="status" aria-live="polite"></p>
+      <button class="linkbtn" id="fridgeLater">Do it later</button>
+    </div>
+  </div>
   <div class="sort" id="sort" role="dialog" aria-modal="true" aria-labelledby="sortTitle" hidden>
     <div class="sort-card" id="sortCard">
       <p class="daydone-eyebrow">Laundry</p>

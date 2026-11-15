@@ -3,6 +3,7 @@ export const S = {
   started: false,        // becomes true on the first stick / key input
   wiping: null,          // wiping a window: { job, step, ... } (systems/wiping.js)
   sorting: false,
+  fridge: false,   // the fill-the-fridge card is open (ui/fridge.js)
   laptop: false,   // the laptop close-up is open (3D printing)
   quiz: false,            // a lesson card is open at school (ui/quiz.js)
   calendar: false,        // the Advent calendars are open up close (ui/advent.js)

@@ -72,7 +72,7 @@ export function createDays(ctx) {
       if (planned) board.add(job, { done: finished });
     }
     const t = now();
-    S.wiping = null; ctx.sorting.close(); ctx.power.reset(t); ctx.deliveries.reset(t); ctx.weather.reset(); ctx.charging.reset(); ctx.mowing.reset();
+    S.wiping = null; ctx.sorting.close(); if (ctx.fridge) ctx.fridge.close(); ctx.power.reset(t); ctx.deliveries.reset(t); ctx.weather.reset(); ctx.charging.reset(); ctx.mowing.reset();
     ctx.power.applyLights();
     ctx.player.reset(); ctx.levels.show(0); ctx.view.reset();
     dayStart = t; completeAt = null;

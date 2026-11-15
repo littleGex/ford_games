@@ -1300,3 +1300,43 @@ test('catch the elf: offered on the report days, best shows sightings', async ({
   await expect(card.locator('.mission-best')).toHaveText('P ★★★ 5 spotted');
   await at('2026-12-24'); await expect(card).toBeHidden();
 });
+
+test('fill the fridge: a card to read on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/house/');
+  await play(page);
+  const card = page.locator('#fridge');
+  await page.evaluate(() => { const h = window.house, job = h.board.add({ id: 'fridgeTest', title: 'Put the food away', steps: [{ kind: 'fridge', at: [3.95, 3.4], label: 'Put the food away' }] }); h.fridge.open(job, job.steps[0]); });
+  await expect(card).toBeVisible();
+  await expect(page.locator('#fridgeTitle')).toHaveText('Put the food away');
+  expect(await page.locator('#fridgeName').evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(16);
+  await page.locator('#fridgeCard').evaluate(e => Promise.all(e.getAnimations({ subtree: true }).map(a => a.finished)));
+  const box = await page.locator('#fridgeCard').boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390); expect(box.y + box.height).toBeLessThanOrEqual(844);
+  const key = id => String(['door', 'shelves', 'bottom', 'drawer', 'cupboard'].indexOf(id) + 1);
+  await expect(page.locator('#fridgeCount')).toHaveText('1 / 8');
+  await page.keyboard.press(key(await page.evaluate(() => window.house.fridge.answer())));
+  await expect(page.locator('#fridgeCount')).toHaveText('2 / 8');
+  // two wrong tries: a reason, then the right place lit
+  const wrong = await page.evaluate(() => { const f = window.house.fridge, ok = [f.answer(), ...f.alsoAll()]; return ['door', 'shelves', 'bottom', 'drawer', 'cupboard'].filter(p => !ok.includes(p)); });
+  await page.keyboard.press(key(wrong[0]));
+  await expect(page.locator('#fridgeFeedback')).toContainText('Try again');
+  await expect(page.locator('#fridgeCount')).toHaveText('2 / 8');
+  await page.keyboard.press(key(wrong[1]));
+  const best = await page.evaluate(() => window.house.fridge.answer());
+  await expect(page.locator(`#fridge [data-place="${best}"]`)).toHaveClass(/lit/);
+  // the last food's why isn't lost when the card closes: it's in the message with the score
+  const said = await page.evaluate(() => { const h = window.house, out = [], t = h.hud.toast; h.hud.toast = (m, ...r) => { out.push(m); return t(m, ...r); };
+    const job = h.board.add({ id: 'fridgeEnd', title: 'x', steps: [{ kind: 'fridge', at: [3.95, 3.4], label: 'x' }] }), st = job.steps[0];
+    const keep = { open: h.S.fridge }; h.fridge.close(); h.fridge.open(job, st); st.done = 7; h.fridge.choose(st.queue[7].best);
+    h.hud.toast = t; return { out, why: st.queue[7].why, keep }; });
+  expect(said.out.some(m => m.startsWith(said.why) && /All put away!/.test(m))).toBe(true);
+  await page.evaluate(() => { const h = window.house, job = h.board.find('fridgeTest'); h.fridge.open(job, job.steps[0]); });
+  // Do it later keeps your place
+  const name = await page.locator('#fridgeName').textContent();
+  await page.locator('#fridgeLater').click();
+  await expect(card).toBeHidden();
+  await page.evaluate(() => { const h = window.house, job = h.board.find('fridgeTest'); h.fridge.open(job, job.steps[0]); });
+  await expect(page.locator('#fridgeName')).toHaveText(name);
+  await expect(page.locator('#fridgeCount')).toHaveText('2 / 8');
+});
