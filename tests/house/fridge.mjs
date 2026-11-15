@@ -43,5 +43,11 @@ if (milk && chicken && banana) {
   check(judge(chicken, 'door', 1).show === 'bottom' && judge(chicken, 'door', 0).show === undefined, 'the second wrong try shows the place');
 }
 
+// the right word for each place: on the shelves, on the bottom shelf, in the door, in the drawer, in the cupboard
+const hum = FRIDGE_FOOD.find(x => x.best === 'shelves' && !(x.also || []).length), ham2 = FRIDGE_FOOD.find(x => x.best === 'bottom');
+check(/goes on the shelves\.$/.test(judge(hum, 'bottom', 1).line), `on the shelves: ${judge(hum, 'bottom', 1).line}`);
+check(/goes on the bottom shelf\.$/.test(judge(ham2, 'door', 1).line), `on the bottom shelf: ${judge(ham2, 'door', 1).line}`);
+check(/best place for milk is in the door\.$/.test(judge(milk, 'shelves', 0).line), `in the door: ${judge(milk, 'shelves', 0).line}`);
+
 if (fail.length) { console.error('fridge: FAIL\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log('fridge: ok');

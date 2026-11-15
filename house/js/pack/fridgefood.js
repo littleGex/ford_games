@@ -11,6 +11,8 @@ export const FRIDGE_PLACES = [
   { id: 'cupboard', name: 'The cupboard' },
 ];
 const placeName = id => FRIDGE_PLACES.find(p => p.id === id).name;
+/** "on the shelves", "in the door": where it goes, in words. */
+const inPlace = id => `${id === 'shelves' || id === 'bottom' ? 'on' : 'in'} ${placeName(id).toLowerCase()}`;
 
 const DRINK = 'The door is the warmest part of the fridge: just right for drinks.';
 const READY = 'Ready-to-eat food goes on the shelves, above any raw meat.';
@@ -62,8 +64,8 @@ function whyNot(food, place) {
  *  try names the best place (`show`, the button to light). */
 export function judge(food, place, tries = 0) {
   if (place === food.best) return { ok: true, also: false, line: food.why };
-  if ((food.also || []).includes(place)) return { ok: true, also: true, line: `That's fine! The best place for ${food.name.toLowerCase()} is ${placeName(food.best).toLowerCase()}.` };
-  if (tries >= 1) return { ok: false, also: false, line: `${whyNot(food, place)} It goes in ${placeName(food.best).toLowerCase()}.`, show: food.best };
+  if ((food.also || []).includes(place)) return { ok: true, also: true, line: `That's fine! The best place for ${food.name.toLowerCase()} is ${inPlace(food.best)}.` };
+  if (tries >= 1) return { ok: false, also: false, line: `${whyNot(food, place)} It goes ${inPlace(food.best)}.`, show: food.best };
   return { ok: false, also: false, line: `${whyNot(food, place)} Try again!` };
 }
 
