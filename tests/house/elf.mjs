@@ -98,5 +98,27 @@ try { broken = createElfLog({ now: () => dec(3) }); check(!broken.found(), 'brok
   check(JSON.stringify(trailScenes(['a', 'b'])) === '["a","b"]', 'trailScenes 2');
 }
 
+// the evening hiding spots (catch the elf, #159): never the same twice running, never an excluded one, a change of floor about one hop in three
+{
+  const { EVENING_SPOTS, nextSpot, spotsNear } = await import('../../house/js/pack/elfspots.js');
+  check(EVENING_SPOTS.length >= 12, `evening spots: ${EVENING_SPOTS.length}`);
+  for (const lv of [0, 1, 2]) check(EVENING_SPOTS.filter(s => s.level === lv).length >= 3, `evening spots: fewer than 3 on level ${lv}`);
+  check(new Set(EVENING_SPOTS.map(s => s.id)).size === EVENING_SPOTS.length, 'evening spots: ids not unique');
+  let seed = 5; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const exclude = [EVENING_SPOTS[0].id, EVENING_SPOTS[5].id];
+  let prev = nextSpot(null, { exclude, rand }), changes = 0;
+  for (let n = 0; n < 2000; n++) {
+    const s = nextSpot(prev, { exclude, rand });
+    if (s.id === prev.id) { check(false, 'nextSpot: the same spot twice running'); break; }
+    if (exclude.includes(s.id)) { check(false, `nextSpot: excluded ${s.id}`); break; }
+    if (s.level !== prev.level) changes++;
+    prev = s;
+  }
+  check(changes >= 500 && changes <= 840, `nextSpot: changed floor ${changes} times in 2000`);
+  const one = EVENING_SPOTS[3];
+  check(spotsNear(one.place, one.level).includes(one.id), 'spotsNear: misses a spot at its own place');
+  check(!spotsNear(one.place, (one.level + 1) % 3).includes(one.id), 'spotsNear: finds it on another floor');
+}
+
 if (fail.length) { console.error('elf: FAIL\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log('elf: ok');

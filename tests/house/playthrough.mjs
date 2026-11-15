@@ -950,6 +950,24 @@ for (const who of ['dad', 'girl']) {
   console.log(`the elf's good deeds: ${ELF_DEEDS.length} in the pool, five a go, every one done`);
 }
 
+// --- the elf's evening hiding spots (#159): every one can be reached
+{
+  const { EVENING_SPOTS } = await import(new URL('../../house/js/pack/elfspots.js', import.meta.url));
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  globalThis.location.search = '?season=winter&date=2026-12-10';
+  G.days.next();
+  for (const s of EVENING_SPOTS) {
+    G.board.clear();
+    const job = G.board.add({ id: 'spot-' + s.id, title: 'Spot the elf!', steps: [{ kind: 'use', level: s.level, at: s.at, label: 'Spot him!' }] });
+    const r = doStep(G.board.find(job.id));
+    if (r !== true) errors.push(`evening spot ${s.id}: ${r}`);
+  }
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log(`the elf's evening spots: ${EVENING_SPOTS.length}, every one reachable`);
+}
+
 // --- the elf's report to Father Christmas (#160): five deeds against the clock, post the report, stars
 {
   const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
