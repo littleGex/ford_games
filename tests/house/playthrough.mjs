@@ -1032,6 +1032,20 @@ for (const who of ['dad', 'girl']) {
   for (let n = 0; n < 2000 && !S.mission.done; n++) G.missions.update(0.1);
   if (G.missions.best('elfCatch', 'girl').count !== 3) errors.push('catch the elf: a worse go replaced the best');
   G.missions.end();
+  // another mission started from the home menu mid-go: daylight again
+  G.missions.start('elfCatch', 'girl', { rand }); tick(0.5);
+  G.missions.start('elfReport', 'girl', { rand });
+  if (G.stage.hemi.intensity !== dayLight) errors.push('catch the elf: the next mission is still in the dark');
+  G.missions.end();
+  // the hints name whoever sleeps in that room, as they're called now (never a fixed "P's room")
+  const { catchWhere } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  if (EVENING_SPOTS.some(x => /P's|Dude's/.test(JSON.stringify(x)))) errors.push('catch the elf: a spot names a child itself');
+  const toyBox = EVENING_SPOTS.find(x => x.id === 'toyBox'), lego = EVENING_SPOTS.find(x => x.id === 'legoDrawer');
+  G.players.setName('girl', 'Pia');
+  if (!/Pia's room/.test(catchWhere(toyBox).hint) || !/Dude's room/.test(catchWhere(lego).hint)) errors.push(`catch the elf: hints ${catchWhere(toyBox).hint} / ${catchWhere(lego).hint}`);
+  G.settings.setRoomsSwapped(true);
+  if (!/Dude's room/.test(catchWhere(toyBox).where) || !/Pia's room/.test(catchWhere(lego).where)) errors.push(`catch the elf, rooms swapped: ${catchWhere(toyBox).where} / ${catchWhere(lego).where}`);
+  G.settings.setRoomsSwapped(false); G.players.setName('girl', '');
   localStorage.removeItem(ELF_KEY);
   globalThis.location.search = '?season=autumn';
   G.days.setCharacter('dad'); G.player.setCharacter('dad');

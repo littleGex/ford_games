@@ -2,7 +2,9 @@
 // you stand to spot him (a `use` step), `place` where he sits (on the floor beside things, so he's never inside
 // furniture). Plain data, no three.js, so tests/house/elf.mjs can load it in Node.
 const FLOOR = ['downstairs', 'upstairs', 'up in the attic'];
-const spot = (id, level, at, place, room, by) => ({ id, level, at, place, room, where: `${room}, ${by}`, hint: `A giggle ${FLOOR[level]}… ${room}, ${by}?` });
+// `room` is the words for the room; a child's bedroom is `kidRoom` ('first' or 'attic', pack/kidrooms.js) instead, named
+// when shown for whoever sleeps there now (missions.js catchWhere), as they're called now.
+const spot = (id, level, at, place, room, by) => ({ id, level, at, place, ...(room === 'first' || room === 'attic' ? { kidRoom: room } : { room }), by, floor: FLOOR[level] });
 
 export const EVENING_SPOTS = [
   spot('sofa', 0, [1.1, 1.8], [0.75, 0, 1.45], 'in the living room', 'by the sofa'),
@@ -12,10 +14,10 @@ export const EVENING_SPOTS = [
   spot('coats', 0, [3.47, 7.95], [3.3, 0, 8.15], 'in the hall', 'under the coats'),
   spot('basin', 1, [4.6, 7.22], [4.4, 0, 7.45], 'in the bathroom', 'by the basin'),
   spot('bigBed', 1, [2.35, 1.9], [2.1, 0, 2.2], "in the big bedroom", 'by the bed'),
-  spot('toyBox', 1, [0.8, 8.0], [1.05, 0, 8.3], "in P's room", 'by the toy box'),
-  spot('desk', 1, [2.3, 7.6], [2.55, 0, 7.85], "in P's room", 'under the desk'),
+  spot('toyBox', 1, [0.8, 8.0], [1.05, 0, 8.3], 'first', 'by the toy box'),
+  spot('desk', 1, [2.3, 7.6], [2.55, 0, 7.85], 'first', 'under the desk'),
   spot('hamper', 1, [4.25, 3.55], [4.3, 0, 3.3], 'by the washing basket', 'next to the dirty socks'),
-  spot('legoDrawer', 2, [2.1, 1.95], [2.4, 0, 1.6], "in Dude's room", 'by the Lego drawer'),
+  spot('legoDrawer', 2, [2.1, 1.95], [2.4, 0, 1.6], 'attic', 'by the Lego drawer'),
   spot('cheesePlant', 2, [1.0, 6.6], [0.8, 0, 6.85], 'in the attic', 'behind the big plant'),
   spot('stool', 2, [4.35, 6.4], [4.1, 0, 6.6], 'in the attic', 'by the plant on the stool'),
 ];

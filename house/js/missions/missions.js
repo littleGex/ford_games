@@ -292,6 +292,12 @@ const INTERRUPT = {
   },
 };
 
+/** Catch the elf: where he's landed, in words ("in Pia's room, by the toy box") and as the hint toast. */
+export function catchWhere(spot) {
+  const room = spot.kidRoom ? `in ${possessive(kidIn(spot.kidRoom))} room` : spot.room, where = `${room}, ${spot.by}`;
+  return { where, hint: `A giggle ${spot.floor}… ${where}?` };
+}
+
 export const MISSIONS = {
   schoolRun: {
     title: 'The school run', who: ['girl', 'boy'],
@@ -714,10 +720,11 @@ export const MISSIONS = {
         return;
       }
       const stay = prev && prev.level !== spot.level ? 14 : 9;
-      const job = c.missions.add({ key: `spot-${mission.n++}`, title: 'Spot the elf!', status: spot.hint,
-        steps: [{ kind: 'use', hidden: true, level: spot.level, at: spot.at, label: `Spot him ${spot.where}!` }] }, { optional: true });
+      const { where, hint } = catchWhere(spot);
+      const job = c.missions.add({ key: `spot-${mission.n++}`, title: 'Spot the elf!',
+        steps: [{ kind: 'use', hidden: true, level: spot.level, at: spot.at, label: `Spot him ${where}!` }] }, { optional: true });
       mission.hop = { spot, until: t + stay, job };
-      c.hud.toast(spot.hint);
+      c.hud.toast(hint);
     },
     onOptional(c, mission, job) {
       if (!/^spot-/.test(job.key) || !mission.hop) return;
@@ -797,6 +804,7 @@ export function createMissions(ctx) {
     hud.hideDayComplete();
     board.clear();
     resetItems(ctx.items);
+    if (ctx.bedtime) ctx.bedtime.end();   // daylight, unless this mission makes it dark (bedtime, catch the elf)
     m.setup(ctx, kid);
     player.setCharacter(who);
     levels.show(kid.level);
