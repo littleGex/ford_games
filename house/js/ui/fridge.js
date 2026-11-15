@@ -48,7 +48,7 @@ export function createFridge(ctx) {
     if (step.done < step.queue.length) { show(); return; }
     close();
     if (step.onDone) step.onDone(ctx);   // the food out of the bag
-    board.advance(job, `All put away! ${step.firstTime} of ${step.queue.length} right first time!`);
+    board.advance(job, `${r.line} All put away! ${step.firstTime} of ${step.queue.length} right first time!`);   // the last food's why too
   }
 
   buttons.forEach(b => b.addEventListener('click', () => choose(b.dataset.place)));

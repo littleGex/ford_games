@@ -562,7 +562,7 @@ for (const who of ['dad', 'girl']) {
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
   const put = job.steps.find(x => x.kind === 'fridge');   // fill the fridge (#166): the last step is the card
   if (!put || put.done !== 8 || put.firstTime !== 7) errors.push(`fill the fridge (${who}): ${put ? `${put.done} put away, ${put.firstTime} first time` : 'no fridge step'}`);
-  if (!said.some(m => /7 of 8 right first time/.test(m))) errors.push(`fill the fridge (${who}): no "7 of 8 right first time" (${said.slice(-3)})`);
+  if (!said.some(m => /[.!] All put away! 7 of 8 right first time/.test(m))) errors.push(`fill the fridge (${who}): no "7 of 8 right first time" (${said.slice(-3)})`);
   G.days.setCharacter('dad');
   G.days.next();
 }

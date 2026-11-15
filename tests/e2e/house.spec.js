@@ -1325,6 +1325,13 @@ test('fill the fridge: a card to read on a phone', async ({ page }) => {
   await page.keyboard.press(key(wrong[1]));
   const best = await page.evaluate(() => window.house.fridge.answer());
   await expect(page.locator(`#fridge [data-place="${best}"]`)).toHaveClass(/lit/);
+  // the last food's why isn't lost when the card closes: it's in the message with the score
+  const said = await page.evaluate(() => { const h = window.house, out = [], t = h.hud.toast; h.hud.toast = (m, ...r) => { out.push(m); return t(m, ...r); };
+    const job = h.board.add({ id: 'fridgeEnd', title: 'x', steps: [{ kind: 'fridge', at: [3.95, 3.4], label: 'x' }] }), st = job.steps[0];
+    const keep = { open: h.S.fridge }; h.fridge.close(); h.fridge.open(job, st); st.done = 7; h.fridge.choose(st.queue[7].best);
+    h.hud.toast = t; return { out, why: st.queue[7].why, keep }; });
+  expect(said.out.some(m => m.startsWith(said.why) && /All put away!/.test(m))).toBe(true);
+  await page.evaluate(() => { const h = window.house, job = h.board.find('fridgeTest'); h.fridge.open(job, job.steps[0]); });
   // Do it later keeps your place
   const name = await page.locator('#fridgeName').textContent();
   await page.locator('#fridgeLater').click();

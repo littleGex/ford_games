@@ -49,5 +49,15 @@ check(/goes on the shelves\.$/.test(judge(hum, 'bottom', 1).line), `on the shelv
 check(/goes on the bottom shelf\.$/.test(judge(ham2, 'door', 1).line), `on the bottom shelf: ${judge(ham2, 'door', 1).line}`);
 check(/best place for milk is in the door\.$/.test(judge(milk, 'shelves', 0).line), `in the door: ${judge(milk, 'shelves', 0).line}`);
 
+// the review's content fixes: pictures that don't teach the wrong thing, up-to-date advice, honest reasons
+check(new Set(FRIDGE_FOOD.map(x => x.emoji)).size === FRIDGE_FOOD.length, 'two foods share a picture');
+for (const bad of ['🍚', '🍝', '🥓', '🌭', '🍦', '🍶']) check(!FRIDGE_FOOD.some(x => x.emoji === bad && !(bad === '🥓' && x.best === 'bottom')), `misleading picture ${bad}`);
+const potato = FRIDGE_FOOD.find(x => x.id === 'potatoes');
+check(potato && judge(potato, 'drawer', 0).ok, 'potatoes in the fridge drawer: fine (FSA, 2023)');
+for (const id of ['lettuce', 'broccoli', 'apples']) { const v = FRIDGE_FOOD.find(x => x.id === id); check(v && judge(v, 'shelves', 0).ok, `${id} on a shelf: fine`); }
+const fishy = FRIDGE_FOOD.find(x => x.id === 'fish');
+check(fishy && /fish/i.test(fishy.name) && /raw/i.test(fishy.name) && /fish/.test(judge(fishy, 'shelves', 0).line) && /fish/.test(judge(fishy, 'cupboard', 0).line), `fish: ${fishy && fishy.name}, ${fishy && judge(fishy, 'cupboard', 0).line}`);
+for (const x of FRIDGE_FOOD) for (const p of ids) { const r = judge(x, p, 0); if (!r.ok && x.kind !== 'raw' && /ready-to-eat/.test(r.line) && x.kind === 'veg') check(false, `${x.id} on ${p}: the reason argues for it`); }
+
 if (fail.length) { console.error('fridge: FAIL\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log('fridge: ok');
