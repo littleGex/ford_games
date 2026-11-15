@@ -227,7 +227,11 @@ round and ring, and you say hello, fetch it and hand it over. The neighbours' ho
 our house mirrored, with light grey front doors and window frames, and you can walk along the front
 of the row to their doors. The food shopping is ordered and delivered: Mum and Dad check the fridge
 and order on the phone from the sofa, then a delivery van pulls up and the driver brings the bag to the
-door; P and Dude just answer the door and put the food away.
+door; P and Dude just answer the door and put the food away. Putting it away is a card (`js/ui/fridge.js`,
+`js/pack/fridgefood.js`): eight foods from the bag, one at a time, into the door, the shelves, the bottom
+shelf, the salad drawer or the cupboard, with a short why every time ("Raw meat goes at the bottom, so drips
+can't land on other food"); a fine place counts, a second miss lights the right one, and the end says how
+many were right first time.
 
 P has a bearded dragon in a terrarium in her room. She feeds it crickets and greens from the box on the
 windowsill, plays with it (it sits on her hand while she sits on her bed) and cleans out the terrarium (scoop the

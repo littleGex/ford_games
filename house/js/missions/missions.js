@@ -797,6 +797,7 @@ export function createMissions(ctx) {
     if (ctx.elf) ctx.elf.hideTrail();     // and the elf's goodbye notes from one left part-way
     if (S.sitting) ctx.sitting.standUp();
     if (S.laptop) ctx.laptop.close();
+    if (ctx.fridge) ctx.fridge.close();
     if (ctx.home) ctx.home.close();
     el.box.hidden = true;
     S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {}, doneAt: {}, due: {}, later: [], rand };

@@ -284,6 +284,14 @@ function doStep(job) {
   if (S.mission && (G.board.jobs.length !== jobsBefore || S.mission.drill || (n && n.job && n.job.due !== undefined)) && (!n || n.step !== s)) return 'retry';   // the phone rang or the alarm went off on the way
   if (!n || n.step !== s) return `button shows "${n ? n.step.label : 'nothing'}" instead of "${s.label}"`;
   G.board.act(n);
+  if (s.kind === 'fridge') {   // the fridge card: one wrong place first, then each food in an also-fine place if it has one
+    if (!S.fridge) return 'the fridge card didn\'t open';
+    const places = ['door', 'shelves', 'bottom', 'drawer', 'cupboard'];
+    G.fridge.choose(places.find(p => p !== G.fridge.answer() && !G.fridge.alsoAll().includes(p)));
+    for (let k = 0; k < 40 && S.fridge; k++) G.fridge.choose(G.fridge.alsoAll()[0] || G.fridge.answer());
+    frame();
+    return job.steps[job.i] !== s || 'the fridge card never finished';
+  }
   if (s.kind === 'sort') {   // the sorting card: pick the right pile every time (and try a wrong one first)
     const wrong = { white: 'dark', colour: 'white', dark: 'colour' }[G.sorting.answer()];
     G.sorting.choose(wrong);
@@ -547,10 +555,36 @@ for (const who of ['dad', 'girl']) {
   // random parcels (for us, or for the neighbours) has a courier at the door at the same moment: that banner wins
   if (job.steps[job.i].kind === 'wait') errors.push(`food shopping (${who}): the driver never rang`);
   else if (!S.courierWaiting && !/at the front door/.test(G.deliveries.banner() || '')) errors.push(`food shopping (${who}): no banner while the driver waits at the door (${G.deliveries.banner()})`);
+  const said = [], realToast = G.hud.toast;
+  G.hud.toast = (m, ...rest) => { said.push(m); return realToast(m, ...rest); };
   playDay(`food shopping (${who})`);
+  G.hud.toast = realToast;
   if (G.items.shopping.getObjectByName('food').visible) errors.push(`food shopping (${who}): the food wasn't put away`);
+  const put = job.steps.find(x => x.kind === 'fridge');   // fill the fridge (#166): the last step is the card
+  if (!put || put.done !== 8 || put.firstTime !== 7) errors.push(`fill the fridge (${who}): ${put ? `${put.done} put away, ${put.firstTime} first time` : 'no fridge step'}`);
+  if (!said.some(m => /[.!] All put away! 7 of 8 right first time/.test(m))) errors.push(`fill the fridge (${who}): no "7 of 8 right first time" (${said.slice(-3)})`);
   G.days.setCharacter('dad');
   G.days.next();
+}
+
+// --- fill the fridge (#166): "Do it later" keeps your place, the same eight, and a miss before it isn't first time
+{
+  G.board.clear();
+  const job = G.board.add({ id: 'fridgeLater', title: 'Put the food away', steps: [{ kind: 'fridge', at: [3.95, 3.4], label: 'Put the food away' }] });
+  const st = job.steps[0], places = ['door', 'shelves', 'bottom', 'drawer', 'cupboard'];
+  G.fridge.open(job, st);
+  G.fridge.choose(G.fridge.answer()); G.fridge.choose(G.fridge.answer());
+  G.fridge.choose(places.find(p => p !== G.fridge.answer() && !G.fridge.alsoAll().includes(p)));
+  const eight = st.queue.map(x => x.id).join();
+  G.fridge.close();
+  if (S.fridge) errors.push('fill the fridge: still open after Do it later');
+  G.fridge.open(job, st);
+  if (st.done !== 2 || st.queue.map(x => x.id).join() !== eight) errors.push(`fill the fridge: Do it later lost the place (${st.done})`);
+  G.fridge.choose(G.fridge.answer());
+  if (st.firstTime !== 2) errors.push(`fill the fridge: a miss before Do it later counted first time (${st.firstTime})`);
+  G.fridge.close(); G.board.clear();
+  G.days.setCharacter('dad'); G.days.next();
+  console.log('fill the fridge: Do it later keeps the place and the eight');
 }
 
 // --- Halloween (31 October; ?holiday=halloween): as Dad, P and Dude. Carve the jack-o'-lantern (picking a

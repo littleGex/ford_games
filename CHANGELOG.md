@@ -10,6 +10,13 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.24.0] - 2026-11-15
+
+### Added
+- Ford House: **fill the fridge** (#166): the food delivery ends with a card to put each food in its place (the
+  door, the shelves, the bottom shelf, the salad drawer or the cupboard), with a short why every time, so P and
+  Dude learn where food goes.
+
 ## [4.23.0] - 2026-11-15
 
 ### Added
@@ -515,7 +522,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.23.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.24.0...HEAD
+[4.24.0]: https://github.com/littleGex/ford_games/compare/v4.23.0...v4.24.0
 [4.23.0]: https://github.com/littleGex/ford_games/compare/v4.22.0...v4.23.0
 [4.22.0]: https://github.com/littleGex/ford_games/compare/v4.21.1...v4.22.0
 [4.21.1]: https://github.com/littleGex/ford_games/compare/v4.21.0...v4.21.1

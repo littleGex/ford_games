@@ -106,6 +106,18 @@ button, a, [role="button"] { touch-action: manipulation; }
 .sort-feedback { min-height: 2.6em; margin: 8px 0 2px; font-size: 13px; line-height: 1.3; color: var(--muted); }
 .sort .linkbtn { all: unset; cursor: pointer; color: var(--muted); text-decoration: underline; font-size: 12px; padding: 2px 4px; }
 .sort-card.shake { animation: shake .35s; }
+.fridge-card { box-sizing: border-box; }
+.fridge-emoji { font-size: 56px; line-height: 1.1; }
+.fridge-places { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 6px; }
+.fridge-body { display: grid; grid-template-columns: minmax(0, 1fr) 68px; grid-template-areas: "shelves door" "bottom door" "drawer door"; gap: 4px; padding: 6px; border: 3px solid #cfd8e3; border-radius: 14px; background: rgba(207, 216, 227, .08); }
+.fridge-place { display: grid; justify-items: center; align-content: center; gap: 2px; min-width: 0; min-height: 54px; padding: 6px 4px; overflow-wrap: anywhere; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .06); color: var(--paper); font: 700 14px/1.15 var(--f-body); cursor: pointer; }
+.fridge-place:hover { background: rgba(255, 255, 255, .12); }
+.fridge-place:focus-visible { outline: 3px solid var(--marigold); outline-offset: 2px; }
+.fridge-place kbd { font: 600 11px var(--f-body); color: var(--muted); }
+.fridge-place.lit { background: rgba(255, 196, 61, .3); border-color: var(--marigold); }
+.fridge-door { border-style: dashed; }
+.fridge-cupboard { background: rgba(160, 110, 60, .25); border-color: rgba(200, 150, 90, .6); }
+.fridge-feedback { font-size: 16px; color: var(--paper); }
 @keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
 .topleft { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
 .menubtn { pointer-events: auto; width: 44px; height: 44px; padding: 0; display: grid; place-items: center; color: var(--paper); font-size: 20px; cursor: pointer; flex: 0 0 auto; }
