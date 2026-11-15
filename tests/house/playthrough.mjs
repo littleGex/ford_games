@@ -908,6 +908,104 @@ for (const who of ['dad', 'girl']) {
   console.log('the elf arrives: parcel, letter, door and Holly; out the next morning; welcome back the next year');
 }
 
+// --- the elf's good deeds (#160): five dealt a go, right for the child and the house, every one doable
+{
+  const { ELF_DEEDS, dealDeeds } = await import(new URL('../../house/js/pack/elfdeeds.js', import.meta.url));
+  const { KIDS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  let seed = 7; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const all = { isOn: () => true, inFamily: () => true, rand };
+  for (const who of ['girl', 'boy']) {
+    const allowed = ELF_DEEDS.filter(d => !d.who || d.who.includes(who));
+    if (allowed.length < 10) errors.push(`good deeds: only ${allowed.length} for ${who}`);
+    const seen = new Set();
+    for (let n = 0; n < 200; n++) {
+      const deal = dealDeeds(who, all);
+      if (deal.length !== 5 || new Set(deal.map(d => d.id)).size !== 5) { errors.push(`good deeds: a deal for ${who} isn't five different deeds (${deal.map(d => d.id)})`); break; }
+      if (deal.some(d => d.who && !d.who.includes(who))) errors.push(`good deeds: ${who} dealt someone else's deed`);
+      deal.forEach(d => seen.add(d.id));
+    }
+    if (seen.size !== allowed.length) errors.push(`good deeds: ${who} never dealt ${allowed.filter(d => !seen.has(d.id)).map(d => d.id)}`);
+    for (let n = 0; n < 50; n++) if (dealDeeds(who, { ...all, isOn: id => id !== 'dragon' }).some(d => d.needs === 'dragon')) { errors.push('good deeds: the dragon deed with the dragon off'); break; }
+    for (let n = 0; n < 50; n++) if (dealDeeds(who, { ...all, inFamily: k => k !== 'mum' }).some(d => /Mum/.test(d.label(who)))) { errors.push('good deeds: a deed for Mum with no Mum'); break; }
+  }
+  // every deed can be done, by each child it's for
+  for (const who of ['girl', 'boy']) {
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    globalThis.location.search = '?season=winter&date=2026-12-10';
+    G.days.next();
+    for (const d of ELF_DEEDS.filter(x => !x.who || x.who.includes(who))) {
+      const job = { id: 'deed-' + d.id, title: d.label(who), steps: d.steps(who, KIDS[who]) };
+      G.board.clear();   // just this deed on the list (the day's own jobs share some spots)
+      if (d.setup) d.setup(G, who, KIDS[who]);
+      G.board.add(job);
+      const live = G.board.find(job.id);
+      let guard = 0;
+      while (live.i < live.steps.length && guard++ < 12) { const r = doStep(live); if (r !== true) { errors.push(`good deed ${d.id} (${who}) step ${live.i + 1}: ${r}`); break; } }
+      S.carrying = null;
+    }
+  }
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log(`the elf's good deeds: ${ELF_DEEDS.length} in the pool, five a go, every one done`);
+}
+
+// --- the elf's report to Father Christmas (#160): five deeds against the clock, post the report, stars
+{
+  const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  localStorage.setItem(ELF_KEY, JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' }));
+  globalThis.location.search = '?season=winter&date=2026-12-10';
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.next();
+  const elfSpot = G.items.elf.visible && G.items.elf.position.toArray().join();
+  if (!elfSpot || !G.board.find('elf')) errors.push("the elf's report: want the elf out and \"Find the elf\" on 10 December first");
+  let seed = 11; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const play = (job, label) => { let guard = 0; while (job.i < job.steps.length && guard++ < 12) { const r = doStep(job); if (r !== true) { errors.push(`${label} "${job.title}": ${r}`); job.i = job.steps.length; S.carrying = null; break; } } };
+  function report(who, deedsToDo, { post = true, timeUp = false } = {}) {
+    let lines = null;
+    const realOpen = G.elfCards.open;
+    G.elfCards.open = (j, st) => { realOpen(j, st); if (st.card === 'report') lines = st.lines; };
+    G.days.setCharacter(who); G.player.setCharacter(who);
+    G.missions.start('elfReport', who, { rand });
+    if (!G.elfLog.found('2026-12-10') && (!G.items.elf.visible || G.items.elf.position.toArray().join() !== elfSpot)) errors.push(`the elf's report (${who}): not found yet, but he's gone from his hiding spot during the go`);
+    const deeds = G.board.jobs.filter(j => /^deed-/.test(j.key || ''));
+    if (deeds.length !== 5) errors.push(`the elf's report (${who}): ${deeds.length} deeds on the list`);
+    deeds.slice(0, deedsToDo).forEach((j, n) => {
+      play(j, `the elf's report (${who})`);
+      const posting = G.board.jobs.find(x => x.key === 'post');
+      if ((n + 1 < 3) === !!posting) errors.push(`the elf's report (${who}): "Post" ${posting ? 'already there' : 'missing'} after ${n + 1} deeds`);
+    });
+    if (timeUp) { S.mission.t += 31 * S.mission.clock.secondsPerMinute; frame(); }
+    else if (post) play(G.board.jobs.find(x => x.key === 'post'), `the elf's report (${who})`);
+    frame();
+    G.elfCards.open = realOpen;
+    if (S.elfCard) G.elfCards.close();
+    const done = S.mission.done, card = G.missions.card();
+    G.missions.end();
+    return { done, card, lines };
+  }
+  const p = report('girl', 5);
+  if (!p.done || p.card.stars !== '★★★' || !/5 good deeds/.test(p.card.stats) || !p.card.again) errors.push(`the elf's report, all five: ${p.done} "${p.card.stars}" "${p.card.stats}" again ${p.card.again}`);
+  if (!p.lines || p.lines.length !== 5 || p.lines.some(l => !l.done)) errors.push(`the elf's report, all five: the report card lines ${JSON.stringify(p.lines)}`);
+  // after the mission, the day is as it was: the elf still out in his spot, "Find the elf" still to do
+  const back = G.board.find('elf');
+  if (!G.items.elf.visible || G.items.elf.position.toArray().join() !== elfSpot || !back || back.i !== 0) errors.push("the elf's report: the day's elf isn't back where he was afterwards");
+  const d3 = report('boy', 3, { timeUp: true });
+  if (!d3.done || d3.card.stars !== '★☆☆') errors.push(`the elf's report, three then time up: ${d3.done} "${d3.card.stars}"`);
+  if (!d3.lines || d3.lines.filter(l => l.done).length !== 3) errors.push(`the elf's report, three then time up: report lines ${JSON.stringify(d3.lines)}`);
+  const d4 = report('boy', 4);
+  if (d4.card.stars !== '★★☆') errors.push(`the elf's report, four and posted: "${d4.card.stars}"`);
+  // a fresh deal each go
+  const deals = new Set();
+  for (let n = 0; n < 10; n++) { G.missions.start('elfReport', 'girl'); deals.add(G.board.jobs.filter(j => /^deed-/.test(j.key || '')).map(j => j.key).sort().join()); G.missions.end(); }
+  if (deals.size < 2) errors.push("the elf's report: the same five deeds every go");
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log("the elf's report: five deeds and posted 3 stars, three and time up 1 star, four 2 stars, a fresh deal each go");
+}
+
 // --- the elf says goodbye (#158): Christmas Eve, a trail of notes to his door; P then Dude; the door goes after both
 {
   const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));

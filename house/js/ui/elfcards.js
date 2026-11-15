@@ -34,7 +34,12 @@ export function goodbyeText(who) {
     `Love from ${E}`];
 }
 
-const PAPER = new Set(['letter', 'note', 'goodbye']);   // the cards on the letter paper (closed with Close)
+/** His report to Father Christmas (the elf's report mission): the child, each deed ticked or crossed, his name. */
+export function reportText(who, lines) {
+  return [nameOf(who), ...lines.map(l => `${l.done ? '✓' : '✗'} ${l.text}`), `Signed, ${elfName()}, elf`];
+}
+
+const PAPER = new Set(['letter', 'note', 'goodbye', 'report']);   // the cards on the letter paper (closed with Close)
 
 export function createElfCards(ctx) {
   const $ = id => document.getElementById(id);
@@ -57,8 +62,9 @@ export function createElfCards(ctx) {
       S.elfCard = st.card;
       if (PAPER.has(st.card)) {
         const E = elfName();
-        el.title.textContent = st.card === 'note' ? `A note from ${E} ✉️` : st.card === 'goodbye' ? 'Goodbye! 👋' : 'A letter for you ✉️';
-        shown = st.card === 'note' ? [].concat(st.text || []) : st.card === 'goodbye' ? goodbyeText(st.who) : letterText(ctx.elfLog.named());
+        el.title.textContent = { note: `A note from ${E} ✉️`, goodbye: 'Goodbye! 👋', report: 'Report for Father Christmas 📜' }[st.card] || 'A letter for you ✉️';
+        shown = st.card === 'note' ? [].concat(st.text || []) : st.card === 'goodbye' ? goodbyeText(st.who)
+          : st.card === 'report' ? reportText(st.who, st.lines || []) : letterText(ctx.elfLog.named());
         el.text.replaceChildren(...shown.map(t => { const p = document.createElement('p'); p.textContent = t; return p; }));
         el.letter.hidden = false; el.close.focus();
       } else {
