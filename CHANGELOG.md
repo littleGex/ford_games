@@ -10,11 +10,11 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.23.0] - 2026-11-15
+
 ### Added
 - Ford House: **catch the elf** (#159), an evening hide-and-seek for P and Dude: the house is dark, the elf hops
   between hiding spots until half past eight, spot him for up to three stars; wait where he lands and he freezes.
-
-### Added
 - Ford House: **the elf's report to Father Christmas** (#160), a game for P and Dude to replay: five good deeds
   dealt fresh each go, half an hour on the clock, post his report on the windowsill for up to three stars.
 
@@ -515,7 +515,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.22.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.23.0...HEAD
+[4.23.0]: https://github.com/littleGex/ford_games/compare/v4.22.0...v4.23.0
 [4.22.0]: https://github.com/littleGex/ford_games/compare/v4.21.1...v4.22.0
 [4.21.1]: https://github.com/littleGex/ford_games/compare/v4.21.0...v4.21.1
 [4.21.0]: https://github.com/littleGex/ford_games/compare/v4.20.0...v4.21.0
