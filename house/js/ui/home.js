@@ -37,6 +37,8 @@ export function createHome(ctx) {
     if (elfCard) elfCard.hidden = !elfOffered();
     const reportCard = document.getElementById('missionElfReport');
     if (reportCard) reportCard.hidden = !reportOffered();
+    const catchCard = document.getElementById('missionElfCatch');
+    if (catchCard) catchCard.hidden = !reportOffered();   // catch the elf: the same days as his report
     showNames();   // the players' names on the buttons and mission cards
     const bye = document.getElementById('missionElfGoodbye');
     if (bye && bye.querySelectorAll) {   // after showNames, which shows every child's button
@@ -53,6 +55,7 @@ export function createHome(ctx) {
       const best = ctx.missions ? ids.flatMap(i => who.map(([k, name]) => [name, ctx.missions.best(i, k)])).filter(([, r]) => r) : [];
       b.textContent = best.map(([name, r]) => r.made
         ? `Made so far: ${r.made.map(d => (DESIGNS.find(x => x.id === d) || { name: d }).name).join(', ')}`   // 3D printing
+        : r.count !== undefined ? `${name} ${'★'.repeat(r.stars)} ${r.count} spotted`   // catch the elf
         : `${name} ${'★'.repeat(r.stars)} ${clockText(r.minutes)}`).join(' · ');
     });
     if (S.mission && !S.mission.done) {

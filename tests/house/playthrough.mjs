@@ -950,6 +950,109 @@ for (const who of ['dad', 'girl']) {
   console.log(`the elf's good deeds: ${ELF_DEEDS.length} in the pool, five a go, every one done`);
 }
 
+// --- the elf's evening hiding spots (#159): every one can be reached
+{
+  const { EVENING_SPOTS } = await import(new URL('../../house/js/pack/elfspots.js', import.meta.url));
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  globalThis.location.search = '?season=winter&date=2026-12-10';
+  G.days.next();
+  for (const s of EVENING_SPOTS) {
+    G.board.clear();
+    const job = G.board.add({ id: 'spot-' + s.id, title: 'Spot the elf!', steps: [{ kind: 'use', level: s.level, at: s.at, label: 'Spot him!' }] });
+    const r = doStep(G.board.find(job.id));
+    if (r !== true) errors.push(`evening spot ${s.id}: ${r}`);
+  }
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log(`the elf's evening spots: ${EVENING_SPOTS.length}, every one reachable`);
+}
+
+// --- catch the elf (#159): dark house, he hops between spots until 20:30; spot him for stars; stand where he lands and he freezes
+{
+  const { ELF_KEY, pickScene } = await import(new URL('../../house/js/elf.js', import.meta.url));
+  const { EVENING_SPOTS, spotsNear } = await import(new URL('../../house/js/pack/elfspots.js', import.meta.url));
+  const { ELF_SCENES } = await import(new URL('../../house/js/pack/elfscenes.js', import.meta.url));
+  localStorage.setItem(ELF_KEY, JSON.stringify({ found: [], arrived: '2026-12-01', name: 'Holly' }));
+  globalThis.location.search = '?season=winter&date=2026-12-10';
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.days.next();
+  const elfSpot = G.items.elf.visible && G.items.elf.position.toArray().join();
+  const dayLight = G.stage.hemi.intensity;
+  const tomorrow = ELF_SCENES.find(x => x.id === pickScene(new Date(2026, 11, 11, 12), ELF_SCENES, () => true));
+  const banned = spotsNear(tomorrow.elf.place, tomorrow.elf.level);
+  let seed = 3; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const tick = (secs) => { for (let n = 0; n < secs * 10; n++) G.missions.update(0.1); };
+  const spotJob = () => G.board.jobs.find(j => /^spot-/.test(j.key || '') && j.i < j.steps.length);
+  const toLanding = () => { for (let n = 0; n < 400 && !spotJob() && !S.mission.done; n++) G.missions.update(0.1); return spotJob(); };
+  G.missions.start('elfCatch', 'girl', { rand });
+  tick(0.5);
+  if (!(G.stage.hemi.intensity < dayLight)) errors.push('catch the elf: the house isn\'t dark');
+  for (let n = 0; n < 3; n++) {
+    const job = toLanding();
+    if (!job) { errors.push(`catch the elf: no "Spot the elf!" for sighting ${n + 1}`); break; }
+    const sp = S.mission.hop.spot;
+    if (banned.includes(sp.id)) errors.push(`catch the elf: he went to ${sp.id}, near tomorrow's mischief`);
+    if (!G.items.elf.visible) errors.push('catch the elf: "Spot the elf!" but no elf out');
+    const r = doStep(job); if (r !== true) errors.push(`catch the elf: spotting him: ${r}`);
+  }
+  if (S.mission.seen !== 3) errors.push(`catch the elf: ${S.mission.seen} sightings, want 3`);
+  for (let n = 0; n < 2000 && !S.mission.done; n++) G.missions.update(0.1);
+  let card = G.missions.card();
+  if (!S.mission.done || card.stars !== '★★★' || !/3 sightings/.test(card.stats)) errors.push(`catch the elf, three: ${S.mission.done} "${card.stars}" "${card.stats}"`);
+  if (!G.missions.best('elfCatch', 'girl') || G.missions.best('elfCatch', 'girl').count !== 3) errors.push(`catch the elf: best ${JSON.stringify(G.missions.best('elfCatch', 'girl'))}`);
+  G.missions.end();
+  if (G.stage.hemi.intensity !== dayLight) errors.push('catch the elf: still dark after the go');
+  const back = G.board.find('elf');
+  if (!G.items.elf.visible || G.items.elf.position.toArray().join() !== elfSpot || !back || back.i !== 0) errors.push("catch the elf: the day's elf isn't back where he was afterwards");
+  // Dude waits where he's going to land: he freezes, no sighting that stop
+  G.days.setCharacter('boy'); G.player.setCharacter('boy');
+  G.missions.start('elfCatch', 'boy', { rand });
+  tick(0.5);
+  for (let n = 0; n < 400 && !S.mission.next; n++) G.missions.update(0.1);
+  const nx = S.mission.next;
+  G.levels.show(nx.level); G.player.group.position.x = nx.at[0]; G.player.group.position.z = nx.at[1];
+  for (let n = 0; n < 400 && S.mission.hop?.spot !== nx; n++) G.missions.update(0.1);
+  if (!S.mission.hop || !S.mission.hop.frozen) errors.push('catch the elf: waiting at his next spot, he didn\'t freeze');
+  if (spotJob()) errors.push('catch the elf: "Spot the elf!" for a frozen elf');
+  G.player.group.position.x = 2.4; G.player.group.position.z = 3.0; G.levels.show(0);
+  for (let n = 0; n < 2000 && !S.mission.done; n++) G.missions.update(0.1);
+  card = G.missions.card();
+  if (card.stars !== '★☆☆' || !/0 sightings/.test(card.stats)) errors.push(`catch the elf, none: "${card.stars}" "${card.stats}"`);
+  G.missions.end();
+  // never near tomorrow's mischief, over many goes
+  for (let go = 0; go < 30; go++) {
+    G.missions.start('elfCatch', 'girl');
+    for (let n = 0; n < 1800 && !S.mission.done; n++) { G.missions.update(0.1); if (S.mission.hop && banned.includes(S.mission.hop.spot.id)) { errors.push(`catch the elf: ${S.mission.hop.spot.id} near tomorrow's mischief`); n = 1e9; } }
+    G.missions.end();
+  }
+  // a worse go keeps the better best
+  G.days.setCharacter('girl'); G.player.setCharacter('girl');
+  G.missions.start('elfCatch', 'girl', { rand });
+  for (let n = 0; n < 2000 && !S.mission.done; n++) G.missions.update(0.1);
+  if (G.missions.best('elfCatch', 'girl').count !== 3) errors.push('catch the elf: a worse go replaced the best');
+  G.missions.end();
+  // another mission started from the home menu mid-go: daylight again
+  G.missions.start('elfCatch', 'girl', { rand }); tick(0.5);
+  G.missions.start('elfReport', 'girl', { rand });
+  if (G.stage.hemi.intensity !== dayLight) errors.push('catch the elf: the next mission is still in the dark');
+  G.missions.end();
+  // the hints name whoever sleeps in that room, as they're called now (never a fixed "P's room")
+  const { catchWhere } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  if (EVENING_SPOTS.some(x => /P's|Dude's/.test(JSON.stringify(x)))) errors.push('catch the elf: a spot names a child itself');
+  const toyBox = EVENING_SPOTS.find(x => x.id === 'toyBox'), lego = EVENING_SPOTS.find(x => x.id === 'legoDrawer');
+  G.players.setName('girl', 'Pia');
+  if (!/Pia's room/.test(catchWhere(toyBox).hint) || !/Dude's room/.test(catchWhere(lego).hint)) errors.push(`catch the elf: hints ${catchWhere(toyBox).hint} / ${catchWhere(lego).hint}`);
+  G.settings.setRoomsSwapped(true);
+  if (!/Dude's room/.test(catchWhere(toyBox).where) || !/Pia's room/.test(catchWhere(lego).where)) errors.push(`catch the elf, rooms swapped: ${catchWhere(toyBox).where} / ${catchWhere(lego).where}`);
+  G.settings.setRoomsSwapped(false); G.players.setName('girl', '');
+  localStorage.removeItem(ELF_KEY);
+  globalThis.location.search = '?season=autumn';
+  G.days.setCharacter('dad'); G.player.setCharacter('dad');
+  G.days.next();
+  console.log("catch the elf: dark, three sightings 3 stars, he freezes if you wait, never near tomorrow's mischief, the day back after");
+}
+
 // --- the elf's report to Father Christmas (#160): five deeds against the clock, post the report, stars
 {
   const { ELF_KEY } = await import(new URL('../../house/js/elf.js', import.meta.url));
