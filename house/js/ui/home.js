@@ -19,6 +19,12 @@ export function createHome(ctx) {
     return d.getMonth() === 11 && d.getDate() <= 23 && tags.includes('advent') && !!ctx.elfLog && !ctx.elfLog.hasArrived(dateKey(d));
   }
 
+  /** The elf's report: from the morning after he arrives to 23 December, Christmas on, until he's left. */
+  function reportOffered() {
+    const d = today(), day = dateKey(d), tags = ctx.settings ? ctx.settings.filterTags(currentHolidays()) : currentHolidays();
+    return !!ctx.elfLog && d.getMonth() === 11 && d.getDate() <= 23 && tags.includes('advent') && ctx.elfLog.out(day) && !ctx.elfLog.hasLeft(day);
+  }
+
   /** The elf says goodbye: Christmas Eve, Christmas on, once he's come this Advent; a button for each child still to say it. */
   function goodbyeFor() {
     const d = today(), day = dateKey(d), tags = ctx.settings ? ctx.settings.filterTags(currentHolidays()) : currentHolidays();
@@ -29,6 +35,10 @@ export function createHome(ctx) {
   function render() {
     const elfCard = document.getElementById('missionElf');
     if (elfCard) elfCard.hidden = !elfOffered();
+    const reportCard = document.getElementById('missionElfReport');
+    if (reportCard) reportCard.hidden = !reportOffered();
+    const catchCard = document.getElementById('missionElfCatch');
+    if (catchCard) catchCard.hidden = !reportOffered();   // catch the elf: the same days as his report
     showNames();   // the players' names on the buttons and mission cards
     const bye = document.getElementById('missionElfGoodbye');
     if (bye && bye.querySelectorAll) {   // after showNames, which shows every child's button
@@ -45,6 +55,7 @@ export function createHome(ctx) {
       const best = ctx.missions ? ids.flatMap(i => who.map(([k, name]) => [name, ctx.missions.best(i, k)])).filter(([, r]) => r) : [];
       b.textContent = best.map(([name, r]) => r.made
         ? `Made so far: ${r.made.map(d => (DESIGNS.find(x => x.id === d) || { name: d }).name).join(', ')}`   // 3D printing
+        : r.count !== undefined ? `${name} ${'★'.repeat(r.stars)} ${r.count} spotted`   // catch the elf
         : `${name} ${'★'.repeat(r.stars)} ${clockText(r.minutes)}`).join(' · ');
     });
     if (S.mission && !S.mission.done) {

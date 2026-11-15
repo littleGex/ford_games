@@ -21,11 +21,11 @@
 // parcel from the courier, load the printer in the light-box cupboard by the sofa, send the print from the
 // laptop, watch it grow, then take the model out and put it where it belongs.
 import { S } from '../state.js';
-import { NAMES, nameOf, possessive, their } from '../names.js';
+import { NAMES, nameOf, possessive, their, inFamily } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { deskOf, pageAt } from '../pack/workdesks.js';
 import { resetItems } from '../items.js';
-import { FOOD_DELIVERY } from '../config.js';
+import { FOOD_DELIVERY, REACH } from '../config.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
 import { DESIGNS, COLOURS } from '../systems/printing.js';
 import { ring, alarm, schoolGong } from '../core/audio.js';
@@ -36,8 +36,10 @@ import { BED, SEARCH, NAMES as KID } from '../systems/bedtime.js';
 import { STAIRS } from '../systems/levels.js';
 import { XMAS } from '../world/christmas.js';
 import { ELF_DOOR } from '../world/elf.js';
-import { elfName, dateKey, createElfLog } from '../elf.js';
+import { elfName, dateKey, createElfLog, pickScene } from '../elf.js';
+import { nextSpot, spotsNear } from '../pack/elfspots.js';
 import { ELF_SCENES, CALENDAR_NOTE, trailStops } from '../pack/elfscenes.js';
+import { dealDeeds } from '../pack/elfdeeds.js';
 import { today } from '../holidays.js';
 
 const KEY = 'fordHouse.missions.v1';
@@ -289,6 +291,12 @@ const INTERRUPT = {
       { kind: 'use', level: 1, at: real.at, label: `Look ${real.name}`, onDone: cx => { cx.bedtime.follow(who); cx.hud.toast(`Found you, ${N}!`); done(); } }] });
   },
 };
+
+/** Catch the elf: where he's landed, in words ("in Pia's room, by the toy box") and as the hint toast. */
+export function catchWhere(spot) {
+  const room = spot.kidRoom ? `in ${possessive(kidIn(spot.kidRoom))} room` : spot.room, where = `${room}, ${spot.by}`;
+  return { where, hint: `A giggle ${spot.floor}… ${where}?` };
+}
 
 export const MISSIONS = {
   schoolRun: {
@@ -638,6 +646,100 @@ export const MISSIONS = {
                best: `Arrived ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}` };
     },
   },
+  // The elf's report to Father Christmas (#160): from the morning after he arrives to 23 December (ui/home.js), a
+  // game to replay. Five good deeds dealt fresh each go (pack/elfdeeds.js), any order; once three are done the
+  // report can be posted on the dining room windowsill (it ends the go); half an hour on the clock (17:00 to
+  // 17:30) and the go ends when it runs out. ★★★ all five and posted in time, ★★ four, ★ otherwise. The day's own
+  // elf is left alone: if he's been found today he sits on the windowsill writing, otherwise he stays hidden.
+  elfReport: {
+    title: "The elf's report", who: ['girl', 'boy'], endsAtClock: true,
+    clock: { start: hm(17), end: hm(17.5), secondsPerMinute: 6 },
+    spot: who => ({ ...KIDS[who], name: nameOf(who), level: 0, start: [2.4, 3.0], facing: Math.PI }),
+    intro: 'the elf is writing his report for Father Christmas. Do five good deeds!',
+    setup(c, kid) {
+      const mission = S.mission, who = mission.who;
+      mission.deeds = dealDeeds(who, { isOn: id => (c.settings ? c.settings.isOn(id) : true), inFamily, rand: mission.rand || Math.random });
+      mission.deeds.forEach(d => { if (d.setup) d.setup(c, who, KIDS[who]); });
+      if (c.elfLog.found(dateKey(today()))) c.elf.atWindowsill();   // home through his door today: out to write his report
+      else c.elf.restore();   // not found yet: still in his hiding spot, watching
+    },
+    jobs: () => [(c, mission) => mission.deeds.map(d => ({ key: `deed-${d.id}`, optional: true, title: d.label(mission.who), steps: d.steps(mission.who, KIDS[mission.who]) }))],
+    onOptional(c, mission) {
+      const n = Object.keys(mission.doneAt).filter(k => k.startsWith('deed-')).length;
+      if (n >= 3 && !mission.posting) {
+        mission.posting = true;
+        c.missions.add({ key: 'post', title: 'Post your report', steps: [{ kind: 'use', at: XMAS.windowsill.at, label: 'Post the report on the windowsill for Father Christmas' }] });
+        c.hud.toast(`Three good deeds! Post the report on the windowsill, or do more first.`);
+      }
+    },
+    result(mission, at) {
+      const n = mission.deeds.filter(d => mission.doneAt[`deed-${d.id}`] !== undefined).length;
+      const posted = mission.doneAt.post !== undefined && mission.doneAt.post <= mission.clock.end;
+      const stars = n === 5 && posted ? 3 : n >= 4 ? 2 : 1;
+      return { stars, title: ['', 'A kind start!', 'A good report!', 'A glowing report!'][stars],
+               stats: `${n} good ${n === 1 ? 'deed' : 'deeds'} for Father Christmas${posted ? ', report posted at ' + clockText(at) : ''}.`,
+               report: mission.deeds.map(d => ({ text: d.label(mission.who), done: mission.doneAt[`deed-${d.id}`] !== undefined })) };
+    },
+  },
+  // Catch the elf (#159): the dark house, 20:00 to 20:30; he hops between evening spots (pack/elfspots.js) until
+  // the clock runs out. Spot him while he's out for a sighting (≥3 ★★★, 2 ★★, otherwise ★). Stand where he lands
+  // and he freezes stiff and hops on. A hint says where he's landed, never where he's going; never near
+  // tomorrow's mischief. The day's own elf and his mess come back afterwards (end → days.start → elf.reset).
+  elfCatch: {
+    title: 'Catch the elf', who: ['girl', 'boy'], endsAtClock: true,
+    clock: { start: hm(20), end: hm(20.5), secondsPerMinute: 6 },
+    spot: who => ({ ...KIDS[who], name: nameOf(who), level: 0, start: [2.4, 3.0], facing: Math.PI }),
+    intro: 'the elf is creeping about in the dark. Spot him before half past eight!',
+    setup(c) {
+      const mission = S.mission, d = today(), isOn = id => (c.settings ? c.settings.isOn(id) : true);
+      c.bedtime.dark();
+      const tomorrow = ELF_SCENES.find(s => s.id === pickScene(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 12), ELF_SCENES, isOn));
+      mission.exclude = tomorrow ? spotsNear(tomorrow.elf.place, tomorrow.elf.level) : [];
+      mission.seen = 0; mission.hop = null; mission.gapUntil = 0; mission.n = 0;
+      mission.next = nextSpot(null, { exclude: mission.exclude, rand: mission.rand || Math.random });
+      c.elf.away();
+    },
+    jobs: () => [() => []],   // the "Spot the elf!" jobs come and go with him (update)
+    update(c, mission) {
+      const t = mission.t, hop = mission.hop, rand = mission.rand || Math.random;
+      if (hop && t >= hop.until) {   // off he goes
+        if (hop.job && !c.board.finished(hop.job)) c.board.remove(hop.job.id);
+        c.elf.away();
+        mission.hop = null; mission.gapUntil = t + 1;
+        mission.next = nextSpot(hop.spot, { exclude: mission.exclude, rand });
+        return;
+      }
+      if (hop || t < mission.gapUntil) return;
+      const spot = mission.next, prev = mission.last, pos = c.player.group.position;
+      mission.last = spot; mission.next = null;
+      c.elf.perch(spot);
+      if (S.level === spot.level && Math.hypot(pos.x - spot.at[0], pos.z - spot.at[1]) <= REACH) {
+        c.elf.freeze();
+        mission.hop = { spot, until: t + 1, frozen: true };
+        c.hud.toast(`${elfName()} saw you! He's gone stiff as a toy…`);
+        return;
+      }
+      const stay = prev && prev.level !== spot.level ? 14 : 9;
+      const { where, hint } = catchWhere(spot);
+      const job = c.missions.add({ key: `spot-${mission.n++}`, title: 'Spot the elf!',
+        steps: [{ kind: 'use', hidden: true, level: spot.level, at: spot.at, label: `Spot him ${where}!` }] }, { optional: true });
+      mission.hop = { spot, until: t + stay, job };
+      c.hud.toast(hint);
+    },
+    onOptional(c, mission, job) {
+      if (!/^spot-/.test(job.key) || !mission.hop) return;
+      mission.seen++;
+      c.hud.toast(`You spotted ${elfName()}! ${mission.seen === 1 ? 'One sighting' : `${mission.seen} sightings`}`);
+      c.elf.wave();
+      mission.hop.until = mission.t + 1.6;   // he waves, then he's off
+      mission.hop.job = null;
+    },
+    result(mission) {
+      const n = mission.seen || 0, stars = n >= 3 ? 3 : n === 2 ? 2 : 1;
+      return { stars, count: n, title: ['', "He's a quick one!", 'Nearly had him!', 'Elf spotter!'][stars],
+               stats: `${n} ${n === 1 ? 'sighting' : 'sightings'} of ${elfName()} before half past eight.` };
+    },
+  },
   // The elf says goodbye (#158): Christmas Eve, each child once (ui/home.js). A note by the Advent calendars, then
   // three notes at mischief they found this December (pack/elfscenes.js trailStops), each remembering it and
   // pointing to the next; the last sends them to his door, where he says goodbye and goes through it. His door
@@ -688,7 +790,7 @@ export function createMissions(ctx) {
   }
 
   /** Start a mission as one of the family (the school run: one of the kids; 3D printing: Dad). */
-  function start(id, who) {
+  function start(id, who, { rand } = {}) {
     const m = MISSIONS[id], kid = m && (m.spot ? m.spot(who) : KIDS[who]);
     if (!m || !kid) return;
     if (S.elfCard) ctx.elfCards.reset();   // a card left open from before isn't this mission's
@@ -697,11 +799,12 @@ export function createMissions(ctx) {
     if (S.laptop) ctx.laptop.close();
     if (ctx.home) ctx.home.close();
     el.box.hidden = true;
-    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {}, doneAt: {}, due: {}, later: [] };
+    S.mission = { id, who, clock: m.clock, t: 0, done: false, choices: {}, doneAt: {}, due: {}, later: [], rand };
     S.carrying = null; S.dayOver = false; S.wiping = null;
     hud.hideDayComplete();
     board.clear();
     resetItems(ctx.items);
+    if (ctx.bedtime) ctx.bedtime.end();   // daylight, unless this mission makes it dark (bedtime, catch the elf)
     m.setup(ctx, kid);
     player.setCharacter(who);
     levels.show(kid.level);
@@ -760,8 +863,9 @@ export function createMissions(ctx) {
     el.stars.hidden = false; el.again.textContent = 'Try again'; el.again.hidden = false;
     mission.done = true;
     const best = ((BEST[mission.id] ||= {})[mission.who]);
-    const better = !best || stars > best.stars || (stars === best.stars && at < best.minutes);
-    if (better) { BEST[mission.id][mission.who] = { stars, minutes: at }; saveBest(); }
+    const count = r ? r.count : undefined;   // catch the elf: sightings, more beats fewer at the same stars
+    const better = !best || stars > best.stars || (stars === best.stars && (count !== undefined ? count > (best.count || 0) : at < best.minutes));
+    if (better) { BEST[mission.id][mission.who] = count !== undefined ? { stars, minutes: at, count } : { stars, minutes: at }; saveBest(); }
     const late = arrived >= m.clock.end;
     el.eyebrow.textContent = `${m.title} · ${NAMES[mission.who]}`;
     el.title.textContent = r ? r.title : late ? 'Late for school!' : stars === 3 ? 'Early bird!' : 'Just in time!';
@@ -769,9 +873,10 @@ export function createMissions(ctx) {
     el.stars.setAttribute('aria-label', `${stars} of 3 stars`);
     el.stats.textContent = r ? r.stats : `You got to school at ${clockText(arrived)}. The bell rings at ${clockText(m.clock.end)}.`;
     const b = BEST[mission.id][mission.who];
-    el.best.textContent = better ? 'A new best!' : `Your best: ${'★'.repeat(b.stars)} at ${clockText(b.minutes)}`;
+    el.best.textContent = better ? 'A new best!' : b.count !== undefined ? `Your best: ${'★'.repeat(b.stars)} ${b.count} spotted` : `Your best: ${'★'.repeat(b.stars)} at ${clockText(b.minutes)}`;
     el.box.hidden = false;
     el.again.focus();
+    if (r && r.report) ctx.elfCards.open(null, { card: 'report', who: mission.who, lines: r.report });   // on top of the results
   }
 
   /** A mission with no clock: no stars, just what you made, and everything you've made so far. */
@@ -816,13 +921,14 @@ export function createMissions(ctx) {
   return {
     start, end,
     /** The results card as it is now (tests, and the console). */
-    card: () => ({ title: el.title.textContent, stats: el.stats.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
+    card: () => ({ title: el.title.textContent, stars: el.stars.textContent, stats: el.stats.textContent, best: el.best.textContent, again: !el.again.hidden && !el.box.hidden }),
     update(dt) {
       if (!S.mission || S.mission.done) return;
       if (S.quiz) return;   // the clock stops while a lesson card is open (it moves on by the lesson's length after)
       S.mission.t += dt;
       showClock(false);
       const m = MISSIONS[S.mission.id];
+      if (m.endsAtClock && now() >= S.mission.clock.end) { finish(); return; }   // time's up (the elf's report)
       if (m.update) m.update(ctx, S.mission, now());
     },
     /** Cycle to the office or back home: the bike goes in the rack (or back through the gate), the clock moves

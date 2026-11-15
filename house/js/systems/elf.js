@@ -35,6 +35,7 @@ export function createElf(ctx) {
     return built[id];
   }
   function hideAll() { Object.values(built).forEach(list => list.forEach(p => { p.visible = false; })); }
+  let lastParams = null;   // the day's, for restore()
   function hideElf() { sendHome(items.elf); items.elf.visible = false; }
   function hideTrail() { notes.forEach(n => { n.visible = false; }); if (waving) { waving = null; hideElf(); } }
 
@@ -43,6 +44,7 @@ export function createElf(ctx) {
     get scene() { return scene; },
     /** Start of a day: his door up on Advent days; if he's still to be found today, him and the day's mess out. */
     reset(params) {
+      lastParams = params;
       const tags = [].concat(params.holiday || []);
       hideAll(); hideElf(); hideTrail();
       looking = 0; clue(undefined);
@@ -97,6 +99,27 @@ export function createElf(ctx) {
       const e = items.elf;
       if (e.parent !== floors()[0]) floors()[0].attach(e);
       e.position.set(ELF_DOOR.place[0], 0, ELF_DOOR.place[2] + 0.14); e.rotation.set(0, 0, 0);
+      e.userData.level = 0; e.visible = true;
+    },
+    /** Catch the elf: he's at an evening spot (pack/elfspots.js), just him, no mess. */
+    perch(spot) {
+      hideAll(); waving = null;
+      const e = items.elf, lv = floors()[spot.level];
+      if (e.parent !== lv) lv.attach(e);
+      e.position.set(...spot.place); e.rotation.set(0, spot.rotY || 0, 0); e.scale.setScalar(1);
+      e.userData.level = spot.level; e.visible = true;
+    },
+    /** He's seen you: stiff as a toy (a little shrink, tipped back). */
+    freeze() { const e = items.elf; e.rotation.x = -0.25; e.scale.setScalar(0.92); },
+    /** Off to the next spot. */
+    away() { waving = null; const e = items.elf; e.rotation.x = 0; e.scale.setScalar(1); hideElf(); },
+    /** Back as the day set him: in his hiding spot if he's still waiting to be found (a mission's resetItems sends him home). */
+    restore() { if (lastParams) this.reset(lastParams); },
+    /** The elf's report: he sits on the dining room windowsill, beside the wish list, writing it. */
+    atWindowsill() {
+      const e = items.elf;
+      if (e.parent !== floors()[0]) floors()[0].attach(e);
+      e.position.set(1.35, 0.86, 8.8); e.rotation.set(0, Math.PI, 0);
       e.userData.level = 0; e.visible = true;
     },
     /** He waves and goes through his door; done() after. */
