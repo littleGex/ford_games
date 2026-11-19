@@ -322,3 +322,16 @@ button, a, [role="button"] { touch-action: manipulation; }
 
 /* a mission button for someone who has already played it (the elf says goodbye: each child once) */
 .mission-play button[hidden] { display: none; }
+
+/* tester mode (#179, ui/tester.js): only built when it's on */
+.tester-banner { position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 30; padding: 3px 10px; border-radius: 0 0 10px 10px; background: #c2185b; color: #fff; font: 700 12px var(--f-body); letter-spacing: .02em; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; }
+.tester-open { position: fixed; right: 16px; bottom: 150px; z-index: 30; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #c2185b; background: var(--panel); font-size: 22px; cursor: pointer; }
+.tester-panel { position: fixed; right: 16px; left: 16px; bottom: 200px; z-index: 31; max-width: 380px; margin-left: auto; max-height: calc(100vh - 260px); overflow: auto; box-sizing: border-box; padding: 14px; border-radius: 16px; border: 2px solid #c2185b; background: var(--panel); color: var(--paper); font: 14px var(--f-body); box-shadow: 0 16px 40px rgba(0, 0, 0, .5); }
+.tester-panel[hidden] { display: none; }
+.tester-panel h2 { margin: 0 0 4px; font: 800 18px var(--f-display); color: #f48fb1; }
+.tester-panel label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
+.tester-panel input, .tester-panel select { font: 14px var(--f-body); }
+.tester-note { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+.tester-chips, .tester-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.tester-panel button { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, .08); color: var(--paper); font: 600 13px var(--f-body); cursor: pointer; }
+.tester-panel button.on, .tester-panel .tester-main { background: #c2185b; border-color: #c2185b; color: #fff; }

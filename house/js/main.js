@@ -28,6 +28,8 @@ import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
 import { createFridge } from './ui/fridge.js';
+import { readTester } from './tester.js';
+import { createTester } from './ui/tester.js';
 import { createLaptop } from './ui/laptop.js';
 import { createPrinting } from './systems/printing.js';
 import { createHome } from './ui/home.js';
@@ -101,6 +103,7 @@ ctx.bedtime = createBedtime(ctx);
 ctx.birthday = createBirthday(ctx);
 ctx.familyServer = createFamilyServer(players);   // the real birthdays, if this device has the game token
 ctx.advent = createAdvent();   // P's and Dude's Advent calendar doors (saved on this device)
+if (readTester().on) ctx.tester = createTester(ctx);   // tester mode (#179): only when it's on
 ctx.settings = createSettings();   // which jobs are on (saved on this device)
 ctx.christmas = createChristmas(ctx);
 ctx.christmas.useAdvent(ctx.advent);

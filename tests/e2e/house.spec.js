@@ -1340,3 +1340,24 @@ test('fill the fridge: a card to read on a phone', async ({ page }) => {
   await expect(page.locator('#fridgeName')).toHaveText(name);
   await expect(page.locator('#fridgeCount')).toHaveText('2 / 8');
 });
+
+test('tester mode: a banner, a panel, Christmas Eve on a tap, and the real saves untouched', async ({ page }) => {
+  test.setTimeout(120000);
+  await page.addInitScript(() => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('fordHouse.setup.v1', 'done'); localStorage.setItem('fordHouse.elf.v1', '{"found":["2026-12-03"],"arrived":"2026-12-01"}'); } });
+  await page.goto('/house/');
+  await expect(page.locator('#homePlay')).toBeVisible();
+  await expect(page.locator('#testerBanner')).toHaveCount(0);   // flag off: nothing
+  await page.goto('/house/?tester=1');
+  await expect(page.locator('#testerBanner')).toBeVisible();
+  await page.locator('#testerOpen').click();
+  await expect(page.locator('#testerPanel')).toBeVisible();
+  await page.locator('#testerPanel [data-date-chip="Christmas Eve"]').click();
+  await Promise.all([page.waitForEvent('load'), page.locator('#testerApply').click()]);
+  await expect(page.locator('#testerBanner')).toBeVisible();
+  await page.waitForFunction(() => window.house && window.house.world && window.house.world.christmas.all.visible, null, { timeout: 15000 });   // the tree's up
+  await expect(page.locator('#testerBanner')).toContainText('24 Dec');
+  // the real elf log is as it was (checked with tester mode off)
+  await page.goto('/house/?tester=0');
+  await expect(page.locator('#testerBanner')).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem('fordHouse.elf.v1'))).toBe('{"found":["2026-12-03"],"arrived":"2026-12-01"}');
+});
