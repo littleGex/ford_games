@@ -28,11 +28,13 @@ import { createWeather } from './systems/weather.js';
 import { createWiping } from './systems/wiping.js';
 import { createSorting } from './ui/sorting.js';
 import { createFridge } from './ui/fridge.js';
+import { readTester } from './tester.js';
+import { createTester } from './ui/tester.js';
 import { createLaptop } from './ui/laptop.js';
 import { createPrinting } from './systems/printing.js';
 import { createHome } from './ui/home.js';
 import { createAvatar } from './ui/avatar.js';
-import { createMissions } from './missions/missions.js';
+import { createMissions, MISSIONS, KIDS } from './missions/missions.js';
 import { preventZoom } from './core/nozoom.js';
 import { createSweeping } from './systems/sweeping.js';
 import { createSeasonal } from './systems/seasonal.js';
@@ -133,6 +135,8 @@ const markCharacter = hud.bindCharacterButtons(key => {
   if (S.mission) return;   // a mission is played as one of the kids
   player.setCharacter(key); ctx.days.setCharacter(key);
 });
+/** Tester mode's "Play as": out of any mission, then as that person (the corner buttons follow). */
+ctx.playAs = key => { if (S.mission) ctx.missions.end(); player.setCharacter(key); ctx.days.setCharacter(key); markCharacter(key); };
 /** Playing as someone who's been left out of the family (one grown-up): carry on as the grown-up who's there. */
 ctx.keepPlayerInFamily = () => {
   if (S.mission || players.inFamily(ctx.days.character)) return;
@@ -154,6 +158,7 @@ ctx.settingsSync.onStatus(() => { if (ctx.settingsCard.isOpen) ctx.settingsCard.
 // that turns today into someone's birthday before anything's been done, today's list is planned again.
 ctx.familyServer.sync().then(() => ctx.days.replanIfUntouched()).catch(() => {});
 ctx.missions = createMissions(ctx);
+if (readTester().on) { ctx.missionList = { MISSIONS, KIDS }; ctx.tester = createTester(ctx); }   // tester mode (#179): only when it's on
 systems.push(ctx.missions);
 ctx.home.open();   // the game opens on the home screen
 const linkOpened = ctx.settingsCard.checkLink();   // opened from a share link: ask before using its settings

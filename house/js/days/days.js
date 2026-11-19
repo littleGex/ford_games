@@ -205,6 +205,8 @@ export function createDays(ctx) {
       if (!today || S.mission) return;
       setupDay();
     },
+    /** Every job there could be today (id and title), for tester mode's job picker. */
+    jobs() { return today ? jobsToday().map(j => ({ id: j.id, title: j.title })) : []; },
     /** For tests and trying things out: replace today's list with these job ids. */
     plan(ids) {
       today = save.today = { day: save.day, params: binParams(save), plan: ids, done: [], completed: false };

@@ -2,6 +2,7 @@
 // season. Autumn (September-November): orange and red leaves, raking. Winter (December and January):
 // snow, clearing the path. The rest of the year the garden looks as it always has.
 // Add ?season=autumn (spring, summer, autumn, winter) to the address to try a season out (or ?date=..., holidays.js).
+import { testerValue } from './tester.js';
 import { today } from './holidays.js';
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 
@@ -15,6 +16,6 @@ export function seasonOf(date = new Date()) {
 
 export function currentSeason() {
   const search = globalThis.location && globalThis.location.search;
-  const asked = search ? new URLSearchParams(search).get('season') : null;
+  const asked = (search ? new URLSearchParams(search).get('season') : null) || testerValue('season');
   return SEASONS.includes(asked) ? asked : seasonOf(today());
 }
