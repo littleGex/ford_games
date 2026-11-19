@@ -995,6 +995,14 @@ for (const who of ['dad', 'girl']) {
   if (!sr || sr.who.join() !== 'girl,boy') errors.push(`tester missions: the school run for ${sr && sr.who}`);
   console.log(`tester missions: ${mc.length}, each with its own players`);
 }
+{   // tester mode's job picker: days.jobs() lists today's jobs, and planning one puts just that on the list
+  const all = G.days.jobs();
+  if (!all.length || !all.every(j => j.id && j.title)) errors.push(`days.jobs(): ${JSON.stringify(all.slice(0, 3))}`);
+  if (!all.some(j => j.id === 'homework')) errors.push('days.jobs(): no homework');
+  G.days.plan(['homework']);
+  if (G.board.jobs.map(j => j.id).join() !== 'homework') errors.push(`tester job: ${G.board.jobs.map(j => j.id)}`);
+  console.log(`tester jobs: ${all.length}`);
+}
 
 // --- the elf's evening hiding spots (#159): every one can be reached
 {

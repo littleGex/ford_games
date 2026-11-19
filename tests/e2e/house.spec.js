@@ -1365,6 +1365,12 @@ test('tester mode: a banner, a panel, Christmas Eve on a tap, and the real saves
   await expect(page.locator('#testerPanel')).toBeHidden();
   expect(await page.evaluate(() => window.house.S.mission && [window.house.S.mission.id, window.house.S.mission.who].join())).toBe('elfGoodbye,girl');
   await expect(page.locator('#testerPanel [data-mission="schoolRun"][data-who="dad"]')).toHaveCount(0);
+  // any job: out of the mission, and today's list is just that job
+  await page.locator('#testerOpen').click();
+  await page.locator('#testerJobFind').fill('homework');
+  await page.locator('#testerPanel [data-job="homework"]').click();
+  await expect(page.locator('#taskCount')).toHaveText('0/1');
+  expect(await page.evaluate(() => [!!window.house.S.mission, window.house.board.jobs.map(j => j.id).join()])).toEqual([false, 'homework']);
   // the real elf log is as it was (checked with tester mode off)
   await page.goto('/house/?tester=0');
   await expect(page.locator('#testerBanner')).toHaveCount(0);

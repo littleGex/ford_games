@@ -338,3 +338,5 @@ button, a, [role="button"] { touch-action: manipulation; }
 .tester-panel h3 { margin: 10px 0 2px; font: 700 14px var(--f-display); color: #f48fb1; }
 .tester-missions .tester-row { align-items: center; margin: 3px 0; }
 .tester-missions span { flex: 1 1 100%; font-size: 13px; }
+.tester-jobs { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; max-height: 180px; overflow: auto; }
+.tester-panel input[type=search] { width: 100%; box-sizing: border-box; }

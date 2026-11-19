@@ -2,7 +2,7 @@
 // says what's pretended (the date, a holiday, a season, a birthday), and the 🧪 button opens the panel: a date with
 // quick chips, holiday / season / birthday, "Apply & reload" (the world and decorations are built at startup),
 // "Reset tester progress" (only the tester's own save, Advent, elf log and mission bests), "Open all Advent
-// doors", and (Task 3) play as someone and start any mission. Text only via textContent.
+// doors", play as someone, start any mission, and put any job on today's list. Text only via textContent.
 import { readTester, writeTester, testerKey } from '../tester.js';
 import { today } from '../holidays.js';
 import { SEASONS } from '../seasons.js';
@@ -48,6 +48,13 @@ export function missionChoices(missions, kids) {
     id, title: m.title,
     who: (m.who || EVERYONE).filter(w => (m.spot ? m.spot(w) : kids[w])),
   })).filter(m => m.who.length);
+}
+
+/** The job picker's list: jobs whose title or id has the search in it (any case), by title, at most 40. */
+export function jobChoices(jobs, query) {
+  const q = (query || '').trim().toLowerCase();
+  return jobs.filter(j => !q || j.title.toLowerCase().includes(q) || j.id.toLowerCase().includes(q))
+    .sort((a, b) => a.title.localeCompare(b.title)).slice(0, 40);
 }
 
 const SHORT = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -102,7 +109,18 @@ export function createTester(ctx) {
     location.reload();
   });
   const close = make('button', { id: 'testerClose', type: 'button', className: 'tester-close' }); close.textContent = 'Close';
-  const extra = make('div', { id: 'testerMore' });   // jobs (Task 4)
+  // any job: today's list becomes just that one, for whoever's playing
+  const jobH = make('h3'); jobH.textContent = 'Jobs';
+  const find = make('input', { id: 'testerJobFind', type: 'search', placeholder: 'Find a job' });
+  const jobList = make('div', { className: 'tester-jobs' });
+  const showJobs = () => {
+    jobList.replaceChildren(...jobChoices(ctx.days.jobs(), find.value).map(j => {
+      const b = make('button', { type: 'button' }); b.textContent = j.title; b.dataset.job = j.id;
+      b.addEventListener('click', () => { api.close(); if (ctx.home) ctx.home.close(); if (ctx.S && ctx.S.mission) ctx.missions.end(); ctx.days.plan([j.id]); });
+      return b;
+    }));
+  };
+  find.addEventListener('input', showJobs);
   // play as anyone, and start any mission as anyone it's written for
   const asH = make('h3'); asH.textContent = 'Play as';
   const as = make('div', { className: 'tester-row' });
@@ -116,13 +134,12 @@ export function createTester(ctx) {
   }
   close.addEventListener('click', () => api.close());
   openBtn.addEventListener('click', () => (panel.hidden ? api.open() : api.close()));
-  panel.append(h, note, dateL, chips, holL, seaL, bdL, make('div', { className: 'tester-row' }, [apply, reset, doors]), asH, as, misH, mis, extra, close);
+  panel.append(h, note, dateL, chips, holL, seaL, bdL, make('div', { className: 'tester-row' }, [apply, reset, doors]), asH, as, misH, mis, jobH, find, jobList, close);
   document.body.append(banner, openBtn, panel);
 
   const api = {
-    open() { panel.hidden = false; S_menu(true); date.focus(); },
+    open() { panel.hidden = false; S_menu(true); showJobs(); date.focus(); },
     close() { panel.hidden = true; S_menu(false); },
-    more: extra,
   };
   function S_menu(on) { if (ctx.S) ctx.S.testerOpen = on; }
   return api;

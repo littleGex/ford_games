@@ -1,7 +1,7 @@
 // Tester mode (#179): the panel's date shortcuts and its reset:  node tests/house/tester-panel.mjs  (plain Node)
 const store = new Map();
 globalThis.localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
-const { dateChips, resetTesterProgress, freshTesterDay, missionChoices } = await import('../../house/js/ui/tester.js');
+const { dateChips, resetTesterProgress, freshTesterDay, missionChoices, jobChoices } = await import('../../house/js/ui/tester.js');
 const { holidaysOf } = await import('../../house/js/holidays.js');
 
 const fail = [];
@@ -50,6 +50,13 @@ check(of('schoolRun') && of('schoolRun').who.join() === 'girl,boy' && of('school
 check(of('wfh') && of('wfh').who.join() === 'dad,mum', `wfh: ${JSON.stringify(of('wfh'))}`);
 check(of('report') && of('report').who.join() === 'girl,boy', `report (a spot for anyone, but only P and Dude play it): ${JSON.stringify(of('report'))}`);
 check(!of('broken'), 'a mission no one can play is left out');
+
+// the job picker: today's jobs by title, searched by title or id (any case), at most 40
+const jobs = [{ id: 'binsOut', title: 'Put the bins out' }, { id: 'feedDragon', title: 'Feed the dragon' }, { id: 'coffee', title: 'Make Dad a coffee' }];
+check(jobChoices(jobs, '').map(j => j.id).join() === 'feedDragon,coffee,binsOut', `jobChoices all, by title: ${jobChoices(jobs, '').map(j => j.id)}`);
+check(jobChoices(jobs, 'DRAG').map(j => j.id).join() === 'feedDragon', `jobChoices 'DRAG': ${jobChoices(jobs, 'DRAG').map(j => j.id)}`);
+check(jobChoices(jobs, 'binsout').map(j => j.id).join() === 'binsOut', 'jobChoices by id');
+check(jobChoices(Array.from({ length: 60 }, (_, i) => ({ id: `j${i}`, title: `Job ${i}` })), '').length === 40, 'jobChoices: at most 40');
 
 if (fail.length) { console.error('tester-panel: FAIL\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log('tester-panel: ok');
