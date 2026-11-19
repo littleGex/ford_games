@@ -168,7 +168,7 @@ test('Salvo against the computer: pick five, fire them all, and the computer fir
   await open(page);
   await page.click('[data-variant="salvo"]');
   await expect(page.locator('#variantWhat')).toHaveText(/a shot for each of your ships/i);
-  await expect(page.locator('#onlineClassic')).toBeVisible();   // two devices stay Classic for now
+  await expect(page.locator('#onlineClassic')).toHaveCount(0);   // Salvo works on two devices too now (#178)
   await page.click('#playCpu');
   await page.click('#readyBtn');
   await ready(page);

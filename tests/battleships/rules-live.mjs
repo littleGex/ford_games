@@ -2,15 +2,23 @@
 // anonymous players try what's allowed and what isn't. Run by hand after changing the rules in the console:
 //   node tests/battleships/rules-live.mjs
 // It leaves three test rooms behind (anyone may delete a room once it's a day old; or delete them in the console).
+// Or before deploying, against the emulators (nothing real touched; needs Java):
+//   npx firebase-tools emulators:exec --only database,auth --project demo-battleships --config <a firebase.json
+//     whose "database" is { "rules": "battleships/database.rules.json" }> "node tests/battleships/rules-live.mjs"
+// (emulators:exec sets FIREBASE_DATABASE_EMULATOR_HOST and FIREBASE_AUTH_EMULATOR_HOST, which this script follows).
 import { CONFIG } from '../../battleships/js/net/firebase.js';
 import { newCode } from '../../battleships/js/net/online.js';
 
 const NOW = { '.sv': 'timestamp' };
+const DB_EMU = process.env.FIREBASE_DATABASE_EMULATOR_HOST, AUTH_EMU = process.env.FIREBASE_AUTH_EMULATOR_HOST;
+const DB_URL = DB_EMU ? `http://${DB_EMU}` : CONFIG.dbUrl, NS = DB_EMU ? `ns=${process.env.GCLOUD_PROJECT || 'demo-battleships'}-default-rtdb&` : '';
+const SIGN_UP = AUTH_EMU ? `http://${AUTH_EMU}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=emulator`
+  : `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${CONFIG.apiKey}`;
 const fail = [];
 let passed = 0;
 
 async function signUp() {
-  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${CONFIG.apiKey}`, {
+  const r = await fetch(SIGN_UP, {
     // The key only works from the site or local testing (#131), so say we're local testing.
     method: 'POST', headers: { 'Content-Type': 'application/json', Referer: 'http://localhost:8080/' },
     body: JSON.stringify({ returnSecureToken: true }),
@@ -20,7 +28,7 @@ async function signUp() {
 }
 async function call(who, method, path, body, query = '') {
   const auth = who ? `auth=${who.token}&` : '';
-  const res = await fetch(`${CONFIG.dbUrl}/${path}.json?${auth}${query}`, {
+  const res = await fetch(`${DB_URL}/${path}.json?${NS}${auth}${query}`, {
     method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body),
   });
   return res.status;
@@ -74,6 +82,34 @@ await expectNo('change the shot', a, 'PUT', `${room}/shots/0`, { by: 'a', x: 1, 
 await expectNo('fire twice in a row', a, 'PATCH', room, { 'shots/1': { by: 'a', x: 0, y: 0 }, n: 2 });
 await expectOk('fire (Dude, shot 2)', b, 'PATCH', room, { 'shots/1': { by: 'b', x: 9, y: 9 }, n: 2 });
 await expectOk('answer sunk with the ship (P)', a, 'PUT', `${room}/results/1`, { r: 'sunk', ship: { id: 'destroyer', x: 8, y: 9, dir: 'h' } });
+await expectNo('classic: two shots in one turn', a, 'PATCH', room, { 'shots/2': { by: 'a', x: 1, y: 1 }, 'shots/3': { by: 'a', x: 1, y: 2 }, n: 4 });
+
+// Salvo (#178): a shot for each ship afloat, all at once, answered together; only new phones can join
+const code3 = newCode(), room3 = `rooms/${code3}`;
+const salvo = (by, from, count, y = 0) => Object.fromEntries(Array.from({ length: count }, (_, i) => [`shots/${from + i}`, { by, x: i, y }]));
+const answers = (from, count, extra = {}) => ({ ...Object.fromEntries(Array.from({ length: count }, (_, i) => [`results/${from + i}`, { r: 'miss' }])), ...extra });
+await expectNo('a room with a made-up variant', a, 'PUT', room3, { created: NOW, n: 0, variant: 'turbo', a: { uid: a.uid, name: 'P', v: 2 } });
+await expectOk('start a salvo room', a, 'PUT', room3, { created: NOW, n: 0, variant: 'salvo', a: { uid: a.uid, name: 'P', seen: NOW, v: 2 } });
+await expectNo('change the variant', a, 'PUT', `${room3}/variant`, 'classic');
+await expectNo('join a salvo room on an old phone (no v)', b, 'PUT', `${room3}/b`, { uid: b.uid, name: 'Dude', seen: NOW });
+await expectOk('join a salvo room (v 2)', b, 'PUT', `${room3}/b`, { uid: b.uid, name: 'Dude', seen: NOW, v: 2 });
+await expectOk('place (P, salvo)', a, 'PUT', `${room3}/a/hash`, hash('a'));
+await expectOk('place (Dude, salvo)', b, 'PUT', `${room3}/b/hash`, hash('b'));
+await expectNo('salvo: Dude fires first', b, 'PATCH', room3, { ...salvo('b', 0, 5), n: 5 });
+await expectNo('salvo: six shots with five ships', a, 'PATCH', room3, { ...salvo('a', 0, 6), n: 6 });
+await expectNo('salvo: a gap in the shots', a, 'PATCH', room3, { 'shots/0': { by: 'a', x: 0, y: 0 }, 'shots/1': { by: 'a', x: 1, y: 0 }, 'shots/3': { by: 'a', x: 3, y: 0 }, n: 4 });
+await expectNo('salvo: a shot in the other player\'s name', a, 'PATCH', room3, { 'shots/0': { by: 'a', x: 0, y: 0 }, 'shots/1': { by: 'b', x: 1, y: 0 }, n: 2 });
+await expectNo('salvo: shots without counting them', a, 'PATCH', room3, { ...salvo('a', 0, 5), n: 3 });
+await expectOk('salvo of 5 (P)', a, 'PATCH', room3, { ...salvo('a', 0, 5), n: 5 });
+await expectNo('salvo: fire before the answers', b, 'PATCH', room3, { ...salvo('b', 5, 5), n: 10 });
+await expectNo('salvo: answer your own salvo', a, 'PATCH', room3, answers(0, 5));
+await expectNo('salvo: sunk without noting the ship', b, 'PATCH', room3, answers(0, 5, { 'results/4': { r: 'sunk', ship: { id: 'destroyer', x: 3, y: 0, dir: 'h' } } }));
+await expectNo('salvo: note the other player\'s ship sunk', a, 'PUT', `${room3}/sunk/b/carrier`, true);
+await expectOk('salvo: answered, a ship sunk (Dude)', b, 'PATCH', room3, answers(0, 5, { 'results/4': { r: 'sunk', ship: { id: 'destroyer', x: 3, y: 0, dir: 'h' } }, 'sunk/b/destroyer': true }));
+await expectNo('salvo: five shots with four ships', b, 'PATCH', room3, { ...salvo('b', 5, 5, 1), n: 10 });
+await expectOk('salvo of 4 (Dude)', b, 'PATCH', room3, { ...salvo('b', 5, 4, 1), n: 9 });
+await expectOk('salvo: answered (P)', a, 'PATCH', room3, answers(5, 4));
+await expectOk('salvo of 5 again (P)', a, 'PATCH', room3, { ...salvo('a', 9, 5, 2), n: 14 });
 
 // a rematch: the code of a new room, written once, by either player, pointing at a room they started
 const code2 = newCode(), room2 = `rooms/${code2}`, dudes = newCode();
@@ -101,6 +137,6 @@ await expectOk('reveal your fleet', a, 'PUT', `${room}/reveal/a`, { fleet: 'carr
 await expectNo('reveal it again', a, 'PUT', `${room}/reveal/a`, { fleet: 'carrier:1,0,h', salt: '0'.repeat(32) });
 await expectNo('delete a room less than a day old', c, 'DELETE', room);
 
-console.log(`Test rooms: ${code}, ${code2}, ${dudes} (deleted by the tidy-up once a day old, or in the console)`);
+console.log(`Test rooms: ${code}, ${code2}, ${dudes}, ${code3} (deleted by the tidy-up once a day old, or in the console)`);
 if (fail.length) { console.error(`${passed} as expected, ${fail.length} not:\n- ${fail.join('\n- ')}`); process.exit(1); }
 console.log(`Battleships database rules: all ${passed} checks as expected`);
