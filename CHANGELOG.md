@@ -10,6 +10,17 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.25.0] - 2026-11-19
+
+### Added
+- Ford House: **tester mode** (#179): open `?tester=1` for a 🧪 panel to pretend any date (with quick picks for
+  Halloween, Advent and Christmas), holiday, season or birthday, play as anyone, start any mission and put any job
+  on today's list. Progress made while testing is kept apart, so the family's real save, Advent doors, elf log and
+  mission bests are never touched. `?tester=0` turns it off.
+
+### Changed
+- Ford House: an impossible `?date=` (like 2026-13-45) is now ignored instead of rolling over to another day.
+
 ## [4.24.0] - 2026-11-15
 
 ### Added
@@ -522,7 +533,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.24.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.25.0...HEAD
+[4.25.0]: https://github.com/littleGex/ford_games/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/littleGex/ford_games/compare/v4.23.0...v4.24.0
 [4.23.0]: https://github.com/littleGex/ford_games/compare/v4.22.0...v4.23.0
 [4.22.0]: https://github.com/littleGex/ford_games/compare/v4.21.1...v4.22.0
