@@ -10,6 +10,17 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.26.0] - 2026-11-19
+
+### Added
+- Battleships: **Salvo on two phones** (#178). Pick Salvo when starting an online game and both phones play it: a
+  shot for each of your ships still afloat, fired together and answered as a whole. A rematch stays Salvo. The
+  database checks the turn and the number of shots, and a phone still on an older version can't join a Salvo game
+  until it updates (close and reopen the page).
+
+### Removed
+- Battleships: the "On two devices it's Classic for now" note.
+
 ## [4.25.0] - 2026-11-19
 
 ### Added
@@ -533,7 +544,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.25.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.26.0...HEAD
+[4.26.0]: https://github.com/littleGex/ford_games/compare/v4.25.0...v4.26.0
 [4.25.0]: https://github.com/littleGex/ford_games/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/littleGex/ford_games/compare/v4.23.0...v4.24.0
 [4.23.0]: https://github.com/littleGex/ford_games/compare/v4.22.0...v4.23.0
