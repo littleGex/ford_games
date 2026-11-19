@@ -318,6 +318,8 @@
     </div>
   </div>
 
+  <!-- tester mode (#179): ?tester=1 / ?tester=0, before the game reads any saves -->
+  <script type="module">import { bootTester } from './js/tester.js'; bootTester(location.search);</script>
   <script type="module" src="js/main.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

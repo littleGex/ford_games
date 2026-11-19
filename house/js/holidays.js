@@ -12,14 +12,23 @@
 //
 // Trying things out: ?date=2026-12-24 pretends it's that day (seasons, Christmas, Advent calendar doors,
 // birthdays); ?holiday=halloween or ?holiday=christmas switches one on today; ?holiday=none switches them off.
+// Tester mode (tester.js, ?tester=1) keeps the same choices on this device; the URL still wins.
+import { testerValue } from './tester.js';
+
 export const HOLIDAYS = ['halloween', 'christmas'];
 
-/** Today's date: the real one, or the one in ?date=YYYY-MM-DD (midday, so time zones can't move it). */
+/** A real calendar date from 'YYYY-MM-DD' (midday, so time zones can't move it), or null (2026-13-45 isn't one). */
+function dateFrom(text) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text || '');
+  if (!m) return null;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], 12);
+  return d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? d : null;
+}
+
+/** Today's date: the one in ?date=YYYY-MM-DD, else tester mode's, else the real one. */
 export function today() {
   const search = globalThis.location && globalThis.location.search;
-  const asked = search ? new URLSearchParams(search).get('date') : null;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(asked || '');
-  return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : new Date();
+  return dateFrom(search ? new URLSearchParams(search).get('date') : null) || dateFrom(testerValue('date')) || new Date();
 }
 
 /** The tags for a date. */
@@ -38,7 +47,7 @@ export function holidaysOf(date = today()) {
 /** Today's tags, with the ?holiday= switch. */
 export function currentHolidays(date = today()) {
   const search = globalThis.location && globalThis.location.search;
-  const asked = search ? new URLSearchParams(search).get('holiday') : null;
+  const asked = (search ? new URLSearchParams(search).get('holiday') : null) || testerValue('holiday');
   if (asked === 'none') return [];
   if (asked === 'halloween') return ['halloween'];
   if (asked === 'christmas') return holidaysOf(new Date(date.getFullYear(), 11, 15, 12));   // like 15 December
@@ -64,7 +73,7 @@ export function adventCandles(date = today()) {
  *  Add ?birthday=girl (or dad, mum, boy) to the address to try a birthday out, ?birthday=none to switch it off. */
 export function currentBirthday(players, date = today()) {
   const search = globalThis.location && globalThis.location.search;
-  const asked = search ? new URLSearchParams(search).get('birthday') : null;
+  const asked = (search ? new URLSearchParams(search).get('birthday') : null) || testerValue('birthday');
   if (asked === 'none') return null;
   if (['dad', 'mum', 'girl', 'boy'].includes(asked)) return asked;
   if (!players) return null;
