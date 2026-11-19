@@ -364,8 +364,8 @@ function updateFire() {
   }
 }
 function tapSquare(sq) {
-  const pending = online && online.room && view(online.room, online.seat).pending;
-  if (fired(state, viewer, ...sq) || (pending && pending.x === sq[0] && pending.y === sq[1])) { toast(`Already fired at ${label(...sq)}`, 'miss'); return; }
+  const pending = (online && online.room && view(online.room, online.seat).pending) || [];
+  if (fired(state, viewer, ...sq) || pending.some(p => p.by === online.seat && p.x === sq[0] && p.y === sq[1])) { toast(`Already fired at ${label(...sq)}`, 'miss'); return; }
   if (salvoTurn()) {
     // a salvo: tap to pick a square, tap it again to put it back
     const k = shotsPerTurn(state, state.turn), at = salvo.findIndex(([x, y]) => x === sq[0] && y === sq[1]);
@@ -738,8 +738,9 @@ async function sync() {
   }
 
   // a shot at this device's fleet: answer it (the answer comes back round and plays below)
-  if (v.pending && v.pending.by !== me && !online.answered.has(v.pending.n)) {
-    const { n, x, y } = v.pending;
+  const toAnswer = v.pending[0];
+  if (toAnswer && toAnswer.by !== me && !online.answered.has(toAnswer.n)) {
+    const { n, x, y } = toAnswer;
     online.answered.add(n);
     const answer = resolveShot(online.fleet, v.shots[1], x, y);
     net.put(`${rooms(online.code)}/results/${n}`, answer.result === 'sunk' ? { r: 'sunk', ship: answer.ship } : { r: answer.result })
@@ -769,11 +770,12 @@ function watch(v) {
   const them = theirName();
   const ago = v.seen ? Math.round((Date.now() - v.seen) / 60000) : 0;
   const away = ago >= 1 ? ` (last here ${ago} min ago)` : '';
-  if (v.pending && v.pending.by === online.seat) setStatus(`Firing at ${label(v.pending.x, v.pending.y)}`, `Waiting for ${them} to answer${away}`);
+  const mine = v.pending.length && v.pending[0].by === online.seat ? v.pending : null;
+  if (mine) setStatus(`Firing at ${label(mine[0].x, mine[0].y)}`, `Waiting for ${them} to answer${away}`);
   else setStatus('', `${them}'s turn${away}`);
   if (mode !== 'watching') {
     setMode('watching');
-    if (!(v.pending && v.pending.by === online.seat)) world.view('home', 900 / speed).then(updateViewBtn);
+    if (!mine) world.view('home', 900 / speed).then(updateViewBtn);
   }
 }
 

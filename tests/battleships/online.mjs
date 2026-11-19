@@ -2,7 +2,7 @@
 // check at the end that catches a wrong answer.  node tests/battleships/online.mjs
 import { webcrypto } from 'node:crypto';
 import { randomFleet, resolveShot, cells, seededRandom } from '../../battleships/js/rules.js';
-import { view, check, fleetHash, fleetString, parseFleet, newSalt, newCode, CODE_RE, shooter, stale, DAY } from '../../battleships/js/net/online.js';
+import { view, check, fleetHash, fleetString, parseFleet, newSalt, newCode, CODE_RE, whoseTurn, shotsAllowed, roomVariant, stale, DAY } from '../../battleships/js/net/online.js';
 
 // browsers (and Node 20+) have crypto built in; CI's Node 18 needs it handed over
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -34,10 +34,11 @@ for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) targets.b.push([x, y])
 room.shots = {}; room.results = {};
 let guard = 0;
 while (!view(room, 'a').winner && guard++ < 300) {
-  const by = shooter(room.n), [x, y] = targets[by].shift();
+  const by = whoseTurn(room), [x, y] = targets[by].shift();
+  check_(by === (room.n % 2 === 0 ? 'a' : 'b'), `classic: turns alternate as before (shot ${room.n})`);
   room.shots[room.n] = { by, x, y };
   room.n++;
-  check_(view(room, by).pending && !view(room, by).myTurn, 'a shot waits for its answer');
+  check_(view(room, by).pending.length === 1 && view(room, by).pending[0].n === room.n - 1 && !view(room, by).myTurn && whoseTurn(room) === null, 'a shot waits for its answer');
   const defender = by === 'a' ? 'b' : 'a';
   const theirShots = view(room, defender).shots[1];
   const answer = resolveShot(fleets[defender], theirShots, x, y);
@@ -72,7 +73,7 @@ check_(view(mid, 'a').pending && view(mid, 'a').phase === 'playing', 'mid-game, 
 mid.resigned = 'b';
 check_(view(mid, 'a').phase === 'over' && view(mid, 'a').winner === 'me' && view(mid, 'a').resigned === 'them', 'Dude resigns: P wins, seen by P');
 check_(view(mid, 'b').winner === 'them' && view(mid, 'b').resigned === 'me', 'and seen by Dude');
-check_(view(mid, 'a').pending === null && !view(mid, 'a').myTurn, 'no shot left waiting once someone resigned');
+check_(view(mid, 'a').pending.length === 0 && !view(mid, 'a').myTurn, 'no shot left waiting once someone resigned');
 const placing = { created: 1, n: 0, a: { uid: 'u1', name: 'P', hash: hashA }, b: { uid: 'u2', name: 'Dude' }, resigned: 'a' };
 check_(view(placing, 'b').phase === 'over' && view(placing, 'b').winner === 'me', 'resigning while placing ends it too');
 check_(view({ ...placing, b: undefined }, 'a').phase === 'waiting', 'nobody to resign to: still waiting');
@@ -99,6 +100,50 @@ const slow = { created: T, n: 4, a: { uid: 'u1', name: 'P', seen: T + 30 * HOUR 
 check_(!stale(slow, T + 31 * HOUR), 'a slow game someone played in today stays');
 check_(stale(slow, T + 55 * HOUR), 'and goes once nobody has been there for a day');
 check_(!stale(null, T) && !stale({ ...lonely }, T + 10 * HOUR), 'nothing to tidy: a missing or new room');
+
+// --- Salvo (#178): a turn is a group of shots, answered as a whole
+check_(roomVariant({}) === 'classic' && roomVariant({ variant: 'nope' }) === 'classic' && roomVariant({ variant: 'salvo' }) === 'salvo', 'variant: classic unless the room says salvo');
+check_(view(room, 'a').variant === 'classic' && view(room, 'a').pending.length === 0, 'an old room reads as classic, nothing pending');
+{
+  const sr = { created: 1, variant: 'salvo', n: 0, a: { uid: 'u1', name: 'P', hash: hashA }, b: { uid: 'u2', name: 'Dude', hash: hashB }, shots: {}, results: {} };
+  check_(whoseTurn(sr) === 'a' && shotsAllowed(sr, 'a') === 5 && shotsAllowed(sr, 'b') === 5, 'salvo: a first, 5 shots each');
+  for (let i = 0; i < 3; i++) sr.shots[i] = { by: 'a', x: i, y: 9 };
+  sr.n = 3; sr.results[0] = { r: 'miss' }; sr.results[1] = { r: 'miss' };
+  check_(whoseTurn(sr) === null && view(sr, 'b').pending.map(s => s.n).join() === '2' && !view(sr, 'b').myTurn && !view(sr, 'a').myTurn, 'salvo: one shell unanswered, nobody\'s turn');
+  sr.results[2] = { r: 'miss' };
+  check_(whoseTurn(sr) === 'b' && view(sr, 'b').myTurn && view(sr, 'b').pending.length === 0, 'salvo answered: b\'s turn');
+  sr.sunk = { a: { destroyer: true, cruiser: true, rowboat: true } };
+  check_(shotsAllowed(sr, 'a') === 3 && shotsAllowed(sr, 'b') === 5, 'two of a\'s ships sunk: 3 shots (an unknown id doesn\'t count)');
+  check_(shotsAllowed(room, 'a') === 1, 'classic: always 1');
+}
+{ // a whole salvo game, honest answers in shot order; the check passes
+  const g = { created: 1, variant: 'salvo', n: 0, a: { uid: 'u1', name: 'P', hash: hashA }, b: { uid: 'u2', name: 'Dude', hash: hashB }, shots: {}, results: {}, sunk: {} };
+  const aims = { a: fleetB.flatMap(cells), b: [] };
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) aims.b.push([x, y]);
+  let turns = 0;
+  while (!view(g, 'a').winner && turns++ < 100) {
+    const by = whoseTurn(g), def = by === 'a' ? 'b' : 'a', k = shotsAllowed(g, by), first = g.n;
+    for (let i = 0; i < k; i++) { const [x, y] = aims[by].shift(); g.shots[g.n++] = { by, x, y }; }
+    const theirs = view(g, def).shots[1].slice();
+    for (let s = first; s < g.n; s++) {
+      const ans = resolveShot(fleets[def], theirs, g.shots[s].x, g.shots[s].y);
+      theirs.push(ans);
+      g.results[s] = ans.result === 'sunk' ? { r: 'sunk', ship: ans.ship } : { r: ans.result };
+      if (ans.result === 'sunk') (g.sunk[def] ||= {})[ans.ship.id] = true;
+    }
+  }
+  check_(view(g, 'a').winner === 'me' && view(g, 'b').phase === 'over', `salvo game: a wins (${turns} turns)`);
+  g.reveal = { a: { fleet: fleetString(fleetA), salt: saltA }, b: { fleet: fleetString(fleetB), salt: saltB } };
+  const ok = await check(g, 'a');
+  check_(ok.ok, `salvo game: honest answers pass the check (${ok.why})`);
+}
+{ // the last ship sinks with the first shell of a salvo: over for both, the rest answered as misses
+  const e = { created: 1, variant: 'salvo', n: 0, a: { uid: 'u1', name: 'P', hash: hashA }, b: { uid: 'u2', name: 'Dude', hash: hashB }, shots: {}, results: {} };
+  const theirs = [];
+  for (const [x, y] of fleetB.flatMap(cells)) { const ans = resolveShot(fleetB, theirs, x, y); theirs.push(ans); e.shots[e.n] = { by: 'a', x, y }; e.results[e.n++] = ans.result === 'sunk' ? { r: 'sunk', ship: ans.ship } : { r: ans.result }; }
+  e.shots[e.n] = { by: 'a', x: 9, y: 9 }; e.results[e.n++] = { r: 'miss' };
+  check_(view(e, 'a').winner === 'me' && view(e, 'b').winner === 'them' && view(e, 'a').phase === 'over' && view(e, 'b').pending.length === 0, 'last ship sunk mid-salvo: over for both');
+}
 
 if (fail.length) { console.error(`${fail.length} problem(s):\n- ` + [...new Set(fail)].join('\n- ')); process.exit(1); }
 console.log('Battleships on two devices: all good');

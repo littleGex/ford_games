@@ -2,15 +2,22 @@
 // the Node test runs it as it is.
 //
 // rooms/KQ7P = {
-//   created, n,                       n: how many shots have been fired; shot n is player a's if n is even
+//   created, n,                       n: how many shots have been fired
+//   variant: 'classic' | 'salvo',     written with the room (an old room has none: classic)
 //   a: { uid, name, hash, seen },     a started the game, b joined it; hash is set once their fleet is placed
 //   b: { uid, name, hash, seen },
 //   shots:   { 0: { by: 'a', x, y }, 1: ... },
 //   results: { 0: { r: 'miss' | 'hit' | 'sunk', ship? }, ... },   written by the player who was fired at
+//   sunk:    { a: { destroyer: true, ... }, b },                   a seat's sunk ships, written with the answers
 //   reveal:  { a: { fleet, salt }, b: ... },                      written at the end
 //   resigned: 'a' | 'b',              that player gave up: the other one wins, and no more shots
 //   next: 'X7QM',                     the code of the rematch, written by whoever asked for it first
 // }
+//
+// A turn is one shot (classic) or a salvo: one shot for each of the shooter's ships still afloat, written together
+// (shots n … n+k−1 and n+k at once) and answered together by the other player. The first turn is a's; after that
+// the turn passes, once the last shot is answered, to whoever didn't fire it (for classic, a then b then a...).
+// New phones put v: 2 in their seat, and only they can join a salvo room (#178).
 //
 // A fleet never goes into the database during the game. Each device keeps its own and puts up only a fingerprint
 // of it (SHA-256 of the fleet and a random salt). The player who's fired at works out hit or miss on their own
@@ -23,8 +30,25 @@ export const CODE_RE = /^[A-HJ-NP-Z2-9]{4}$/;
 
 export const newCode = (rng = Math.random) => Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(rng() * CODE_CHARS.length)]).join('');
 export const otherSeat = seat => (seat === 'a' ? 'b' : 'a');
-/** Whose shot number n is. */
-export const shooter = n => (n % 2 === 0 ? 'a' : 'b');
+/** The way a room is played: 'salvo', or 'classic' (also an old room with no variant). */
+export const roomVariant = room => (room && room.variant === 'salvo' ? 'salvo' : 'classic');
+
+/** Whose turn it is to fire: 'a' to start, then whoever didn't fire the last shot once it's answered; null while
+ *  it's waiting for its answer. (Answers to a salvo are written together, so the last one answered means all are.) */
+export function whoseTurn(room) {
+  const n = (room && room.n) || 0;
+  if (n === 0) return 'a';
+  const last = room.shots && room.shots[n - 1], answer = room.results && room.results[n - 1];
+  if (!last || !answer) return null;
+  return otherSeat(last.by);
+}
+
+/** How many shots a seat fires a turn: 1, or in salvo one for each of its ships not yet sunk. */
+export function shotsAllowed(room, seat) {
+  if (roomVariant(room) !== 'salvo') return 1;
+  const sunk = (room.sunk && room.sunk[seat]) || {};
+  return FLEET.length - FLEET.filter(({ id }) => sunk[id] === true).length;
+}
 
 /** A fleet as one line of text, always in the same order: "carrier:0,0,h;battleship:...". */
 export const fleetString = fleet => FLEET.map(({ id }) => {
@@ -63,7 +87,7 @@ export function shotList(room) {
  * What the game looks like from one seat:
  * phase: 'waiting' (for someone to join) | 'placing' | 'playing' | 'over'
  * shots: [mine, theirs], only the answered ones, in the shape rules.js uses ({ x, y, result, ship? })
- * pending: a shot that hasn't been answered yet ({ n, by, x, y }), myTurn, winner ('me' | 'them' | null)
+ * pending: the shots not answered yet ([{ n, by, x, y }], all of one turn), myTurn, winner ('me' | 'them' | null)
  */
 export function view(room, seat) {
   const them = otherSeat(seat), me = room && room[seat], other = room && room[them];
@@ -77,12 +101,12 @@ export function view(room, seat) {
   const resigned = room && (room.resigned === seat || room.resigned === them) && other && !sankAll
     ? (room.resigned === seat ? 'me' : 'them') : null;
   const winner = sankAll || (resigned && (resigned === 'me' ? 'them' : 'me'));
-  const pending = resigned ? null : all.find(s => !s.result) || null;
+  const pending = resigned ? [] : all.filter(s => !s.result);
   const phase = !other ? 'waiting' : resigned ? 'over' : !(me && me.hash && other.hash) ? 'placing' : winner ? 'over' : 'playing';
   return {
-    phase, shots, pending, winner, resigned,
+    phase, shots, pending, winner, resigned, variant: roomVariant(room),
     next: (room && typeof room.next === 'string' && room.next) || null,
-    myTurn: phase === 'playing' && !pending && shooter((room && room.n) || 0) === seat,
+    myTurn: phase === 'playing' && !pending.length && whoseTurn(room) === seat,
     names: [me ? me.name : '', other ? other.name : ''],
     ready: [!!(me && me.hash), !!(other && other.hash)],
     seen: other && other.seen || null,
