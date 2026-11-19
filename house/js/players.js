@@ -5,6 +5,7 @@
 // some grown-up jobs (rules.js: `teen: true`).
 
 import { GROWN_UPS, PRONOUNS, cleanName, useNames } from './names.js';
+import { today as todayDate } from './holidays.js';
 
 export const PLAYER_KEYS = ['dad', 'mum', 'girl', 'boy'];
 // how the family looks by default (the figures are built from a look in characters/looks.js)
@@ -21,7 +22,7 @@ const KEY = 'fordHouse.players.v1';
 export const STAGE_NAMES = { child: 'child', teen: 'teenager', adult: 'grown-up' };
 
 /** Age in whole years on a date, from a birthday 'YYYY-MM-DD' (null without one). */
-export function ageOn(birthday, date = new Date()) {
+export function ageOn(birthday, date = todayDate()) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthday || '');
   if (!m) return null;
   const [y, mo, d] = [+m[1], +m[2], +m[3]];
@@ -34,7 +35,7 @@ export function ageOn(birthday, date = new Date()) {
 export const stageFor = age => (age === null ? null : age < 13 ? 'child' : age < 18 ? 'teen' : 'adult');
 
 /** Days until the next birthday (0 on the day). */
-export function daysToBirthday(birthday, date = new Date()) {
+export function daysToBirthday(birthday, date = todayDate()) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthday || '');
   if (!m) return null;
   const today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
