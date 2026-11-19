@@ -1365,6 +1365,11 @@ test('tester mode: a banner, a panel, Christmas Eve on a tap, and the real saves
   await expect(page.locator('#testerPanel')).toBeHidden();
   expect(await page.evaluate(() => window.house.S.mission && [window.house.S.mission.id, window.house.S.mission.who].join())).toBe('elfGoodbye,girl');
   await expect(page.locator('#testerPanel [data-mission="schoolRun"][data-who="dad"]')).toHaveCount(0);
+  // a mission from the panel during another: the first is ended properly (what it changed is put back)
+  await page.evaluate(() => { window.house.world.car.visible = false; });   // as the school run leaves Dad's car hidden
+  await page.locator('#testerOpen').click();
+  await page.locator('#testerPanel [data-mission="elfReport"][data-who="boy"]').click();
+  expect(await page.evaluate(() => [window.house.S.mission.id, window.house.S.mission.who, window.house.world.car.visible].join())).toBe('elfReport,boy,true');
   // any job: out of the mission, and today's list is just that job
   await page.locator('#testerOpen').click();
   await page.locator('#testerJobFind').fill('homework');

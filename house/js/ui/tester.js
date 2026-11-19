@@ -129,7 +129,7 @@ export function createTester(ctx) {
   const mis = make('div', { className: 'tester-missions' });
   if (ctx.missionList) for (const m of missionChoices(ctx.missionList.MISSIONS, ctx.missionList.KIDS)) {
     const row = make('div', { className: 'tester-row' }), t = make('span'); t.textContent = m.title; row.append(t);
-    m.who.forEach(w => { const b = make('button', { type: 'button' }); b.textContent = nameOf(w); b.dataset.mission = m.id; b.dataset.who = w; b.addEventListener('click', () => { api.close(); if (ctx.home) ctx.home.close(); ctx.missions.start(m.id, w); }); row.append(b); });
+    m.who.forEach(w => { const b = make('button', { type: 'button' }); b.textContent = nameOf(w); b.dataset.mission = m.id; b.dataset.who = w; b.addEventListener('click', () => { api.close(); if (ctx.home) ctx.home.close(); if (ctx.S && ctx.S.mission) ctx.missions.end(); ctx.missions.start(m.id, w); }); row.append(b); });
     mis.append(row);
   }
   close.addEventListener('click', () => api.close());
