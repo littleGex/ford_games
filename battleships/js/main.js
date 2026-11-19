@@ -11,7 +11,7 @@ import { FLEET, randomFleet, fits, shipAt, shipName, shipLength, label, seededRa
 import { newGame, place, fire, fired, other, isComputer, validState, tally, isSalvo, shotsPerTurn, fireSalvo } from './game.js';
 import { chooseShot, chooseSalvo } from './ai.js';
 import { createFirebase, NOW } from './net/firebase.js';
-import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat, stale } from './net/online.js';
+import { newCode, CODE_RE, view, shotList, fleetHash, fleetString, newSalt, check, otherSeat, stale, roomVariant } from './net/online.js';
 
 const params = new URLSearchParams(location.search);
 const rng = params.has('seed') ? seededRandom(Number(params.get('seed')) || 1) : Math.random;
@@ -145,7 +145,6 @@ document.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click
 function showVariant() {
   document.querySelectorAll('[data-variant]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.variant === prefs.variant)));
   $('variantWhat').textContent = prefs.variant === 'salvo' ? 'A shot for each of your ships still afloat, all fired at once' : 'One shot a turn';
-  $('onlineClassic').hidden = prefs.variant !== 'salvo';
 }
 document.querySelectorAll('[data-variant]').forEach(b => b.addEventListener('click', () => {
   prefs.variant = b.dataset.variant;
@@ -345,7 +344,7 @@ async function humanTurn(i, { fresh = false } = {}) {
   setMode('aiming');   // only once the camera is there, so a tap lands on the square under it
 }
 
-const salvoTurn = () => !!(state && state.mode !== 'online' && isSalvo(state));
+const salvoTurn = () => !!(state && isSalvo(state));
 function aim(sq) {
   aimSq = sq;
   world.aim(sq);
@@ -354,7 +353,7 @@ function aim(sq) {
 }
 function updateFire() {
   const btn = $('fireBtn');
-  if (salvoTurn() && state.phase === 'playing') {
+  if (salvoTurn() && (state.phase === 'playing' || state.mode === 'online')) {   // online, phase stays as connect set it
     const k = shotsPerTurn(state, state.turn);
     btn.disabled = salvo.length !== k;
     btn.textContent = `Fire salvo (${salvo.length}/${k})`;
@@ -571,14 +570,15 @@ function netError(e, what) {
   return e && e.status === 0 ? `${what}: no connection` : `${what}: ${e && e.message || 'something went wrong'}`;
 }
 
-/** A new room with this device in the first seat. Returns its code, or null if no free code turned up. */
-async function newRoom(name) {
+/** A new room with this device in the first seat, played as variant ('classic' or 'salvo'). Returns its code, or
+ *  null if no free code turned up. v: 2 says this phone can play salvo online (#178). */
+async function newRoom(name, variant = 'classic') {
   net = net || createFirebase();
   const uid = await net.uid();
   for (let tries = 0; tries < 6; tries++) {
     const code = newCode();
     try {
-      await net.put(rooms(code), { created: NOW, n: 0, a: { uid, name, seen: NOW } });
+      await net.put(rooms(code), { created: NOW, n: 0, variant: variant === 'salvo' ? 'salvo' : 'classic', a: { uid, name, seen: NOW, v: 2 } });
     } catch (e) {
       if (e.denied) continue;   // that code is taken: try another
       throw e;
@@ -594,7 +594,7 @@ async function host() {
   onlineMsg('Starting a game…');
   $('hostBtn').disabled = true;
   try {
-    const code = await newRoom(name);
+    const code = await newRoom(name, prefs.variant);
     if (code) { onlineMsg(''); return connect({ code, seat: 'a', fleet: null, salt: null }); }
     onlineMsg('Couldn\'t find a free code, try again');
   } catch (e) {
@@ -617,7 +617,7 @@ async function join(code) {
     let seat = room.a && room.a.uid === uid ? 'a' : room.b && room.b.uid === uid ? 'b' : null;
     if (!seat) {
       if (room.b) return onlineMsg('That game already has two players');
-      await net.put(`${rooms(code)}/b`, { uid, name, seen: NOW });
+      await net.put(`${rooms(code)}/b`, { uid, name, seen: NOW, v: 2 });
       seat = 'b';
     }
     onlineMsg('');
@@ -695,6 +695,7 @@ async function sync() {
   }
   if (room === undefined) return;
   const v = view(room, me);
+  state.variant = v.variant;   // the room's: the joiner plays what the starter chose
   state.players[0].name = v.names[0] || 'You';
   state.players[1].name = v.names[1] || 'the other player';
 
@@ -738,21 +739,40 @@ async function sync() {
   }
 
   // a shot at this device's fleet: answer it (the answer comes back round and plays below)
-  const toAnswer = v.pending[0];
-  if (toAnswer && toAnswer.by !== me && !online.answered.has(toAnswer.n)) {
-    const { n, x, y } = toAnswer;
-    online.answered.add(n);
-    const answer = resolveShot(online.fleet, v.shots[1], x, y);
-    net.put(`${rooms(online.code)}/results/${n}`, answer.result === 'sunk' ? { r: 'sunk', ship: answer.ship } : { r: answer.result })
-      .catch(e => { if (!e.denied) online.answered.delete(n); hint(netError(e, 'Couldn\'t answer')); setTimeout(() => { syncing = syncing.then(sync); }, 3000); });
+  // shots at this device's fleet: answer them all together, in the order they were fired (a salvo is answered as a
+  // whole, so the turn passes once); a sunk ship is noted in sunk/ too, which the rules count shots from
+  const toAnswer = v.pending.filter(s => s.by !== me && !online.answered.has(s.n));
+  if (toAnswer.length && toAnswer.length === v.pending.length) {
+    const theirs = v.shots[1].slice(), patch = {};
+    for (const { n, x, y } of toAnswer) {
+      online.answered.add(n);
+      const answer = resolveShot(online.fleet, theirs, x, y);
+      theirs.push(answer);
+      patch[`results/${n}`] = answer.result === 'sunk' ? { r: 'sunk', ship: answer.ship } : { r: answer.result };
+      if (answer.result === 'sunk') patch[`sunk/${me}/${answer.ship.id}`] = true;
+    }
+    net.patch(rooms(online.code), patch).catch(e => {
+      if (e.denied) return;   // already answered (another sync got there first)
+      toAnswer.forEach(s => online.answered.delete(s.n));
+      hint(netError(e, 'Couldn\'t answer'));
+      setTimeout(() => { syncing = syncing.then(sync); }, 3000);
+    });
   }
 
   // play out every answered shot not shown yet, in order
   const answered = shotList(room).filter(s => s.result);
   while (online && online.shown < answered.length) {
     const s = answered[online.shown];
-    online.shown++;
-    await playOnlineShot(s);
+    if (v.variant === 'salvo') {
+      // one turn: this shot and the ones after it by the same player
+      const turn = [s];
+      while (online.shown + turn.length < answered.length && answered[online.shown + turn.length].by === s.by) turn.push(answered[online.shown + turn.length]);
+      online.shown += turn.length;
+      await playOnlineSalvo(turn);
+    } else {
+      online.shown++;
+      await playOnlineShot(s);
+    }
   }
   if (!online) return;
 
@@ -771,7 +791,7 @@ function watch(v) {
   const ago = v.seen ? Math.round((Date.now() - v.seen) / 60000) : 0;
   const away = ago >= 1 ? ` (last here ${ago} min ago)` : '';
   const mine = v.pending.length && v.pending[0].by === online.seat ? v.pending : null;
-  if (mine) setStatus(`Firing at ${label(mine[0].x, mine[0].y)}`, `Waiting for ${them} to answer${away}`);
+  if (mine) setStatus(mine.length > 1 ? `Firing a salvo of ${mine.length}` : `Firing at ${label(mine[0].x, mine[0].y)}`, `Waiting for ${them} to answer${away}`);
   else setStatus('', `${them}'s turn${away}`);
   if (mode !== 'watching') {
     setMode('watching');
@@ -800,6 +820,21 @@ async function playOnlineShot(s) {
   toast(w.text, w.kind);
   updateFleets();
   await wait(shot.result === 'miss' ? 900 : 1200);
+  busy = false;
+}
+
+/** A salvo between two phones lands, shell by shell: yours on their board, or theirs on yours. */
+async function playOnlineSalvo(turn) {
+  busy = true;
+  const mine = turn[0].by === online.seat;
+  const shots = turn.map(s => (s.result === 'sunk' ? { x: s.x, y: s.y, result: 'sunk', ship: s.ship } : { x: s.x, y: s.y, result: s.result }));
+  state.shots[mine ? 0 : 1].push(...shots);
+  last = { by: mine ? 0 : 1, shots };
+  setMode('waiting');
+  if (world.viewing !== (mine ? 'target' : 'home')) await world.view(mine ? 'target' : 'home', (mine ? 700 : 900) / speed);
+  await playSalvo(shots, mine ? 'target' : 'home', mine, mine ? 1 : 0, mine ? 'Your' : `${theirName()}'s`);
+  if (!mine) { setStatus('', lastShotText(0)); await wait(1300); }   // what their salvo did
+  else await wait(500);
   busy = false;
 }
 
@@ -833,13 +868,15 @@ async function readyOnline() {
 }
 
 async function shootOnline() {
-  const [x, y] = aimSq, n = online.room.n;
+  const squares = salvoTurn() ? salvo.slice() : [aimSq], n = online.room.n;
   aim(null);
   busy = true;
   setMode('waiting');
-  setStatus('', `Firing at ${label(x, y)}…`);
+  setStatus('', squares.length > 1 ? `Firing a salvo of ${squares.length}…` : `Firing at ${label(...squares[0])}…`);
+  const patch = { n: n + squares.length };
+  squares.forEach(([x, y], i) => { patch[`shots/${n + i}`] = { x, y, by: online.seat }; });
   try {
-    await net.patch(rooms(online.code), { [`shots/${n}`]: { x, y, by: online.seat }, n: n + 1 });
+    await net.patch(rooms(online.code), patch);
     online.turnShown = n;
   } catch (e) {
     toast(netError(e, 'Couldn\'t fire'), 'miss');
@@ -943,7 +980,7 @@ async function rematch() {
   try {
     let code = view(old.room, old.seat).next, mine = false;
     if (!code) {
-      const fresh = await newRoom(onlineName());
+      const fresh = await newRoom(onlineName(), roomVariant(old.room));   // the same game again
       if (!fresh) throw new Error('couldn\'t find a free code');
       try {
         await net.put(`${rooms(old.code)}/next`, fresh);
