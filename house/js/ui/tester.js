@@ -7,6 +7,7 @@ import { readTester, writeTester, testerKey } from '../tester.js';
 import { today } from '../holidays.js';
 import { SEASONS } from '../seasons.js';
 import { createAdvent } from '../advent.js';
+import { nameOf } from '../names.js';
 
 const PROGRESS = ['fordHouse.save.v1', 'fordHouse.advent.v1', 'fordHouse.elf.v1', 'fordHouse.missions.v1'];
 
@@ -37,6 +38,16 @@ export function freshTesterDay(storage = globalThis.localStorage) {
     delete save.today;
     storage.setItem(key, JSON.stringify(save));
   } catch (e) { /* a broken tester save: Reset tester progress clears it */ }
+}
+
+const EVERYONE = ['dad', 'mum', 'girl', 'boy'];
+/** Every mission, with who can play it: the players it's written for (`who`), where it has a start spot for them
+ *  (as missions.js start() checks); a mission no one can play is left out. */
+export function missionChoices(missions, kids) {
+  return Object.entries(missions).map(([id, m]) => ({
+    id, title: m.title,
+    who: (m.who || EVERYONE).filter(w => (m.spot ? m.spot(w) : kids[w])),
+  })).filter(m => m.who.length);
 }
 
 const SHORT = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -91,10 +102,21 @@ export function createTester(ctx) {
     location.reload();
   });
   const close = make('button', { id: 'testerClose', type: 'button', className: 'tester-close' }); close.textContent = 'Close';
-  const extra = make('div', { id: 'testerMore' });   // play as / missions (Task 3), jobs (Task 4)
+  const extra = make('div', { id: 'testerMore' });   // jobs (Task 4)
+  // play as anyone, and start any mission as anyone it's written for
+  const asH = make('h3'); asH.textContent = 'Play as';
+  const as = make('div', { className: 'tester-row' });
+  EVERYONE.forEach(w => { const b = make('button', { type: 'button' }); b.textContent = nameOf(w); b.dataset.playAs = w; b.addEventListener('click', () => { ctx.playAs(w); api.close(); }); as.append(b); });
+  const misH = make('h3'); misH.textContent = 'Missions';
+  const mis = make('div', { className: 'tester-missions' });
+  if (ctx.missionList) for (const m of missionChoices(ctx.missionList.MISSIONS, ctx.missionList.KIDS)) {
+    const row = make('div', { className: 'tester-row' }), t = make('span'); t.textContent = m.title; row.append(t);
+    m.who.forEach(w => { const b = make('button', { type: 'button' }); b.textContent = nameOf(w); b.dataset.mission = m.id; b.dataset.who = w; b.addEventListener('click', () => { api.close(); if (ctx.home) ctx.home.close(); ctx.missions.start(m.id, w); }); row.append(b); });
+    mis.append(row);
+  }
   close.addEventListener('click', () => api.close());
   openBtn.addEventListener('click', () => (panel.hidden ? api.open() : api.close()));
-  panel.append(h, note, dateL, chips, holL, seaL, bdL, make('div', { className: 'tester-row' }, [apply, reset, doors]), extra, close);
+  panel.append(h, note, dateL, chips, holL, seaL, bdL, make('div', { className: 'tester-row' }, [apply, reset, doors]), asH, as, misH, mis, extra, close);
   document.body.append(banner, openBtn, panel);
 
   const api = {

@@ -1,7 +1,7 @@
 // Tester mode (#179): the panel's date shortcuts and its reset:  node tests/house/tester-panel.mjs  (plain Node)
 const store = new Map();
 globalThis.localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
-const { dateChips, resetTesterProgress, freshTesterDay } = await import('../../house/js/ui/tester.js');
+const { dateChips, resetTesterProgress, freshTesterDay, missionChoices } = await import('../../house/js/ui/tester.js');
 const { holidaysOf } = await import('../../house/js/holidays.js');
 
 const fail = [];
@@ -35,6 +35,21 @@ check(ts.day === 4 && ts.character === 'girl' && !ts.today, `freshTesterDay: ${s
 check(JSON.parse(store.get('fordHouse.save.v1')).today.day === 9, 'freshTesterDay: the real save touched');
 store.delete('fordHouse.tester.save.v1'); freshTesterDay(globalThis.localStorage);
 check(!store.has('fordHouse.tester.save.v1'), 'freshTesterDay with no tester save: nothing written');
+
+// the mission launcher: who may play each one (its own list, where it has a start spot), none-playable left out
+const kids = { girl: { start: [1, 1] }, boy: { start: [2, 2] } };
+const fake = {
+  schoolRun: { title: 'The school run', who: ['girl', 'boy'] },
+  wfh: { title: 'Work from home', who: ['dad', 'mum'], spot: w => ({ name: w }) },
+  report: { title: "The elf's report", who: ['girl', 'boy'], spot: w => ({ ...kids[w] }) },
+  broken: { title: 'Nobody', who: ['dad'], spot: () => null },
+};
+const mc = missionChoices(fake, kids);
+const of = id => mc.find(m => m.id === id);
+check(of('schoolRun') && of('schoolRun').who.join() === 'girl,boy' && of('schoolRun').title === 'The school run', `schoolRun: ${JSON.stringify(of('schoolRun'))}`);
+check(of('wfh') && of('wfh').who.join() === 'dad,mum', `wfh: ${JSON.stringify(of('wfh'))}`);
+check(of('report') && of('report').who.join() === 'girl,boy', `report (a spot for anyone, but only P and Dude play it): ${JSON.stringify(of('report'))}`);
+check(!of('broken'), 'a mission no one can play is left out');
 
 if (fail.length) { console.error('tester-panel: FAIL\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log('tester-panel: ok');

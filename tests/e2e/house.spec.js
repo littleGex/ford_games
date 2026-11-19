@@ -1356,6 +1356,15 @@ test('tester mode: a banner, a panel, Christmas Eve on a tap, and the real saves
   await expect(page.locator('#testerBanner')).toBeVisible();
   await page.waitForFunction(() => window.house && window.house.world && window.house.world.christmas.all.visible, null, { timeout: 15000 });   // the tree's up
   await expect(page.locator('#testerBanner')).toContainText('24 Dec');
+  // play as Dude, then start the elf's goodbye as P from the panel
+  await page.locator('#testerOpen').click();
+  await page.locator('#testerPanel [data-play-as="boy"]').click();
+  expect(await page.evaluate(() => window.house.days.character)).toBe('boy');
+  await page.locator('#testerOpen').click();
+  await page.locator('#testerPanel [data-mission="elfGoodbye"][data-who="girl"]').click();
+  await expect(page.locator('#testerPanel')).toBeHidden();
+  expect(await page.evaluate(() => window.house.S.mission && [window.house.S.mission.id, window.house.S.mission.who].join())).toBe('elfGoodbye,girl');
+  await expect(page.locator('#testerPanel [data-mission="schoolRun"][data-who="dad"]')).toHaveCount(0);
   // the real elf log is as it was (checked with tester mode off)
   await page.goto('/house/?tester=0');
   await expect(page.locator('#testerBanner')).toHaveCount(0);

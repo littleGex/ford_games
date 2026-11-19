@@ -984,6 +984,18 @@ for (const who of ['dad', 'girl']) {
   console.log(`the elf's good deeds: ${ELF_DEEDS.length} in the pool, five a go, every one done`);
 }
 
+// --- tester mode (#179): the launcher lists every mission, each with the players it's written for
+{
+  const { missionChoices } = await import(new URL('../../house/js/ui/tester.js', import.meta.url));
+  const { MISSIONS, KIDS } = await import(new URL('../../house/js/missions/missions.js', import.meta.url));
+  const mc = missionChoices(MISSIONS, KIDS);
+  if (mc.length !== Object.keys(MISSIONS).length) errors.push(`tester missions: ${mc.length} of ${Object.keys(MISSIONS).length}`);
+  for (const m of mc) if (m.who.join() !== MISSIONS[m.id].who.join()) errors.push(`tester missions: ${m.id} for ${m.who}, written for ${MISSIONS[m.id].who}`);
+  const sr = mc.find(m => m.id === 'schoolRun');
+  if (!sr || sr.who.join() !== 'girl,boy') errors.push(`tester missions: the school run for ${sr && sr.who}`);
+  console.log(`tester missions: ${mc.length}, each with its own players`);
+}
+
 // --- the elf's evening hiding spots (#159): every one can be reached
 {
   const { EVENING_SPOTS } = await import(new URL('../../house/js/pack/elfspots.js', import.meta.url));

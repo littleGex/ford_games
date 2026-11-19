@@ -335,3 +335,6 @@ button, a, [role="button"] { touch-action: manipulation; }
 .tester-chips, .tester-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .tester-panel button { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, .08); color: var(--paper); font: 600 13px var(--f-body); cursor: pointer; }
 .tester-panel button.on, .tester-panel .tester-main { background: #c2185b; border-color: #c2185b; color: #fff; }
+.tester-panel h3 { margin: 10px 0 2px; font: 700 14px var(--f-display); color: #f48fb1; }
+.tester-missions .tester-row { align-items: center; margin: 3px 0; }
+.tester-missions span { flex: 1 1 100%; font-size: 13px; }
