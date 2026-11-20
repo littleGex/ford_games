@@ -1,12 +1,13 @@
 // The elf's report to Father Christmas (#160, missions.js elfReport): the good deeds he can ask for. Each go deals
 // five (dealDeeds), right for the child playing and the house: a deed may be for one child only (`who`), need a
 // job group switched on (`needs`, settings.js), or be done for a grown-up (`person`: Mum if she's in the family,
-// otherwise Dad). Steps use the same spots as the everyday jobs in jobs/jobs.js; `kid` is missions.js KIDS[who].
+// otherwise Dad). Steps use the same spots as the everyday jobs in pack/jobs.js; `kid` is missions.js KIDS[who].
 import { nameOf } from '../names.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { XMAS } from '../world/christmas.js';
+import { spot } from './spots.js';
 
-const FRIDGE = [3.95, 3.4];
+const FRIDGE = spot('fridge').at;
 
 export const ELF_DEEDS = [
   { id: 'bed', label: () => 'Make your bed',
@@ -40,7 +41,7 @@ export const ELF_DEEDS = [
       { kind: 'use', at: [1.75, 7.3], label: 'Put out the knives and forks' }] },
   { id: 'tea', person: 'grownUp', label: (who, p = 'mum') => `Make ${nameOf(p)} a cup of tea`,
     steps: (who, kid, p = 'mum') => [
-      { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 8, what: 'Making tea', label: `Make ${nameOf(p)} a cup of tea`,
+      { kind: 'sit', stand: true, power: true, fx: 'steam', at: spot('coffeeMachine').at, seat: spot('coffeeMachine').seat, dur: 8, what: 'Making tea', label: `Make ${nameOf(p)} a cup of tea`,
         onDone: c => { c.items.mug.visible = true; } },
       { kind: 'pick', item: 'mug', label: 'Take the tea' },
       { kind: 'drop', item: 'mug', at: [1.75, 7.3], place: [1.65, 0.76, 7.3], label: `Take it to the dining table for ${nameOf(p)}` }] },

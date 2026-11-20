@@ -8,37 +8,16 @@
 // reach GitHub Pages either). It never includes the family server's game token. Whatever comes in a link is
 // checked before it's used: only the four players, cleaned-up names, known hair styles, colours as #rrggbb,
 // real dates, and known job groups.
-import { GROWN_UPS, PRONOUNS, cleanName, nameOf, possessive } from './names.js';
+import { GROWN_UPS, PRONOUNS, cleanName } from './names.js';
 import { PLAYER_KEYS, HAIR_STYLES } from './players.js';
 import { useRoomSwap } from './pack/kidrooms.js';
 import { useDeskSwap } from './pack/workdesks.js';
-import { POOL_RULES, useAssignments } from './jobs/rules.js';
+import { POOL_RULES, useAssignments } from './pack/rules.js';
+import { CHORES, JOB_GROUPS } from './pack/family.js';
+export { CHORES, JOB_GROUPS };   // the family's own job groups and chores are house data (pack/family.js)
 
-// The jobs that can be switched off, in groups as they'd be thought of
-export const JOB_GROUPS = [
-  { id: 'dragon', icon: '🦎', get label() { return `${possessive('girl')} bearded dragon`; }, jobs: ['feedDragon', 'playDragon', 'cleanDragon'] },
-  { id: 'keyboard', icon: '🎹', label: 'Keyboard practice', jobs: ['music'] },
-  { id: 'clarinet', icon: '🎵', get label() { return `${possessive('boy')} clarinet`; }, jobs: ['clarinet'] },
-  { id: 'bike', icon: '🚲', get label() { return `Fixing ${possessive('girl')} bike`; }, jobs: ['fixBike'] },
-  { id: 'solar', icon: '☀️', label: 'Solar panels on the shed', jobs: ['solar'] },
-  { id: 'car', icon: '🔌', label: 'Charging the electric car', jobs: ['car'] },
-  { id: 'shave', icon: '🪒', get label() { return `${nameOf('dad')} shaving`; }, jobs: ['shave'] },
-  { id: 'loft', icon: '📦', label: 'Boxes up and down the loft', jobs: ['loftUp', 'loftDown'] },
-  { id: 'halloween', icon: '🎃', label: 'Halloween', tags: ['halloween'] },
-  { id: 'christmas', icon: '🎄', label: 'Christmas and the Advent calendars',
-    tags: ['advent', 'adventDoor', 'elf', 'christmas', 'christmasTime', 'beforeChristmas', 'christmasEve', 'christmasEnd'] },
-  { id: 'birthdays', icon: '🎂', label: 'Birthday parties', birthdays: true },
-];
 const GROUP_IDS = JOB_GROUPS.map(g => g.id);
 
-// The household chores whose doer can be changed ("who does what"): usually as in rules.js (`who`)
-export const CHORES = [
-  { id: 'cook', icon: '🍲', label: 'Cooking dinner', jobs: ['cook'] },
-  { id: 'bike', icon: '🚲', get label() { return `Fixing ${possessive('girl')} bike`; }, jobs: ['fixBike'] },
-  { id: 'solar', icon: '☀️', label: 'The solar panels', jobs: ['solar'] },
-  { id: 'sofabed', icon: '🛋️', label: 'Making up the sofa bed', jobs: ['sofabed'] },
-  { id: 'dragon', icon: '🦎', get label() { return `${possessive('girl')} bearded dragon`; }, jobs: ['feedDragon', 'playDragon', 'cleanDragon'] },
-];
 const CHORE_IDS = CHORES.map(c => c.id);
 /** Who usually does a chore (rules.js). */
 export const usualDoers = id => [...(POOL_RULES.find(r => r.id === CHORES.find(c => c.id === id).jobs[0]).who || [])];
