@@ -9,6 +9,7 @@ import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
 import { NAMES, possessive, their } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
+import { spot } from '../pack/spots.js';
 import { makeCharacter, animateWalk } from '../characters/character.js';
 import { specFor } from '../characters/looks.js';
 import { dressUp, undress } from '../characters/costumes.js';
@@ -25,7 +26,7 @@ export const BED = {
   sofa: { girl: { level: 0, at: [1.1, 1.8], seat: [0.55, 0.42, 1.8, Math.PI / 2] },
           boy: { level: 0, at: [1.1, 2.75], seat: [0.55, 0.42, 2.75, Math.PI / 2] } },
   bathDoor: [3.875, 6.55],                                                // on the landing, outside the bathroom
-  shower: { at: [4.7, 7.85], spot: [5.2, 0, 8.5, 0] },
+  shower: { at: spot('shower').at, spot: spot('shower').seat },
   basin: { at: [4.6, 7.22], spot: [4.78, 0, 7.22, Math.PI / 2] },
   bathroom: [4.3, 7.45],                                                  // where you hand over the pyjamas
   story: { at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2],         // on the edge of the first-floor room's daybed
@@ -42,8 +43,8 @@ export const BED = {
 // and wardrobe are whoever sleeps in the first-floor room's)
 export const SEARCH = {
   pyjamas: [{ at: [4.25, 3.55], place: [4.5, 0.62, 3.6], name: 'the laundry hamper' }, { at: [1.25, 6.4], place: [0.6, 0.47, 6.3], get name() { return `the end of ${possessive(kidIn('first'))} bed`; } },
-            { at: [2.35, 1.9], place: [2.0, 0.55, 1.9], name: 'the big bed' }],
-  hide: [{ at: [2.3, 6.95], get name() { return `in ${possessive(kidIn('first'))} wardrobe`; } }, { at: [4.7, 7.85], name: 'behind the shower curtain' },
+            { at: spot('bigBed').at, place: [2.0, 0.55, 1.9], name: 'the big bed' }],
+  hide: [{ at: [2.3, 6.95], get name() { return `in ${possessive(kidIn('first'))} wardrobe`; } }, { at: spot('shower').at, name: 'behind the shower curtain' },
          { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], get name() { return `under ${possessive(kidIn('first'))} bed`; } }],
 };
 export { NAMES };   // (the players' names, names.js)

@@ -11,6 +11,7 @@ import { add, mat } from '../core/build.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { XMAS } from '../world/christmas.js';
 import { trailScenes } from '../elf.js';
+import { spot } from './spots.js';
 
 
 const group = build => { const g = new THREE.Group(); build(g); return g; };
@@ -132,14 +133,14 @@ export const ELF_SCENES = [
   { id: 'marshmallowFight', title: name => `${name} and the teddies have had a marshmallow snowball fight`,
     hint: ["Squeaky giggles upstairs…", "…where the teddies are!"],   // where's the elf? (systems/elf.js)
     memory: () => "Remember my marshmallow snowball fight with the teddies? The teddies won.",   // his goodbye note (the elf says goodbye)
-    elf: { at: [2.35, 1.9], place: [1.7, 0.55, 2.6], level: 1, rotY: -Math.PI / 2 },
+    elf: { at: spot('bigBed').at, place: [1.7, 0.55, 2.6], level: 1, rotY: -Math.PI / 2 },
     props: () => [
       group(g => [['#a0703c', 1.0], ['#d9c3a0', 1.6], ['#7a5230', 2.2]].forEach(([c, z]) => teddy(g, c, [1.0, 0.55, z]))),
       group(g => { for (let i = 0; i < 12; i++) box(g, [0.035, 0.03, 0.035], '#fdf6f0', [1.2 + (i % 4) * 0.25, 0.565, 1.2 + Math.floor(i / 4) * 0.45], [0, i, 0]); }),
     ],
     tidy: () => [
-      { kind: 'use', level: 1, at: [2.35, 1.9], label: 'Pick up the marshmallows', onDone: c => c.elf.clear(1) },
-      { kind: 'use', level: 1, at: [2.35, 1.9], label: 'Sit the teddies back up', onDone: c => c.elf.clear(0) }],
+      { kind: 'use', level: 1, at: spot('bigBed').at, label: 'Pick up the marshmallows', onDone: c => c.elf.clear(1) },
+      { kind: 'use', level: 1, at: spot('bigBed').at, label: 'Sit the teddies back up', onDone: c => c.elf.clear(0) }],
   },
 ];
 

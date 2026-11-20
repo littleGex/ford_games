@@ -1,6 +1,6 @@
 // Offline support: everything the game needs is cached on first visit.
 // Bump CACHE_NAME whenever any file changes so phones pick up the new version.
-const CACHE_NAME = 'house-cache-v76';
+const CACHE_NAME = 'house-cache-v77';
 const urlsToCache = [
   './',
   './index.html',
@@ -27,6 +27,7 @@ const urlsToCache = [
   './js/pack/elfspots.js',
   './js/pack/fridgefood.js',
   './js/pack/family.js',
+  './js/pack/spots.js',
   './js/advent.js',
   './js/elf.js',
   './js/familyserver.js',

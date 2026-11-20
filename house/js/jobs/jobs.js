@@ -13,6 +13,7 @@ import { rulesFor } from './rules.js';
 import { nameOf, possessive, grownUpNames, grownUpsPossessive } from '../names.js';
 import { kidIn, roomFor, roomOf } from '../pack/kidrooms.js';
 import { deskOf, pageAt } from '../pack/workdesks.js';
+import { spot } from '../pack/spots.js';
 import { FOOD_DELIVERY } from '../config.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { HALLOWEEN as HW } from '../world/halloween.js';
@@ -84,11 +85,11 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     { id: 'dishes', title: 'Wash the dishes', steps: [
       { kind: 'pick', item: 'plates', label: 'Collect the plates from the table' },
       { kind: 'drop', item: 'plates', at: [5.32, 0.75], place: [5.33, 0.9, 0.65], label: 'Put them in the sink' },
-      { kind: 'sit', stand: true, at: [5.0, 0.95], seat: [4.78, 0, 0.95, Math.PI / 2], dur: 15, what: 'Washing up', label: 'Wash up',
+      { kind: 'sit', stand: true, at: spot('kitchenSink').at, seat: [4.78, 0, 0.95, Math.PI / 2], dur: 15, what: 'Washing up', label: 'Wash up',
         onDone: c => c.items.plates.position.set(4.82, 0.96, 0.3) }],
       tidy: c => c.items.plates.position.set(4.82, 0.96, 0.3) },
     { id: 'coffee', title: 'Make a coffee', steps: [
-      { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 10, what: 'Making coffee', label: 'Make a coffee at the machine',
+      { kind: 'sit', stand: true, power: true, fx: 'steam', at: spot('coffeeMachine').at, seat: spot('coffeeMachine').seat, dur: 10, what: 'Making coffee', label: 'Make a coffee at the machine',
         onDone: c => { c.items.mug.visible = true; } },
       { kind: 'pick', item: 'mug', label: 'Take the coffee' },
       // Mum and Dad drink it themselves on the sofa, then the mug goes in the sink; P and Dude take it to the dining table for them
@@ -109,7 +110,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     // order it; for P and Dude it's already ordered, they just answer the door when it comes.
     { id: 'shopping', title: grownUp ? 'Order the food shopping' : 'The food delivery', steps: [
       ...(grownUp ? [
-        { kind: 'use', at: [3.95, 3.4], label: "Check what's in the fridge", onDone: c => c.hud.toast('Running low on milk, fruit and veg') },
+        { kind: 'use', at: spot('fridge').at, label: "Check what's in the fridge", onDone: c => c.hud.toast('Running low on milk, fruit and veg') },
         { kind: 'pick', item: 'phone', label: 'Pick up your phone' },
         { kind: 'sit', at: [0.6, 3.0], seat: [0.55, 0.42, 3.0, Math.PI / 2], dur: 10, what: 'Ordering the food', label: 'Sit on the sofa and order the food' },
         { kind: 'drop', item: 'phone', home: true, label: 'Put your phone back on the side table' },
@@ -117,9 +118,9 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'wait', delivery: 'food', dur: grownUp ? FOOD_DELIVERY.afterOrder : FOOD_DELIVERY.kidsWait, label: 'Wait for the food delivery',
         doneMessage: 'Ding-dong! The food delivery is here' },
       { kind: 'pick', item: 'shopping', at: FOOD_DELIVERY.door, label: 'Answer the door and take the shopping' },
-      { kind: 'drop', item: 'shopping', at: [3.95, 3.4], place: [4.2, 0, 3.05], label: 'Put it down by the fridge' },
+      { kind: 'drop', item: 'shopping', at: spot('fridge').at, place: [4.2, 0, 3.05], label: 'Put it down by the fridge' },
       // fill the fridge (#166, ui/fridge.js): each food in its place, with why
-      { kind: 'fridge', at: [3.95, 3.4], label: 'Put the food away', onDone: c => { c.items.shopping.getObjectByName('food').visible = false; } }],
+      { kind: 'fridge', at: spot('fridge').at, label: 'Put the food away', onDone: c => { c.items.shopping.getObjectByName('food').visible = false; } }],
       tidy: c => { c.items.shopping.visible = false; } },
 
     // Flur, WC, under the stairs
@@ -225,7 +226,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
 
     // Obergeschoss (level: 1 on everything that happens upstairs; pick steps follow the item)
     { id: 'beds', title: 'Make the beds', steps: [
-      { kind: 'use', level: 1, at: [2.35, 1.9], label: 'Make the big bed', onDone: c => c.world.bigBed.make() },
+      { kind: 'use', level: 1, at: spot('bigBed').at, label: 'Make the big bed', onDone: c => c.world.bigBed.make() },
       ...['first', 'attic'].map(room => { const b = roomFor(kidIn(room)).bed;   // whoever sleeps in each room
         return { kind: 'use', level: roomFor(kidIn(room)).level, at: b.at, label: `Make ${possessive(kidIn(room))} bed`, onDone: c => c.world[b.handle].make() }; })],
       setup: c => { c.world.bigBed.mess(); c.world.daybed.mess(); c.world.dudeBed.mess(); },
@@ -243,7 +244,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
     { id: 'homework', title: 'Do your homework', steps: [   // P and Dude only, each at their own spot
       { kind: 'sit', dur: 30, what: 'Doing homework', ...deskFor(character) }] },
     { id: 'shower', title: 'Have a shower', steps: [
-      { kind: 'sit', stand: true, level: 1, fx: 'shower', at: [4.7, 7.85], seat: [5.2, 0, 8.5, 0], dur: 15, what: 'Showering', label: 'Have a shower' }] },
+      { kind: 'sit', stand: true, level: 1, fx: 'shower', at: spot('shower').at, seat: spot('shower').seat, dur: 15, what: 'Showering', label: 'Have a shower' }] },
     { id: 'towel', title: 'Hang up the towel', steps: [
       { kind: 'pick', item: 'towel', label: 'Pick up the towel' },
       { kind: 'drop', item: 'towel', level: 1, at: [3.65, 7.47], place: [3.43, 0.95, 7.47], rot: Math.PI / 2, label: 'Hang it on the towel radiator' }] },
@@ -334,7 +335,7 @@ export function createJobs({ binPair = 0, binsBack = null, character = 'dad', da
       { kind: 'pick', item: 'pileP', label: `Pick up ${possessive('girl')} clothes` },
       { kind: 'drop', item: 'pileP', level: roomFor('girl').level, at: roomFor('girl').wardrobe.at, place: roomFor('girl').wardrobe.clothes, label: `Put them in ${possessive('girl')} wardrobe`, onDone: c => { c.items.pileP.visible = false; } },
       { kind: 'pick', item: 'pileGrown', label: `Pick up ${grownUpsPossessive()} clothes` },
-      { kind: 'drop', item: 'pileGrown', level: 1, at: [4.0, 2.0], place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
+      { kind: 'drop', item: 'pileGrown', level: 1, at: spot('dressingWardrobe').at, place: [3.45, 0.9, 2.0], label: 'Put them in the oak wardrobe in the dressing room', onDone: c => { c.items.pileGrown.visible = false; } }],
       setup: c => { c.world.airerClothes.visible = true; }, tidy: () => {} },
   ];
   const tags = [].concat(holiday || []);
