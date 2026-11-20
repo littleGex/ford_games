@@ -5,12 +5,13 @@
 //
 // The same goes for how each player is talked about (she, he or they: "her bed", "his teeth", "their iPad") and
 // who's in the family at all: a family with one grown-up leaves Mum or Dad out (players.js keeps both).
-export const DEFAULT_NAMES = { dad: 'Dad', mum: 'Mum', girl: 'P', boy: 'Dude' };
+// The Ford family's own defaults (names, pronouns, who's a grown-up) are house data: pack/family.js.
+import { DEFAULT_NAMES, DEFAULT_PRONOUNS, GROWN_UPS } from './pack/family.js';
+export { DEFAULT_NAMES, DEFAULT_PRONOUNS, GROWN_UPS };
+
 export const NAME_MAX = 16;
 
 export const PRONOUNS = ['she', 'he', 'they'];
-export const DEFAULT_PRONOUNS = { dad: 'he', mum: 'she', girl: 'she', boy: 'he' };
-export const GROWN_UPS = ['dad', 'mum'];
 const THEIR = { she: 'her', he: 'his', they: 'their' };
 
 let source = () => null, pronounSource = () => null, awaySource = () => false;
