@@ -9,16 +9,11 @@ import { add, group, mat } from '../core/build.js';
 import { dingDong, music } from '../core/audio.js';
 import { makeCharacter } from '../characters/character.js';
 import { charMat as M } from '../characters/character.js';
+import { BD, BALLOON_SPOTS, BANNER_AT } from '../pack/birthday.js';
+import { DOORSTEP } from '../pack/spots.js';
 
 export { NAMES };   // (the players' names, names.js)
-// Where things happen, plan coordinates [x, z] (ground floor)
-export const BD = {
-  table: { at: [2.5, 7.0], seat: [2.5, 0, 6.95, -Math.PI / 2], cake: [1.45, 0.75, 6.85] },   // standing at the dining table
-  sofa: { at: [0.6, 3.0], seat: [0.55, 0.42, 3.0, Math.PI / 2] },                              // blowing up balloons
-  banner: [0.45, 5.85],                                                                        // by the grey wall in the dining room
-  presents: [[1.2, 0.75, 7.55], [1.65, 0.75, 7.75], [1.3, 0.75, 7.95], [1.7, 0.75, 7.3]],     // on the table (the fourth: Grandma and Grandpa's)
-  door: [3.92, 9.3],
-};
+export { BD };      // (where things happen, pack/birthday.js)
 // What's in the presents (made up): three for whoever's birthday it is
 export const GIFTS = {
   girl: ['a book all about bearded dragons', 'a box of glitter pens', 'roller-skate knee pads'],
@@ -67,7 +62,7 @@ const GRANDMA = { scale: 0.92, skin: '#f1d1ba', pants: '#5a4f6e', shoes: '#4a3a2
   hair: h => { const m = M('#e4e4e2'); add(h, new THREE.SphereGeometry(0.228, 28, 16, 0, Math.PI * 2, 0, Math.PI * 0.36), m, [0, 0.01, -0.005], [1, 1.08, 1]); add(h, new THREE.SphereGeometry(0.11, 16, 12), m, [0, 0.17, -0.15]); } };
 const GRANDPA = { scale: 0.97, skin: '#e3b796', pants: '#3a3d42', shoes: '#2b2016', brow: '#d0d0ce', topMat: M('#3f6a3b'),
   hair: h => { const m = M('#d6d6d4'); add(h, new THREE.SphereGeometry(0.226, 28, 16, Math.PI * 1.5 - 1.6, 3.2, Math.PI * 0.22, Math.PI * 0.32), m, [0, 0, -0.015], [1, 1.04, 1]); } };
-const STREET = [[3.92, 13.1], [3.92, 12.2]], AT_DOOR = [[3.72, 9.95], [4.12, 9.95]];
+const STREET = DOORSTEP.street, AT_DOOR = DOORSTEP.atDoor;
 
 export function createBirthday({ stage, items, board, hud, players }) {
   const scene = stage.scene;
@@ -77,7 +72,7 @@ export function createBirthday({ stage, items, board, hud, players }) {
   // balloons: bunches of three on strings, tied down by the sofa and in the dining-room corners
   const balloons = new THREE.Group(); all.add(balloons);
   const BALLOON = ['#e84a5f', '#f2c81c', '#3b7fc4', '#3fa36b', '#8e5bd6', '#f08a24'];
-  [[0.3, 0.35], [0.28, 8.55], [3.0, 8.55], [3.0, 0.4]].forEach(([x, z], b) => {
+  BALLOON_SPOTS.forEach(([x, z], b) => {
     add(balloons, new THREE.SphereGeometry(0.035, 8, 6), mat('#555a62'), [x, 0.035, z]);   // the weight
     [[-0.12, 1.75, 0.02], [0.1, 1.85, -0.06], [0.0, 1.6, 0.1]].forEach(([dx, y, dz], k) => {
       add(balloons, new THREE.SphereGeometry(0.13, 16, 12), new THREE.MeshStandardMaterial({ color: BALLOON[(b * 3 + k) % 6], roughness: 0.25 }), [x + dx, y, z + dz], [1, 1.2, 1]);
@@ -88,7 +83,7 @@ export function createBirthday({ stage, items, board, hud, players }) {
   // the banner on the grey wall of the dining room, above the posters, with the birthday person's name
   const banner = new THREE.Group(); all.add(banner);
   const bannerMat = new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide, alphaTest: 0.1 });
-  add(banner, new THREE.PlaneGeometry(1.8, 0.25), bannerMat, [0.045, 1.25, 7.1], null, [0, Math.PI / 2, 0]);
+  add(banner, new THREE.PlaneGeometry(1.8, 0.25), bannerMat, BANNER_AT, null, [0, Math.PI / 2, 0]);
   function paintBanner(name) {
     const c = document.createElement('canvas');
     if (!c.getContext) return;
