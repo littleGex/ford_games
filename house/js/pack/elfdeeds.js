@@ -5,8 +5,9 @@
 import { nameOf } from '../names.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { XMAS } from '../world/christmas.js';
+import { spot } from './spots.js';
 
-const FRIDGE = [3.95, 3.4];
+const FRIDGE = spot('fridge').at;
 
 export const ELF_DEEDS = [
   { id: 'bed', label: () => 'Make your bed',
@@ -40,7 +41,7 @@ export const ELF_DEEDS = [
       { kind: 'use', at: [1.75, 7.3], label: 'Put out the knives and forks' }] },
   { id: 'tea', person: 'grownUp', label: (who, p = 'mum') => `Make ${nameOf(p)} a cup of tea`,
     steps: (who, kid, p = 'mum') => [
-      { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 8, what: 'Making tea', label: `Make ${nameOf(p)} a cup of tea`,
+      { kind: 'sit', stand: true, power: true, fx: 'steam', at: spot('coffeeMachine').at, seat: spot('coffeeMachine').seat, dur: 8, what: 'Making tea', label: `Make ${nameOf(p)} a cup of tea`,
         onDone: c => { c.items.mug.visible = true; } },
       { kind: 'pick', item: 'mug', label: 'Take the tea' },
       { kind: 'drop', item: 'mug', at: [1.75, 7.3], place: [1.65, 0.76, 7.3], label: `Take it to the dining table for ${nameOf(p)}` }] },

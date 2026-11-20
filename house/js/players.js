@@ -6,16 +6,10 @@
 
 import { GROWN_UPS, PRONOUNS, cleanName, useNames } from './names.js';
 import { today as todayDate } from './holidays.js';
+import { DEFAULT_LOOKS, DEFAULT_STAGE } from './pack/family.js';
+export { DEFAULT_LOOKS, DEFAULT_STAGE };   // the family's own looks are house data (pack/family.js)
 
 export const PLAYER_KEYS = ['dad', 'mum', 'girl', 'boy'];
-// how the family looks by default (the figures are built from a look in characters/looks.js)
-export const DEFAULT_LOOKS = {
-  dad: { skin: '#d8a382', hair: 'bald', hairColor: '#2a1f18', top: 'own', pants: '#202329', shoes: '#16171b', glasses: false, beard: true },   // bald with a dark beard
-  mum: { skin: '#f1d1ba', hair: 'shoulder', hairColor: '#e2c27c', top: 'own', pants: '#4a6a9c', shoes: '#f2f2f2', glasses: false, beard: false },
-  girl: { skin: '#f1d1ba', hair: 'long', hairColor: '#9b7452', top: 'own', pants: '#1c1e25', shoes: '#f2eef2', glasses: false, beard: false },
-  boy: { skin: '#f5d6c1', hair: 'swept', hairColor: '#7a5434', top: 'own', pants: '#2d3037', shoes: '#3a3d45', glasses: false, beard: false },
-};
-export const DEFAULT_STAGE = { dad: 'adult', mum: 'adult', girl: 'child', boy: 'child' };
 // the hair styles (characters/looks.js builds them), for checking looks that come in a share link
 export const HAIR_STYLES = ['long', 'shoulder', 'ponytail', 'bun', 'swept', 'short', 'spiky', 'beanie', 'bald'];
 const KEY = 'fordHouse.players.v1';
