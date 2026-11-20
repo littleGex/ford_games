@@ -10,6 +10,15 @@ pull request; at release time that section becomes the new version (see "Releasi
 
 ## [Unreleased]
 
+## [4.26.1] - 2026-11-20
+
+### Changed
+- Ford House: behind the scenes, the house's own content is moving into `house/js/pack/` so the game engine can
+  one day run other houses (#110). Shared places now have names (`pack/spots.js`, #186); the family's defaults
+  (`pack/family.js`, #188), the item definitions (`pack/items.js`, #189), the job list and job rules
+  (`pack/jobs.js`, `pack/rules.js`, #187) and the bedtime, birthday and delivery places (#190) live in the pack.
+  Nothing changes for players.
+
 ## [4.26.0] - 2026-11-19
 
 ### Added
@@ -544,7 +553,8 @@ Merged to `main` (#29) but not tagged.
 ### Added
 - First release: a dice roller with shake to roll.
 
-[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.26.0...HEAD
+[Unreleased]: https://github.com/littleGex/ford_games/compare/v4.26.1...HEAD
+[4.26.1]: https://github.com/littleGex/ford_games/compare/v4.26.0...v4.26.1
 [4.26.0]: https://github.com/littleGex/ford_games/compare/v4.25.0...v4.26.0
 [4.25.0]: https://github.com/littleGex/ford_games/compare/v4.24.0...v4.25.0
 [4.24.0]: https://github.com/littleGex/ford_games/compare/v4.23.0...v4.24.0
