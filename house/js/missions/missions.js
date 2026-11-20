@@ -24,6 +24,7 @@ import { S } from '../state.js';
 import { NAMES, nameOf, possessive, their, inFamily } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
 import { deskOf, pageAt } from '../pack/workdesks.js';
+import { spot as houseSpot } from '../pack/spots.js';   // (`spot` is the name the missions use for where you start)
 import { resetItems } from '../items.js';
 import { FOOD_DELIVERY, REACH } from '../config.js';
 import { PRINTER } from '../world/rooms/wohnzimmer.js';
@@ -80,8 +81,8 @@ const deskStep = (who, kind, dur, what, label, extra = {}) => {
 const hm = h => h * 60;   // hours to minutes since midnight
 // coffee, snacks and the loo at home, at Dad's office and at Mum's office (true still means Dad's office)
 const BREAKS = {
-  home: { coffee: { kind: 'sit', stand: true, power: true, fx: 'steam', at: [3.95, 0.95], seat: [4.22, 0, 0.95, -Math.PI / 2], dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee' },
-          fridge: { at: [3.95, 3.4] } },
+  home: { coffee: { kind: 'sit', stand: true, power: true, fx: 'steam', at: houseSpot('coffeeMachine').at, seat: houseSpot('coffeeMachine').seat, dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee' },
+          fridge: { at: houseSpot('fridge').at } },
   dad: { coffee: { kind: 'sit', stand: true, at: OFFICE.coffee.at, seat: OFFICE.coffee.seat, dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee in the kitchen' },
          fridge: { at: OFFICE.fridge }, loo: { at: OFFICE.toilet } },
   mum: { coffee: { kind: 'sit', stand: true, level: 1, at: MUM.coffee.at, seat: MUM.coffee.seat, dur: 5, what: 'Making a coffee', label: 'Make yourself a coffee in the kitchen' },
@@ -333,9 +334,9 @@ export const MISSIONS = {
     intro: 'Get up and ready: your first meeting is at 9:00',
     setup(c) { c.world.bigBed.mess(); },
     jobs: (spot, who) => [
-      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: [2.35, 1.9], label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
-      { title: 'Have a shower', steps: [{ kind: 'sit', stand: true, level: 1, fx: 'shower', at: [4.7, 7.85], seat: [5.2, 0, 8.5, 0], dur: 10, what: 'Showering', label: 'Have a shower' }] },
-      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2], dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
+      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: houseSpot('bigBed').at, label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
+      { title: 'Have a shower', steps: [{ kind: 'sit', stand: true, level: 1, fx: 'shower', at: houseSpot('shower').at, seat: houseSpot('shower').seat, dur: 10, what: 'Showering', label: 'Have a shower' }] },
+      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: houseSpot('dressingWardrobe').at, seat: houseSpot('dressingWardrobe').seat, dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
       { title: 'Have breakfast', steps: [{ kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 8, what: 'Having breakfast', label: 'Sit down and have breakfast' }] },
       // the working day: all of these at once, in any order
       [
@@ -345,7 +346,7 @@ export const MISSIONS = {
         { key: 'lunch', title: 'Lunch (from 12:00)', steps: [
           { kind: 'use', at: [4.3, 1.6], notBefore: hm(12), label: 'Make a sandwich in the kitchen' },
           { kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 10, what: 'Eating lunch', label: 'Sit down and eat your lunch' }] },
-        { key: 'water', title: 'Drink a glass of water', steps: [{ kind: 'use', at: [5.0, 0.95], label: 'Pour a glass of water at the sink and drink it' }] },
+        { key: 'water', title: 'Drink a glass of water', steps: [{ kind: 'use', at: houseSpot('kitchenSink').at, label: 'Pour a glass of water at the sink and drink it' }] },
         { key: 'meet14', due: hm(14), title: 'Project meeting at 14:00', steps: [deskStep(who, 'meeting', 15, 'In the project meeting', 'Sit at your desk and join the project meeting', { notBefore: hm(13.5) })] },
         { key: 'code', title: who === 'dad' ? 'Write some code' : 'Do the spreadsheets', steps: [deskStep(who, 'code', 18, 'Working', 'Sit at your desk and get some work done')] },
         coffeeJob(), snackJob(),
@@ -371,8 +372,8 @@ export const MISSIONS = {
     intro: 'Get ready and cycle to the office: your meeting with the boss is at 10:00',
     setup(c) { c.world.bigBed.mess(); },
     jobs: () => [
-      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: [2.35, 1.9], label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
-      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2], dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
+      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: houseSpot('bigBed').at, label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
+      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: houseSpot('dressingWardrobe').at, seat: houseSpot('dressingWardrobe').seat, dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
       { title: 'Have breakfast', steps: [{ kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 6, what: 'Having breakfast', label: 'Sit down and have breakfast' }] },
       { title: 'Cycle to work', steps: [
         { kind: 'pick', item: 'dadBike', label: 'Take your bike from the terrace' },
@@ -426,8 +427,8 @@ export const MISSIONS = {
     intro: 'Drive to the office: your team meeting is at 10:00',
     setup(c) { c.world.bigBed.mess(); c.world.mumGate.close(); c.world.mumCar.visible = false; },
     jobs: () => [
-      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: [2.35, 1.9], label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
-      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2], dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
+      { title: 'Get up', steps: [{ kind: 'use', level: 1, at: houseSpot('bigBed').at, label: 'Get out of bed', onDone: c => c.world.bigBed.make() }] },
+      { title: 'Get dressed', steps: [{ kind: 'sit', stand: true, level: 1, at: houseSpot('dressingWardrobe').at, seat: houseSpot('dressingWardrobe').seat, dur: 5, what: 'Getting dressed', label: 'Get dressed at the oak wardrobe' }] },
       { title: 'Have breakfast', steps: [{ kind: 'sit', at: [2.45, 7.2], seat: [2.15, 0.45, 7.2, -Math.PI / 2], dur: 6, what: 'Having breakfast', label: 'Sit down and have breakfast' }] },
       { title: 'Drive to work', steps: [{ kind: 'use', at: [0.6, 13.25], label: 'Get in the car and drive to work', onDone: c => c.missions.travel('mumOffice') }] },
       { title: 'Cross the road', steps: [{ kind: 'use', at: MUM.zebra, label: 'Cross the road on the zebra crossing', onDone: c => c.hud.toast('Look left, look right... and across!') }] },
