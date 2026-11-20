@@ -9,9 +9,10 @@ import { makeCharacter } from '../characters/character.js';
 import { dressUp } from '../characters/costumes.js';
 import { NEIGHBOURS, TRICK_OR_TREATERS } from '../characters/family.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
+import { DOORSTEP } from '../pack/spots.js';
 
-const STREET = [[3.92, 13.1], [3.92, 12.2]];          // up the path from the pavement
-const AT_DOOR = [[3.72, 9.95], [4.12, 9.95]];          // two kids side by side on the step
+const STREET = DOORSTEP.street;                        // up the path from the pavement
+const AT_DOOR = DOORSTEP.atDoor;                       // two kids side by side on the step
 const SPEED = 1.4;
 const GREETINGS = ['"Trick or treat!"', '"Happy Halloween! Trick or treat!"'];
 
@@ -138,7 +139,7 @@ export function createHalloween({ stage, world, items, board, hud, player }) {
     knock(side) {
       const n = neighbours[side], [x] = NEIGHBOUR_HOUSES[side].step;
       Object.values(neighbours).forEach(o => { o.root.visible = false; });
-      n.root.position.set(x, 0, 9.5); n.root.rotation.y = 0; n.root.visible = true;
+      n.root.position.set(x, 0, DOORSTEP.neighbourDoorZ); n.root.rotation.y = 0; n.root.visible = true;
       doorOpen = { side, left: 5 };
       dingDong();
       const what = { witch: 'a witch', vampire: 'a vampire', ghost: 'a ghost', cat: 'a black cat', pumpkin: 'a pumpkin' }[player.costume] || 'a trick-or-treater';

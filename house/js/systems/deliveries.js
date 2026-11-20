@@ -8,23 +8,26 @@
 // - The food shopping (jobs.js) is ordered on the phone; when its wait is nearly over a small white electric
 //   delivery van pulls up and the driver brings the bag to the door and waits till you take it.
 import * as THREE from 'three';
-import { EVENTS, FOOD_DELIVERY } from '../config.js';
+import { EVENTS } from '../config.js';
 import { S, rand } from '../state.js';
 import { add, castShadows, group, mat } from '../core/build.js';
 import { dingDong } from '../core/audio.js';
 import { makeCharacter } from '../characters/character.js';
 import { COURIER, FOOD_DRIVER, NEIGHBOURS } from '../characters/family.js';
 import { NEIGHBOUR_HOUSES } from '../world/outside/neighbours.js';
+import { DELIVERY as D } from '../pack/deliveries.js';
+import { DOORSTEP, spot } from '../pack/spots.js';
 
-const VAN_SPOT = new THREE.Vector3(4.6, 0, 13.3);
-const DOOR_SPOT = new THREE.Vector3(3.92, 0, 9.85);
-const LETTERBOX = [3.02, 9.33];
-const HALL_SHELF = [3.7, 4.6];          // where the neighbours' parcel waits (ours goes by the stairs)
-const OPEN_DOOR = [3.92, 9.3];          // standing in the open front door, to talk to a neighbour on the step
-const STREET_Z = 12.1;                  // the neighbours walk round by the pavement
-const GAP = 70;
-const FOOD_VAN = [-3.4, 15.0];          // the food van parks up the street, past our car
-const FOOD_WALK = [[-2.0, 13.3], [3.7, 13.0], [3.7, 12.3], FOOD_DELIVERY.door];                         // seconds between two drivers on the same day
+// the places are in the house pack (pack/deliveries.js, pack/spots.js)
+const VAN_SPOT = new THREE.Vector3(...D.vanSpot);
+const DOOR_SPOT = new THREE.Vector3(...D.doorSpot);
+const LETTERBOX = spot('letterbox').at;
+const HALL_SHELF = D.hallShelf;         // where the neighbours' parcel waits (ours goes by the stairs)
+const OPEN_DOOR = spot('frontDoor').at; // standing in the open front door, to talk to a neighbour on the step
+const STREET_Z = D.streetZ;             // the neighbours walk round by the pavement
+const GAP = 70;                         // seconds between two drivers on the same day
+const FOOD_VAN = D.foodVan;             // the food van parks up the street, past our car
+const FOOD_WALK = D.foodWalk;
 
 /** A figure that walks between points: the driver, the neighbours. */
 function walker(spec, scene) {
@@ -61,7 +64,7 @@ export function createDeliveries({ stage, items, board, hud }) {
   const driver = walker(COURIER, stage.scene);
   const neighbours = { left: walker(NEIGHBOURS.left, stage.scene), right: walker(NEIGHBOURS.right, stage.scene) };
 
-  const van = group(6.6, 0, 15.0); van.visible = false;
+  const van = group(...D.vanPark); van.visible = false;
   add(van, new THREE.BoxGeometry(4.6, 1.6, 1.9), mat('#f4f4f4'), [0, 1.05, 0]);
   add(van, new THREE.BoxGeometry(4.62, 0.18, 1.92), mat('#3b6fb0'), [0, 0.85, 0]);
   add(van, new THREE.BoxGeometry(0.5, 0.6, 1.86), mat('#2a3340'), [-2.1, 1.45, 0]);
@@ -88,10 +91,10 @@ export function createDeliveries({ stage, items, board, hud }) {
   // shopping (the supermarket van, up the street), the 3D printer filament and the elf's parcel (a parcel courier).
   const pathTime = (from, path) => { let d = 0, p = from; for (const q of path) { d += Math.hypot(q[0] - p[0], q[1] - p[1]); p = q; } return d / 1.6 + 0.5; };
   const ORDERS = {
-    food: { item: 'shopping', who: foodDriver, van: foodVan, from: [FOOD_VAN[0] + 1.4, 13.6], path: FOOD_WALK, bye: 'Enjoy your food, bye!',
+    food: { item: 'shopping', who: foodDriver, van: foodVan, from: D.foodVanDriver, path: FOOD_WALK, bye: 'Enjoy your food, bye!',
             prep: it => { it.getObjectByName('food').visible = true; } },
-    filament: { item: 'filamentBox', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: [[3.7, 12.3], FOOD_DELIVERY.door], bye: 'Here you go, happy printing!' },
-    elfParcel: { item: 'elfParcel', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: [[3.7, 12.3], FOOD_DELIVERY.door], bye: 'Special delivery from the North Pole!' },
+    filament: { item: 'filamentBox', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: D.courierWalk, bye: 'Here you go, happy printing!' },
+    elfParcel: { item: 'elfParcel', who: orderCourier, van, from: [VAN_SPOT.x, VAN_SPOT.z], path: D.courierWalk, bye: 'Special delivery from the North Pole!' },
   };
   Object.values(ORDERS).forEach(o => { o.state = 'gone'; o.time = pathTime(o.from, o.path); });
   const waitingFor = kind => board.jobs.find(j => { const s = board.step(j); return s && s.kind === 'wait' && s.delivery === kind; });
@@ -154,7 +157,7 @@ export function createDeliveries({ stage, items, board, hud }) {
   }
 
   /** A neighbour's front door: where they stand in the doorway, facing the street. */
-  const doorway = side => [NEIGHBOUR_HOUSES[side].step[0], 9.5];
+  const doorway = side => [NEIGHBOUR_HOUSES[side].step[0], DOORSTEP.neighbourDoorZ];
 
   /** Start of a day: roll today's deliveries. */
   function reset(time) {
@@ -197,7 +200,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       { kind: 'drop', item: 'neighbourParcel', at: OPEN_DOOR, place: [DOOR_SPOT.x, 0.68, DOOR_SPOT.z - 0.3], label: 'Give them the parcel', onDone: handOver },
     ] : [
       { kind: 'pick', item: 'neighbourParcel', label: 'Pick up their parcel from the hall' },
-      { kind: 'drop', item: 'neighbourParcel', at: house.step, place: [house.step[0], 0.68, 9.8], label: `Take it next door, ${side(r.side)}`, onDone: handOver },
+      { kind: 'drop', item: 'neighbourParcel', at: house.step, place: [house.step[0], 0.68, D.neighbourParcelZ], label: `Take it next door, ${side(r.side)}`, onDone: handOver },
     ];
     nb = { side: r.side, comes: r.comes, who: neighbours[r.side], state: 'away' };
     nb.job = board.add({ id: 'neighbourParcel', title: `Parcel for ${name}`, event: true, steps: [
@@ -259,7 +262,7 @@ export function createDeliveries({ stage, items, board, hud }) {
       postDone = true; items.post.visible = true;
       board.add({ id: 'post', title: 'Empty the letterbox', event: true, steps: [
         { kind: 'pick', item: 'post', at: LETTERBOX, label: 'Take out the post' },
-        { kind: 'drop', item: 'post', at: [1.75, 7.6], place: [1.65, 0.76, 7.6], label: 'Put the post on the table' }] });
+        { kind: 'drop', item: 'post', ...D.post, label: 'Put the post on the table' }] });
       hud.toast('The post has arrived');
     }
     if (state === 'gone' && runs.length && time > runs[0].at) {
@@ -280,7 +283,7 @@ export function createDeliveries({ stage, items, board, hud }) {
         parcelJob = run.item === 'parcel'
           ? board.add({ id: 'parcel', title: 'Get the parcel from the door', event: true, steps: [
             { kind: 'pick', item: 'parcel', at: [DOOR_SPOT.x, DOOR_SPOT.z], label: 'Take the parcel' },
-            { kind: 'drop', item: 'parcel', at: [3.75, 5.9], place: [3.75, 0, 5.9], label: 'Put the parcel in the hall' }] })
+            { kind: 'drop', item: 'parcel', ...D.parcel, label: 'Put the parcel in the hall' }] })
           : neighbourJob(run);
       }
     } else if (state === 'wait') {
@@ -299,7 +302,7 @@ export function createDeliveries({ stage, items, board, hud }) {
           parcelJob.title = 'Missed parcel: get the card'; parcelJob.i = 0;
           parcelJob.steps = [
             { kind: 'pick', item: 'card', at: LETTERBOX, label: 'Take the card' },
-            { kind: 'drop', item: 'card', at: [1.75, 7.85], place: [1.6, 0.76, 7.9], label: 'Put the card on the table' }];
+            { kind: 'drop', item: 'card', ...D.card, label: 'Put the card on the table' }];
           board.refresh();
           hud.toast('Too slow! The driver left a card in the letterbox');
         }

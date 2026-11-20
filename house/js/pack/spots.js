@@ -12,6 +12,17 @@ export const SPOTS = {
   dressingWardrobe: { level: 1, at: [4.0, 2.0], seat: [4.0, 0, 2.0, -Math.PI / 2] },
   shower: { level: 1, at: [4.7, 7.85], seat: [5.2, 0, 8.5, 0] },
   kitchenSink: { level: 0, at: [5.0, 0.95] },
+  frontDoor: { level: 0, at: [3.92, 9.3] },     // standing in the open front door (birthday guests, the neighbours)
+  letterbox: { level: 0, at: [3.02, 9.33] },
+};
+
+// Visitors walking up to our front door (Grandma and Grandpa, trick-or-treaters): up the path from the
+// pavement, then two of them side by side on the step. A neighbour answers their own door standing at z
+// neighbourDoorZ (their step's x is in world/outside/neighbours.js).
+export const DOORSTEP = {
+  street: [[3.92, 13.1], [3.92, 12.2]],
+  atDoor: [[3.72, 9.95], [4.12, 9.95]],
+  neighbourDoorZ: 9.5,
 };
 
 /** A shared place by name; throws on a name that isn't in SPOTS. */

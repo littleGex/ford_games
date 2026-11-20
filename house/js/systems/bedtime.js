@@ -5,11 +5,10 @@
 // behind, up and down the stairs. Steps put them somewhere for a while (in the shower, at the basin, in bed),
 // and trouble takes them off on their own (a dance party, back on the iPad, hiding).
 import * as THREE from 'three';
-import { LEVEL_HEIGHT } from '../config.js';
 import { S } from '../state.js';
 import { NAMES, possessive, their } from '../names.js';
 import { kidIn, roomFor } from '../pack/kidrooms.js';
-import { spot } from '../pack/spots.js';
+import { BEDTIME_PLACES as P, SEARCH_PLACES as SP, BEDTIME_LIGHTS } from '../pack/bedtime.js';
 import { makeCharacter, animateWalk } from '../characters/character.js';
 import { specFor } from '../characters/looks.js';
 import { dressUp, undress } from '../characters/costumes.js';
@@ -20,32 +19,22 @@ import { blocked } from '../core/collision.js';
 /** { girl, boy } worked out each time from the child's key (where they sleep can change). */
 const byKid = fn => ({ get girl() { return fn('girl'); }, get boy() { return fn('boy'); } });
 
-// Where things happen at bedtime, plan coordinates [x, z]. level: the floor (0 ground, 1 first, 2 attic).
-// Spots where a child stands, sits or lies: [x, y, z, facing].
+// Where things happen at bedtime (the places are in pack/bedtime.js). level: the floor (0 ground, 1 first, 2 attic).
 export const BED = {
-  sofa: { girl: { level: 0, at: [1.1, 1.8], seat: [0.55, 0.42, 1.8, Math.PI / 2] },
-          boy: { level: 0, at: [1.1, 2.75], seat: [0.55, 0.42, 2.75, Math.PI / 2] } },
-  bathDoor: [3.875, 6.55],                                                // on the landing, outside the bathroom
-  shower: { at: spot('shower').at, spot: spot('shower').seat },
-  basin: { at: [4.6, 7.22], spot: [4.78, 0, 7.22, Math.PI / 2] },
-  bathroom: [4.3, 7.45],                                                  // where you hand over the pyjamas
-  story: { at: [1.25, 6.9], seat: [0.75, 0.46, 6.9, Math.PI / 2],         // on the edge of the first-floor room's daybed
-           kids: { girl: [0.5, 0.46, 7.45, Math.PI / 2], boy: [0.5, 0.46, 6.35, Math.PI / 2] } },
+  ...P,
   // each child's bed, iPad spot, light switch and wardrobe: in the room they sleep in (pack/kidrooms.js)
   bed: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.at, lie: r.bedtime.lie, name: `${their(k)} bed` }; }),
   ipad: byKid(k => { const r = roomFor(k); return { level: r.level, ...r.bedtime.ipad }; }),     // back on the iPad, on their bed
   switch: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.bedtime.switch, room: k, name: `${possessive(k)} room` }; }),
   wardrobe: byKid(k => { const r = roomFor(k); return { level: r.level, at: r.wardrobe.at, name: `${their(k)} wardrobe` }; }),
-  dance: { level: 1, spot: [3.95, 0, 5.45, 0] },                          // the landing
-  terrarium: [2.3, 6.35],
 };
 // Where pyjamas that can't be found might be, and where a child might hide (all on the first floor: the daybed
 // and wardrobe are whoever sleeps in the first-floor room's)
 export const SEARCH = {
-  pyjamas: [{ at: [4.25, 3.55], place: [4.5, 0.62, 3.6], name: 'the laundry hamper' }, { at: [1.25, 6.4], place: [0.6, 0.47, 6.3], get name() { return `the end of ${possessive(kidIn('first'))} bed`; } },
-            { at: spot('bigBed').at, place: [2.0, 0.55, 1.9], name: 'the big bed' }],
-  hide: [{ at: [2.3, 6.95], get name() { return `in ${possessive(kidIn('first'))} wardrobe`; } }, { at: spot('shower').at, name: 'behind the shower curtain' },
-         { at: [2.35, 1.0], name: 'behind the bedroom curtains' }, { at: [1.25, 6.9], get name() { return `under ${possessive(kidIn('first'))} bed`; } }],
+  pyjamas: [{ ...SP.pyjamas.hamper, name: 'the laundry hamper' }, { ...SP.pyjamas.bedEnd, get name() { return `the end of ${possessive(kidIn('first'))} bed`; } },
+            { ...SP.pyjamas.bigBed, name: 'the big bed' }],
+  hide: [{ at: SP.hide.wardrobe, get name() { return `in ${possessive(kidIn('first'))} wardrobe`; } }, { at: SP.hide.shower, name: 'behind the shower curtain' },
+         { at: SP.hide.curtains, name: 'behind the bedroom curtains' }, { at: SP.hide.underBed, get name() { return `under ${possessive(kidIn('first'))} bed`; } }],
 };
 export { NAMES };   // (the players' names, names.js)
 
@@ -57,14 +46,14 @@ export const BOOKS = [
 ];
 
 const NIGHT = { sky: '#0d1530', hemi: ['#5a6a9a', '#140f0c', 0.16], moon: ['#a9bdff', 0.22] };
-// the lights that come on in the evening: world position, colour, strength, reach
+// the lights that come on in the evening: colour, strength, reach (where they hang: pack/bedtime.js)
 const LIGHTS = {
-  hall: [[3.8, 2.05, 5.6], '#ffd9a0', 1.1, 4.5],
-  stairs: [[4.45, 0.35, 6.3], '#ffc070', 0, 2.2],              // the little night light by the stairs (on at the end)
-  landing: [[3.95, LEVEL_HEIGHT + 2.05, 5.2], '#ffd9a0', 1.0, 4.5],
-  bathroom: [[4.6, LEVEL_HEIGHT + 2.05, 7.6], '#fff1d6', 1.0, 3.5],
-  girl: [[1.6, LEVEL_HEIGHT + 2.05, 7.0], '#ffcf9a', 1.1, 4.5],
-  boy: [[2.0, 2 * LEVEL_HEIGHT + 1.9, 2.8], '#ffcf9a', 1.1, 4.5],
+  hall: ['#ffd9a0', 1.1, 4.5],
+  stairs: ['#ffc070', 0, 2.2],              // the little night light by the stairs (on at the end)
+  landing: ['#ffd9a0', 1.0, 4.5],
+  bathroom: ['#fff1d6', 1.0, 3.5],
+  girl: ['#ffcf9a', 1.1, 4.5],
+  boy: ['#ffcf9a', 1.1, 4.5],
 };
 const SPEED = 2.6, GAP = { girl: 0.8, boy: 1.4 };   // how far behind you each child walks
 
@@ -148,7 +137,8 @@ export function createBedtime(ctx) {
     sun.color.set(NIGHT.moon[0]); sun.intensity = NIGHT.moon[1];
     // the lights live in the scene itself (not in the floors that hide), so the number of lights never
     // changes while you go up and down the stairs
-    for (const [name, [pos, color, strength, reach]] of Object.entries(LIGHTS)) {
+    for (const [name, [color, strength, reach]] of Object.entries(LIGHTS)) {
+      const pos = BEDTIME_LIGHTS[name];
       const l = new THREE.PointLight(color, strength, reach, 2);
       l.position.set(...pos); l.userData.on = strength; scene.add(l); lights[name] = l;
     }
