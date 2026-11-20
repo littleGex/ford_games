@@ -1,7 +1,7 @@
 // The elf's report to Father Christmas (#160, missions.js elfReport): the good deeds he can ask for. Each go deals
 // five (dealDeeds), right for the child playing and the house: a deed may be for one child only (`who`), need a
 // job group switched on (`needs`, settings.js), or be done for a grown-up (`person`: Mum if she's in the family,
-// otherwise Dad). Steps use the same spots as the everyday jobs in jobs/jobs.js; `kid` is missions.js KIDS[who].
+// otherwise Dad). Steps use the same spots as the everyday jobs in pack/jobs.js; `kid` is missions.js KIDS[who].
 import { nameOf } from '../names.js';
 import { TERRARIUM } from '../world/upstairs/kinderzimmer.js';
 import { XMAS } from '../world/christmas.js';
