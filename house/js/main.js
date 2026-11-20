@@ -7,7 +7,7 @@ import { createStage } from './core/stage.js';
 import { createInput } from './core/input.js';
 import { buildWorld } from './world/index.js';
 import { roomAt } from './world/rooms.js';
-import { createItems } from './items.js';
+import { createItems } from './pack/items.js';
 import { createPlayer } from './characters/player.js';
 import { createPlayers } from './players.js';
 import { createHud } from './ui/hud.js';
