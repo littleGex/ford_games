@@ -12,7 +12,7 @@ import { GROWN_UPS, PRONOUNS, cleanName } from './names.js';
 import { PLAYER_KEYS, HAIR_STYLES } from './players.js';
 import { useRoomSwap } from './pack/kidrooms.js';
 import { useDeskSwap } from './pack/workdesks.js';
-import { POOL_RULES, useAssignments } from './jobs/rules.js';
+import { POOL_RULES, useAssignments } from './pack/rules.js';
 import { CHORES, JOB_GROUPS } from './pack/family.js';
 export { CHORES, JOB_GROUPS };   // the family's own job groups and chores are house data (pack/family.js)
 

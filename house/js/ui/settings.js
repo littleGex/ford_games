@@ -6,7 +6,7 @@ import { S } from '../state.js';
 import { DEFAULT_NAMES, NAMES, familyKeys, inFamily, nameOf, showNames } from '../names.js';
 import { kidIn } from '../pack/kidrooms.js';
 import { WORK_DESKS, workerAt } from '../pack/workdesks.js';
-import { rulesFor } from '../jobs/rules.js';
+import { rulesFor } from '../pack/rules.js';
 import { CHORES, JOB_GROUPS, applyShare, linkCode, readShareCode, shareCode, usualDoers } from '../settings.js';
 
 export function createSettingsCard(ctx) {

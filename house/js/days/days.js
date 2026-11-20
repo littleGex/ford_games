@@ -3,7 +3,7 @@
 import { DAY_COMPLETE_DELAY } from '../config.js';
 import { S } from '../state.js';
 import { resetItems } from '../items.js';
-import { createJobs } from '../jobs/jobs.js';
+import { createJobs } from '../pack/jobs.js';
 import { planDay, personalDue, seededRandom, isFor, onHoliday } from './planner.js';
 import { currentSeason } from '../seasons.js';
 import { currentHolidays, currentBirthday, today as realToday } from '../holidays.js';
