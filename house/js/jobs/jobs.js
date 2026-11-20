@@ -5,7 +5,7 @@
 //   setup(ctx)  the job is on today's list: make it need doing (lawn grown, windows dirty...)
 //   tidy(ctx)   the job isn't on today's list, or was already done today: show it done
 // Without a tidy, items are simply moved to where the job's drop steps put them.
-// Items start each day at their home spot from items.js (the "needs doing" position).
+// Items start each day at their home spot from pack/items.js (the "needs doing" position).
 //
 // Adding a job: copy one below with a new id, add its rule to rules.js, point its steps at things in the house.
 // Pick steps don't need `at` - they use wherever the item currently is.
