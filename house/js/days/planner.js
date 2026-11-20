@@ -1,6 +1,6 @@
 // Decides which jobs come up on a given day. Pure logic, no three.js, so it can be tested in Node.
 //
-// Rules each job can have (see jobs/jobs.js):
+// Rules each job can have (see pack/jobs.js):
 //   every: N              comes round every N days (1 = daily). Never planned again before N days have passed.
 //   after: { job, days }  appears `days` days after `job` was done (bins back in the day after they went out),
 //                         and then stays on the list until it is done.
